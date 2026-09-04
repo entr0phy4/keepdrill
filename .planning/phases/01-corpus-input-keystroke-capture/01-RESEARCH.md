@@ -631,23 +631,32 @@ Not applicable — greenfield phase, no rename/refactor/migration. No pre-existi
 | A10 | The timer-resolution probe records both a measured min-`timeStamp`-delta and the per-browser expected value keyed on `crossOriginIsolated` | Pattern 3, D-16 | A naive `performance.now()`-loop probe measures call overhead, not stamp granularity → `timingResolutionUs` would be meaningless |
 | A11 | `Exercise.language` for paste is the literal `'plaintext'` (D-11 says "`'plaintext'` for paste") and the ext→lang map is small/hand-maintained (D-discretion) | Data model, upload example | Cosmetic; Phase 4 partitioning by language would be slightly off for pasted content |
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+All six were resolved during phase planning (2026-09-04). The Phase 1 plans
+(01-01 / 01-02 / 01-03) encode the choices recorded on each `RESOLVED:` line below.
 
 1. **Scaffold in-place vs temp-then-move**
    - What we know: repo root has `.planning/` + `keebdrill.md`; `pnpm create vite` wants an empty or new dir.
    - What's unclear: whether `pnpm create vite .` "merge" mode is safe here.
    - Recommendation: scaffold into a temp dir, copy `src/ index.html vite.config.ts tsconfig*.json package.json .gitignore public/` to root, `git status` before committing.
+   - RESOLVED: temp-then-move (01-01 Task 1); `.planning/` + `keebdrill.md` preserved, `git status` checked before the first commit.
 
 2. **Where the capture listeners attach — `window` vs the `<textarea>`**
    - Recommendation: `keydown`/`keyup`/`beforeinput`/`input` on the textarea (focus-scoped, avoids logging global browser shortcuts and events fired while the corpus-input box has focus); `blur`/`visibilitychange` on `window`. D-discretion allows the planner to choose.
+   - RESOLVED: `keydown`/`keyup` + `beforeinput`/`input` on the capture `<textarea>`; `blur`/`focus`/`visibilitychange` on `window`/`document` (01-03).
 
 3. **Timer-resolution probe method** — see A10. Recommend measured + expected, stored together.
+   - RESOLVED: measured smallest non-zero `event.timeStamp` delta + per-browser expected value keyed on `crossOriginIsolated`, combined into the figure stored on `Session.timingResolutionUs` (01-03, assumption A10).
 
 4. **Deploy target for the walking skeleton** — must support custom response headers (Netlify / Vercel / Cloudflare Pages) or use `coi-serviceworker`. Not GitHub Pages. Pick before the deploy task.
+   - RESOLVED: moot for Phase 1 per D-15 — COOP/COEP headers set in `vite.config.ts` (`server` + `preview`) plus a README production-host note (01-03); the skeleton verifies isolation against local `pnpm preview` (01-01 Task 2), and there is no deploy task in this phase.
 
 5. **`blur`/visibility markers: `KeystrokeEvent` variant or `Session`-level list?** (A7) — D-12's `type` is `'keydown' | 'keyup'` only, so markers likely belong at the `Session` level or in a sibling log. Planner to decide; it affects the Phase 2 state machine's input shape.
+   - RESOLVED: a separate `CaptureMarker` list at the `Session` level (01-03), not a `KeystrokeEvent` variant — D-12's `type` union is left untouched.
 
 6. **Does `Session.startedAt` (D-14) start at session construction or first keystroke?** D-14 just says `startedAt`; PITFALLS.md #10 and Phase 2 TYPE-06 want the *clock* to start on first keystroke. Recommend `startedAt` = wall-clock construction time for display, and let Phase 2 derive elapsed from the first `KeystrokeEvent.tMs`.
+   - RESOLVED: `startedAt = Date.now()` is display-only session-construction metadata (01-01); session timing (Phase 2) starts from the first keystroke's `tMs`.
 
 ## Sources
 
