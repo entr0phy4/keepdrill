@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 01
 current_phase_name: Corpus Input & Keystroke Capture
 status: executing
-stopped_at: Completed 01-01-PLAN.md
-last_updated: "2026-09-04T11:57:00.317Z"
+stopped_at: Completed 01-02-PLAN.md
+last_updated: "2026-09-04T12:06:01.463Z"
 last_activity: 2026-09-04
 last_activity_desc: Phase 01 execution started
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-09-03)
 ## Current Position
 
 Phase: 01 (Corpus Input & Keystroke Capture) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-09-04 — Phase 01 execution started
 
-Progress: [███░░░░░░░] 33%
+Progress: [███████░░░] 67%
 
 ## Performance Metrics
 
@@ -59,6 +59,7 @@ Progress: [███░░░░░░░] 33%
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 01 P01-01 | 14 | 3 tasks | 30 files |
+| Phase 01 P01-02 | 12 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -71,6 +72,8 @@ Recent decisions affecting current work:
 - [Roadmap]: Research recommends a local-first browser SPA (Vite + React + TypeScript), no backend — platform architecture decision to confirm at Phase 1 planning.
 - [Roadmap]: Free-correction typing policy recommended for v1 — to be confirmed at the start of Phase 2.
 - [Phase ?]: Phase 1 platform locked: Vite 8 + React 19 + TS 5.9 strict browser SPA, pnpm, no backend (D-01); pure-core / platform-seam / hot-path module split established
+- [Phase ?]: [Phase 01-02]: Ingestion errors thrown as typed classes (CorpusTooLargeError/NonUtf8Error) and mapped to fixed inline copy at the UI edge — no toast/stack trace
+- [Phase ?]: [Phase 01-02]: File upload guards run pre-read (100 KB cap) then a 2-byte UTF-16 BOM sniff before File.text(); U+FFFD scan after — non-UTF-8 rejected, not transcoded (A5/A6)
 
 ### Pending Todos
 
@@ -96,6 +99,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-04T11:56:54.796Z
-Stopped at: Completed 01-01-PLAN.md
+Last session: 2026-09-04T12:05:53.553Z
+Stopped at: Completed 01-02-PLAN.md
 Resume file: None
