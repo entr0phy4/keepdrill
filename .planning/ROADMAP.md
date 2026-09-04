@@ -29,7 +29,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Loaded content is normalized before display (CRLF becomes LF, configurable tab width, trailing whitespace stripped, single trailing newline) and the normalizer has passing unit tests.
   4. While the user types, committed characters are captured via `input`/`beforeinput` (no blanket `preventDefault`) and every keydown/keyup is recorded with a monotonic high-resolution `event.timeStamp`, with OS key-repeat events ignored.
   5. The full raw keystroke log (seq, key, code, modifiers, timestamp, isRepeat) is retained as the session's single source of truth; the app verifies `crossOriginIsolated === true`, records the achieved timer resolution with the session, and shows a "US ANSI layout only" notice.
-**Plans**: TBD
+**Plans**: 3 plans (2 waves)
+- [ ] 01-01-PLAN.md — Walking skeleton: scaffold + end-to-end tracer (paste → normalize → inert preview → focused capture `<textarea>` → append-only KeystrokeEvent[]) served cross-origin-isolated; + SKELETON.md
+- [ ] 01-02-PLAN.md — Corpus file upload: `File.text()` → size + UTF-8 guards → typed errors → `Exercise{sourceType:'upload'}`; all CorpusInput empty/error/loading states
+- [ ] 01-03-PLAN.md — Full capture semantics: `beforeinput`/`input` char stream, key-repeat + blur/visibility hardening, IME, paste-block flag, both chrome banners, README host/privacy posture
 
 ### Phase 2: Interactive Typing Trainer
 **Goal**: The user can type a loaded exercise with live per-character feedback and natural editing under a free-correction policy, with honest session timing.
@@ -65,6 +68,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Corpus Input & Keystroke Capture | 0/TBD | Not started | - |
+| 1. Corpus Input & Keystroke Capture | 0/3 | Not started | - |
 | 2. Interactive Typing Trainer | 0/TBD | Not started | - |
 | 3. Session Metrics | 0/TBD | Not started | - |
