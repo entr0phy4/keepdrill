@@ -1,0 +1,220 @@
+/* keebdrill — greenfield token foundation (01-UI-SPEC.md).
+   Hand-rolled CSS custom properties. No component library, no third-party
+   assets (COEP require-corp). System-monospace stack, light + dark via
+   prefers-color-scheme with no manual toggle in Phase 1. */
+
+:root {
+  /* Spacing scale — multiples of 4 only */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+
+  /* Typography */
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Menlo,
+    Consolas, "Liberation Mono", monospace;
+
+  --text-body-size: 15px;
+  --text-body-weight: 400;
+  --text-body-line: 1.5;
+
+  --text-label-size: 13px;
+  --text-label-weight: 600;
+  --text-label-line: 1.4;
+
+  --text-heading-size: 20px;
+  --text-heading-weight: 600;
+  --text-heading-line: 1.3;
+
+  --text-display-size: 28px;
+  --text-display-weight: 600;
+  --text-display-line: 1.2;
+
+  /* Layout */
+  --column-max: 45rem;
+
+  /* Motion */
+  --motion-duration: 150ms;
+
+  /* Color — light (default) */
+  --color-bg: #fafaf9;
+  --color-surface: #efeeec;
+  --color-border: #d6d5d1;
+  --color-text: #1c1c1a;
+  --color-text-muted: #5c5c57;
+  --color-accent: #1a7f37;
+  --color-accent-text-on: #ffffff;
+  --color-destructive: #c0362c;
+  --color-warning-surface: #fff8c5;
+  --color-warning-text: #7a5c00;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #0d1117;
+    --color-surface: #161b22;
+    --color-border: #30363d;
+    --color-text: #e6edf3;
+    --color-text-muted: #8b949e;
+    --color-accent: #3fb950;
+    --color-accent-text-on: #0d1117;
+    --color-destructive: #f85149;
+    --color-warning-surface: #272115;
+    --color-warning-text: #d29922;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: var(--text-body-size);
+  font-weight: var(--text-body-weight);
+  line-height: var(--text-body-line);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  max-width: var(--column-max);
+  margin: 0 auto;
+  padding: var(--space-lg);
+}
+
+@media (min-width: 640px) {
+  #root {
+    padding: var(--space-xl) var(--space-lg);
+  }
+}
+
+/* Typography roles */
+.text-label {
+  font-size: var(--text-label-size);
+  font-weight: var(--text-label-weight);
+  line-height: var(--text-label-line);
+}
+
+h1,
+.text-display {
+  font-size: var(--text-display-size);
+  font-weight: var(--text-display-weight);
+  line-height: var(--text-display-line);
+  margin: 0;
+}
+
+h2,
+.text-heading {
+  font-size: var(--text-heading-size);
+  font-weight: var(--text-heading-weight);
+  line-height: var(--text-heading-line);
+  margin: 0;
+}
+
+.text-muted {
+  color: var(--color-text-muted);
+}
+
+/* Focus ring — never removed (Interaction Contract) */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Interactive controls — 44px min hit target via padding + line-height */
+button,
+.control {
+  font-family: inherit;
+  font-size: var(--text-body-size);
+  min-height: 44px;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+button.primary {
+  background: var(--color-accent);
+  color: var(--color-accent-text-on);
+  border-color: var(--color-accent);
+  font-weight: 600;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+textarea {
+  font-family: inherit;
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: var(--space-md);
+  width: 100%;
+  resize: vertical;
+}
+
+/* Exercise preview — bounded scroll container, no wrap (UI-SPEC backstop) */
+.preview {
+  max-height: 40vh;
+  overflow: auto;
+  white-space: pre;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: var(--space-md);
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line);
+}
+
+/* Banners — reserve space from first paint, full column width */
+.banner {
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  border-left: 3px solid var(--color-border);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: 4px;
+}
+
+.banner--warning {
+  background: var(--color-warning-surface);
+  color: var(--color-warning-text);
+  border-left-color: var(--color-warning-text);
+}
+
+.banner-lead {
+  font-size: var(--text-label-size);
+  font-weight: var(--text-label-weight);
+}
+
+/* Motion — only focus ring + banner fades, capped at 150ms */
+@media (prefers-reduced-motion: no-preference) {
+  .banner {
+    transition: opacity var(--motion-duration) ease;
+  }
+  button,
+  textarea {
+    transition:
+      border-color var(--motion-duration) ease,
+      outline-color var(--motion-duration) ease;
+  }
+}

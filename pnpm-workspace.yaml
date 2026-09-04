@@ -1,0 +1,8 @@
+# Single-package repo. This file pins pnpm's build-script allowlist so installs
+# are deterministic and non-interactive (pnpm >= 10 blocks postinstall scripts by
+# default).
+packages: []
+minimumReleaseAgeExclude:
+  - happy-dom@20.14.0
+onlyBuiltDependencies:
+  - esbuild
