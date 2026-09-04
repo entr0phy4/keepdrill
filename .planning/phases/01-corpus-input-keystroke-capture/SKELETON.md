@@ -8,10 +8,11 @@
 A user pastes code or text into the browser, chooses **Load exercise**, sees it
 normalized and rendered as inert, selectable text in a `<pre>` preview, and every
 `keydown` / `keyup` they type into the focused capture `<textarea>` is appended to
-an in-memory, high-resolution, append-only `KeystrokeEvent[]` — with the dev
-server confirmed cross-origin-isolated (`crossOriginIsolated === true`, COOP/COEP
-headers on the HTML document) and the achieved timer resolution recorded on the
-`Session`.
+an in-memory, high-resolution, append-only `KeystrokeEvent[]` — served
+cross-origin-isolated (COOP `same-origin` + COEP `require-corp` verified on the
+HTML document response of `pnpm preview` via `curl -I`; `crossOriginIsolated ===
+true` and `Session.crossOriginIsolated` read at startup in the running app) with
+the achieved timer resolution recorded on the `Session`.
 
 No file upload, no metrics, no trainer, no persistence — just proof the whole
 pipe runs on the architecture the rest of the project inherits.
@@ -38,7 +39,7 @@ pipe runs on the architecture the rest of the project inherits.
 - [x] Routing — single page, no router (one screen in v1)
 - [x] "Data layer" — in-memory append-only `KeystrokeEvent[]` (one real write per keystroke) + `getEvents()` read; `Exercise` state write on Load; `Session` composition read
 - [x] UI — paste box + **Load exercise** button wired to `normalize()` → `Exercise`; focused capture `<textarea>` wired to the capture module
-- [x] Deployment — `pnpm dev` serving cross-origin-isolated, verified by `curl -I` (both COOP/COEP headers on the HTML doc) and by `crossOriginIsolated === true` in the running app
+- [x] Deployment — `pnpm dev` and `pnpm preview` both configured to serve cross-origin-isolated (independent `server.headers` + `preview.headers` in `vite.config.ts`); verified by `curl -I` against `pnpm preview` (both COOP `same-origin` + COEP `require-corp` on the HTML doc) — `crossOriginIsolated === true` in the running app is read into `Session.crossOriginIsolated` at startup
 
 ## Out of Scope (Deferred to Later Slices)
 
