@@ -7,6 +7,7 @@ keebdrill v1 is a hard serial chain that delivers exactly one loop: paste or upl
 ## Phases
 
 **Phase Numbering:**
+
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
@@ -19,45 +20,59 @@ Decimal phases appear between their surrounding integers in numeric order.
 ## Phase Details
 
 ### Phase 1: Corpus Input & Keystroke Capture
+
 **Goal**: The app loads real code or text as a typing-ready exercise and records every keystroke as a high-resolution, append-only event log that all later metrics derive from.
 **Mode:** mvp
 **Depends on**: Nothing (first phase)
 **Requirements**: INPUT-01, INPUT-02, INPUT-03, CAPT-01, CAPT-02, CAPT-03, CAPT-04, CAPT-05
 **Success Criteria** (what must be TRUE):
+
   1. User can paste a code snippet into the app and see it loaded as the exercise source.
   2. User can upload a local file and see its contents loaded as the exercise source.
   3. Loaded content is normalized before display (CRLF becomes LF, configurable tab width, trailing whitespace stripped, single trailing newline) and the normalizer has passing unit tests.
   4. While the user types, committed characters are captured via `input`/`beforeinput` (no blanket `preventDefault`) and every keydown/keyup is recorded with a monotonic high-resolution `event.timeStamp`, with OS key-repeat events ignored.
   5. The full raw keystroke log (seq, key, code, modifiers, timestamp, isRepeat) is retained as the session's single source of truth; the app verifies `crossOriginIsolated === true`, records the achieved timer resolution with the session, and shows a "US ANSI layout only" notice.
+
 **Plans**: 3 plans (2 waves)
+**Wave 1**
+
 - [ ] 01-01-PLAN.md — Walking skeleton: scaffold + end-to-end tracer (paste → normalize → inert preview → focused capture `<textarea>` → append-only KeystrokeEvent[]) served cross-origin-isolated; + SKELETON.md
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 01-02-PLAN.md — Corpus file upload: `File.text()` → size + UTF-8 guards → typed errors → `Exercise{sourceType:'upload'}`; all CorpusInput empty/error/loading states
 - [ ] 01-03-PLAN.md — Full capture semantics: `beforeinput`/`input` char stream, key-repeat + blur/visibility hardening, IME, paste-block flag, both chrome banners, README host/privacy posture
 
 ### Phase 2: Interactive Typing Trainer
+
 **Goal**: The user can type a loaded exercise with live per-character feedback and natural editing under a free-correction policy, with honest session timing.
 **Mode:** mvp
 **Depends on**: Phase 1
 **Requirements**: TYPE-01, TYPE-02, TYPE-03, TYPE-04, TYPE-05, TYPE-06
 **Success Criteria** (what must be TRUE):
+
   1. User sees the exercise text with a caret and live per-character coloring (correct / incorrect / pending) that updates while typing.
   2. User can advance past a mistyped character without fixing it, and both corrected and uncorrected errors are tracked separately.
   3. User can press backspace to return to and correct earlier characters.
   4. Whitespace characters (spaces, tabs, newlines) render as visible glyphs and must be typed explicitly to advance.
   5. User can restart the current exercise (content preserved, all session state reset); session timing starts on the first keystroke, pauses while the window is blurred or hidden, and pasting into the exercise is blocked or flagged.
+
 **Plans**: TBD
 **UI hint**: yes
 
 ### Phase 3: Session Metrics
+
 **Goal**: On finishing an exercise, the user sees trustworthy speed, accuracy, and slowest-key numbers from a pure, re-runnable metrics engine.
 **Mode:** mvp
 **Depends on**: Phase 2
 **Requirements**: METR-01, METR-02, METR-03, METR-04
 **Success Criteria** (what must be TRUE):
+
   1. On completion, user sees net WPM using the industry-standard formula (correct chars / 5 / minutes), matching Monkeytype's definition.
   2. On completion, user sees accuracy / error rate (correct keypresses / total keypresses, with corrections in the denominator).
   3. On completion, user sees the five slowest keystrokes — gated by a minimum sample count, using median/trimmed aggregation with outlier gaps (>1000ms and <25ms) discarded — or a "not enough data" message when below threshold.
   4. The metrics engine is a pure module with no I/O, re-runnable over any keystroke log; the WPM and accuracy formulas are documented in the repo, the metric schema is versioned, and golden-file unit tests pass.
+
 **Plans**: TBD
 **UI hint**: yes
 
