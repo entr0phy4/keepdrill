@@ -33,10 +33,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. While the user types, committed characters are captured via `input`/`beforeinput` (no blanket `preventDefault`) and every keydown/keyup is recorded with a monotonic high-resolution `event.timeStamp`, with OS key-repeat events ignored.
   5. The full raw keystroke log (seq, key, code, modifiers, timestamp, isRepeat) is retained as the session's single source of truth; the app verifies `crossOriginIsolated === true`, records the achieved timer resolution with the session, and shows a "US ANSI layout only" notice.
 
-**Plans**: 3 plans (2 waves)
+**Plans**: 1/3 plans executed (2 waves)
 **Wave 1**
 
-- [ ] 01-01-PLAN.md — Walking skeleton: scaffold + end-to-end tracer (paste → normalize → inert preview → focused capture `<textarea>` → append-only KeystrokeEvent[]) served cross-origin-isolated; + SKELETON.md
+- [x] 01-01-PLAN.md — Walking skeleton: scaffold + end-to-end tracer (paste → normalize → inert preview → focused capture `<textarea>` → append-only KeystrokeEvent[]) served cross-origin-isolated; + SKELETON.md
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -83,6 +83,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Corpus Input & Keystroke Capture | 0/3 | Not started | - |
+| 1. Corpus Input & Keystroke Capture | 1/3 | In Progress|  |
 | 2. Interactive Typing Trainer | 0/TBD | Not started | - |
 | 3. Session Metrics | 0/TBD | Not started | - |
