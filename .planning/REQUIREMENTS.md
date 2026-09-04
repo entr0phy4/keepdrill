@@ -86,30 +86,30 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INPUT-01 | TBD | Pending |
-| INPUT-02 | TBD | Pending |
-| INPUT-03 | TBD | Pending |
-| CAPT-01 | TBD | Pending |
-| CAPT-02 | TBD | Pending |
-| CAPT-03 | TBD | Pending |
-| CAPT-04 | TBD | Pending |
-| CAPT-05 | TBD | Pending |
-| TYPE-01 | TBD | Pending |
-| TYPE-02 | TBD | Pending |
-| TYPE-03 | TBD | Pending |
-| TYPE-04 | TBD | Pending |
-| TYPE-05 | TBD | Pending |
-| TYPE-06 | TBD | Pending |
-| METR-01 | TBD | Pending |
-| METR-02 | TBD | Pending |
-| METR-03 | TBD | Pending |
-| METR-04 | TBD | Pending |
+| INPUT-01 | Phase 1 | Pending |
+| INPUT-02 | Phase 1 | Pending |
+| INPUT-03 | Phase 1 | Pending |
+| CAPT-01 | Phase 1 | Pending |
+| CAPT-02 | Phase 1 | Pending |
+| CAPT-03 | Phase 1 | Pending |
+| CAPT-04 | Phase 1 | Pending |
+| CAPT-05 | Phase 1 | Pending |
+| TYPE-01 | Phase 2 | Pending |
+| TYPE-02 | Phase 2 | Pending |
+| TYPE-03 | Phase 2 | Pending |
+| TYPE-04 | Phase 2 | Pending |
+| TYPE-05 | Phase 2 | Pending |
+| TYPE-06 | Phase 2 | Pending |
+| METR-01 | Phase 3 | Pending |
+| METR-02 | Phase 3 | Pending |
+| METR-03 | Phase 3 | Pending |
+| METR-04 | Phase 3 | Pending |
 
 **Coverage:**
 - v1 requirements: 18 total
-- Mapped to phases: 0 (roadmap pending)
-- Unmapped: 18 ⚠️
+- Mapped to phases: 18
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-09-03*
-*Last updated: 2026-09-03 after initial definition*
+*Last updated: 2026-09-03 after roadmap creation (3 phases, 18/18 mapped)*
