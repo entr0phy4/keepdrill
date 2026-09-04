@@ -12,8 +12,10 @@ function textFile(contents: string, name = 'snippet.txt'): File {
   return new File([contents], name, { type: 'text/plain' })
 }
 
-function bytesFile(bytes: Uint8Array, name = 'snippet.txt'): File {
-  return new File([bytes], name, { type: 'application/octet-stream' })
+function bytesFile(bytes: number[], name = 'snippet.txt'): File {
+  return new File([new Uint8Array(bytes).buffer as ArrayBuffer], name, {
+    type: 'application/octet-stream',
+  })
 }
 
 describe('fromFile', () => {
@@ -47,13 +49,13 @@ describe('fromFile', () => {
   })
 
   it('rejects a UTF-16 LE BOM file with NonUtf8Error', async () => {
-    const file = bytesFile(new Uint8Array([0xff, 0xfe, 0x41, 0x00]), 'utf16le.txt')
+    const file = bytesFile([0xff, 0xfe, 0x41, 0x00], 'utf16le.txt')
     await expect(fromFile(file)).rejects.toBeInstanceOf(NonUtf8Error)
     await expect(fromFile(file)).rejects.toMatchObject({ fileName: 'utf16le.txt' })
   })
 
   it('rejects a UTF-16 BE BOM file with NonUtf8Error', async () => {
-    const file = bytesFile(new Uint8Array([0xfe, 0xff, 0x00, 0x41]), 'utf16be.txt')
+    const file = bytesFile([0xfe, 0xff, 0x00, 0x41], 'utf16be.txt')
     await expect(fromFile(file)).rejects.toBeInstanceOf(NonUtf8Error)
   })
 
