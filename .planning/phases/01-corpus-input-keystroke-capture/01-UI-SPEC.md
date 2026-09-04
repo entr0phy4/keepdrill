@@ -1,10 +1,11 @@
 ---
 phase: 1
 slug: corpus-input-keystroke-capture
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-09-04
+reviewed_at: 2026-09-04
 ---
 
 # Phase 1 — UI Design Contract
@@ -139,6 +140,7 @@ Accent is **never** used for body text, headings, links, the US-ANSI notice bann
 | File field label | Or upload a file |
 | File picker button | Choose file |
 | Selected-file caption | Loaded from `{filename}` |
+| Load button — busy state | Loading… |
 | Capture surface label | Type here |
 | Capture surface placeholder | (empty — no placeholder; a blinking caret is the only affordance) |
 | Timer-resolution readout | Timer resolution: `{n}` µs |
@@ -152,22 +154,36 @@ Voice: plain, second person, no exclamation points except none. Never blames the
 
 ## UI Considerations
 
-> Shape-rooted UI *state* coverage. Empty-state and error-state COPY live in `## Copywriting Contract` above; this section covers state coverage and references those rows.
+> Shape-rooted UI *state* coverage (state analog of the spec-phase edge probe). Empty-state
+> and error-state COPY live in `## Copywriting Contract` above; this section covers STATE
+> coverage and references those rows. Probe run post-verification (`--auto`): 8 surfaces
+> (E1 paste box, E2 file upload, E3 Load button, E4 preview, E5 capture textarea, E6 US-ANSI
+> notice, E7 degraded-timing warning, E8 timer readout). Resolved: **9 explicit, 3 backstop,
+> 0 unresolved.** The planner MUST lift each row below into a plan's `must_haves`.
 
-Applicable state considerations resolved: **6 covered, 2 backstop, 0 unresolved**
+### Resolved — explicit (lift as `must_haves.truths` strings)
 
-| Category | Element(s) | Status | Resolution / Reason |
-|----------|------------|--------|---------------------|
-| empty | exercise preview / capture surface | ✅ covered | Before load, the preview region shows the `## Copywriting Contract` "No exercise loaded" heading + body; the capture `<textarea>` is not rendered (or rendered disabled) until an `Exercise` exists. |
-| error | file upload (`upload.ts`) | ✅ covered | Non-UTF-8, over-100 KB, and empty-input errors render the three documented error strings inline beneath the file control, in `text primary` on `Warning surface`, dismissed on next successful action. No stack traces, no toast. |
-| error | paste / Load with empty input | ✅ covered | "Nothing to load yet" string renders inline beneath the Load button; button stays enabled (error on click), not silently disabled without explanation. |
-| populated | exercise preview | ✅ covered | Normalized `Exercise.text` renders in a `<pre>` (monospace 15px/1.5, `white-space: pre`) inside a `Secondary` surface with `--space-md` padding; read-only; selectable. |
-| populated | capture surface | ✅ covered | Always-focused native `<textarea>`, monospace 15px, `Secondary` surface, accent border+ring while focused, caret visible. Styled as a plain input — no per-char coloring, no glyphs, no caret overlay (those are Phase 2). |
-| loading | file read + `normalize()` | 🧪 backstop | For < 100 KB inputs the operation is effectively synchronous; the Load button enters a disabled "Loading…" state only if the transform exceeds one frame (large paste path, per 01-RESEARCH Pitfall 6). Held-out/visual UI-state test asserts the button reverts and no spinner library is added. |
-| overflow / long-text | exercise preview with large or minified corpus (up to ~100 KB / 2000 lines, single long lines) | 🧪 backstop | Preview is a scroll container: `max-height: 40vh`, `overflow: auto`, `white-space: pre` (horizontal scroll for long lines, no wrap). Page layout must not shift when a large corpus loads. Visual UI-state test with a 2000-line and a single-10k-char-line fixture. |
-| multiple simultaneous | both banners visible at once | ✅ covered | US-ANSI notice and degraded-timing warning stack vertically with `--space-sm` between, warning above notice (more urgent first), both full-column-width, above the input group. Neither is dismissible in Phase 1. |
+- Before an exercise is loaded, the preview region shows the "No exercise loaded" heading + body copy and the capture `<textarea>` (E5) is not rendered.
+- After a successful load, the normalized `Exercise.text` renders in a read-only, selectable `<pre>` (monospace 15px/1.5, `white-space: pre`) on a Secondary surface with `--space-md` padding.
+- After a successful load, the capture `<textarea>` (E5) renders as a plain native input on a Secondary surface with an accent border + focus ring while focused and a visible caret — no per-character coloring, no whitespace glyphs, no caret overlay.
+- A non-UTF-8 upload renders the "This file isn't UTF-8 text" error string inline beneath the file control (E2); no stack trace, no toast.
+- An upload over 100 KB renders the "This file is over 100 KB" error string inline beneath the file control (E2); the exercise is not loaded.
+- Choosing **Load exercise** (E3) with both the paste box and file input empty renders the "Nothing to load yet" error string inline beneath the button; the button stays enabled.
+- The US-ANSI notice banner (E6) always renders — neutral surface, muted text, neutral left border — full column width above the input group; it is not dismissible in Phase 1.
+- The degraded-timing warning banner (E7) renders only when `crossOriginIsolated !== true`, using the Warning token set, and is not dismissible in Phase 1.
+- When both banners are visible they stack vertically with `--space-sm` between them, warning (E7) above notice (E6), and occupy their space from first paint so loading an exercise causes no layout shift of the controls above the preview.
 
-Not applicable: `zero-one-many` (exactly one exercise at a time), `partial` (no partial-data view in this phase).
+### Resolved — backstop (lift as `must_haves` flat scalars `{ statement, verification: backstop }`)
+
+- statement: For inputs under 100 KB the load is synchronous; the **Load exercise** button enters a disabled "Loading…" state only when the normalize transform exceeds one animation frame, and always reverts afterward with no spinner library added. — verification: backstop
+- statement: The exercise preview (E4) is a scroll container (`max-height: 40vh`, `overflow: auto`, `white-space: pre`) that horizontally scrolls long/minified lines without wrapping and does not reflow the page when a ~100 KB / 2000-line corpus loads. — verification: backstop
+- statement: The timer-resolution readout (E8) renders the measured value as muted meta text on one line and never wraps or pushes adjacent layout regardless of the µs magnitude. — verification: backstop
+
+### Not applicable
+
+- `zero-one-many` — exactly one exercise at a time in Phase 1.
+- `partial` — no partial-data view; an exercise either loads whole or errors.
+- `empty` / `loading` / `error` / `overflow` / `long-text` on the static banners (E6, E7) and the timer readout (E8) beyond the backstop above — these surfaces have no data-driven states.
 
 ---
 
@@ -195,11 +211,11 @@ No shadcn, no third-party registries, no external component blocks. If a future 
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** APPROVED (gsd-ui-checker, 2026-09-04) — one non-blocking note: add the `Loading…` button-state label to the Copywriting Contract table.
