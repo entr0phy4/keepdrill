@@ -1,5 +1,13 @@
 import { beforeEach, describe, it, expect } from 'vitest'
-import { attachCapture, detachCapture, getEvents, resetCapture } from './capture'
+import {
+  attachCapture,
+  detachCapture,
+  getCharLog,
+  getEvents,
+  getMarkers,
+  resetCapture,
+  setPasteBlockedHandler,
+} from './capture'
 
 // happy-dom. Capture-correctness proofs for the walking skeleton — these lock the
 // CAPT-01 / CAPT-02 / CAPT-03 edge behaviors. Plan 01-03 adds beforeinput /
@@ -17,6 +25,34 @@ function trustedKeyEvent(type: string, init: Partial<KeyboardEventInit> = {}, tM
 
 function press(el: HTMLElement, type: 'keydown' | 'keyup', init: Partial<KeyboardEventInit> = {}, tMs?: number) {
   el.dispatchEvent(trustedKeyEvent(type, init, tMs))
+}
+
+function trustedInputEvent(type: string, init: InputEventInit = {}): InputEvent {
+  const evt = new InputEvent(type, { bubbles: true, cancelable: true, ...init })
+  Object.defineProperty(evt, 'isTrusted', { value: true, configurable: true })
+  return evt
+}
+
+function beforeInput(el: HTMLElement, init: InputEventInit = {}): InputEvent {
+  const evt = trustedInputEvent('beforeinput', init)
+  el.dispatchEvent(evt)
+  return evt
+}
+
+function inputEvt(el: HTMLElement, init: InputEventInit = {}): InputEvent {
+  const evt = trustedInputEvent('input', init)
+  el.dispatchEvent(evt)
+  return evt
+}
+
+function trustedCompositionEvent(type: string, data: string): CompositionEvent {
+  const evt = new CompositionEvent(type, { data, bubbles: true })
+  Object.defineProperty(evt, 'isTrusted', { value: true, configurable: true })
+  // happy-dom's CompositionEvent does not implement `.data` from the init dict
+  // (RESEARCH A8) — set it directly so the test exercises the real-browser
+  // contract (a genuine CompositionEvent always carries `.data`).
+  Object.defineProperty(evt, 'data', { value: data, configurable: true })
+  return evt
 }
 
 let target: HTMLElement
@@ -153,5 +189,156 @@ describe('capture — read-only exposure (D-13)', () => {
     }).toThrow()
     // The live buffer is unaffected by anything a caller does to a snapshot.
     expect(getEvents()).toHaveLength(1)
+  })
+
+  it('getCharLog() result cannot be mutated by callers', () => {
+    attachCapture(target)
+    beforeInput(target, { inputType: 'insertText', data: 'a' })
+
+    const snapshot = getCharLog()
+    expect(Object.isFrozen(snapshot)).toBe(true)
+    expect(() => {
+      ;(snapshot as unknown as unknown[]).push({})
+    }).toThrow()
+    expect(getCharLog()).toHaveLength(1)
+  })
+})
+
+describe('capture — logical keystroke count excludes repeats (CAPT-02)', () => {
+  it('a held key is recorded three times but a logical-keystroke count sees one', () => {
+    attachCapture(target)
+    press(target, 'keydown', { code: 'KeyJ' })
+    press(target, 'keydown', { code: 'KeyJ', repeat: true })
+    press(target, 'keydown', { code: 'KeyJ', repeat: true })
+
+    const events = getEvents()
+    expect(events).toHaveLength(3)
+    const logicalCount = events.filter((e) => e.type === 'keydown' && !e.isRepeat).length
+    expect(logicalCount).toBe(1)
+  })
+})
+
+describe('capture — blur / visibilitychange clear the down-set (PITFALLS #3, A7)', () => {
+  it('window blur clears downCodes and records a blur marker, so the same code is not misflagged after alt-tab', () => {
+    attachCapture(target)
+    press(target, 'keydown', { code: 'KeyX' })
+    window.dispatchEvent(new Event('blur'))
+    press(target, 'keydown', { code: 'KeyX' })
+
+    const downs = getEvents().filter((e) => e.code === 'KeyX' && e.type === 'keydown')
+    expect(downs[0]?.isRepeat).toBe(false)
+    expect(downs[1]?.isRepeat).toBe(false)
+    expect(getMarkers().some((m) => m.kind === 'blur')).toBe(true)
+  })
+
+  it('visibilitychange -> hidden clears downCodes and records a hidden marker', () => {
+    attachCapture(target)
+    press(target, 'keydown', { code: 'KeyY' })
+    Object.defineProperty(document, 'hidden', { value: true, configurable: true })
+    document.dispatchEvent(new Event('visibilitychange'))
+    Object.defineProperty(document, 'hidden', { value: false, configurable: true })
+    press(target, 'keydown', { code: 'KeyY' })
+
+    const downs = getEvents().filter((e) => e.code === 'KeyY' && e.type === 'keydown')
+    expect(downs[1]?.isRepeat).toBe(false)
+    expect(getMarkers().some((m) => m.kind === 'hidden')).toBe(true)
+  })
+
+  it('window focus and visibilitychange -> visible record their markers', () => {
+    attachCapture(target)
+    window.dispatchEvent(new Event('focus'))
+    document.dispatchEvent(new Event('visibilitychange'))
+
+    const kinds = getMarkers().map((m) => m.kind)
+    expect(kinds).toContain('focus')
+    expect(kinds).toContain('visible')
+  })
+})
+
+describe('capture — committed-character stream (CAPT-04, Pitfall 9)', () => {
+  it('an insertText beforeinput records one CommittedChar and leaves the timing log untouched', () => {
+    attachCapture(target)
+    const before = getEvents().length
+
+    beforeInput(target, { inputType: 'insertText', data: 'a' })
+
+    const chars = getCharLog()
+    expect(chars).toHaveLength(1)
+    expect(chars[0]).toMatchObject({ seq: expect.any(Number), inputType: 'insertText', data: 'a' })
+    expect(getEvents()).toHaveLength(before)
+  })
+
+  it('insertLineBreak is recorded with data "\\n" per the inputType mapping table', () => {
+    attachCapture(target)
+    beforeInput(target, { inputType: 'insertLineBreak', data: null })
+    expect(getCharLog()[0]).toMatchObject({ inputType: 'insertLineBreak', data: '\n' })
+  })
+
+  it('deleteContentBackward is recorded as a deletion with null data', () => {
+    attachCapture(target)
+    beforeInput(target, { inputType: 'deleteContentBackward' })
+    expect(getCharLog()[0]).toMatchObject({ inputType: 'deleteContentBackward', data: null })
+  })
+
+  it('onInput backfills a deletion from the value diff when beforeinput was skipped (Firefox delete edge)', () => {
+    attachCapture(target)
+    const textarea = target as HTMLTextAreaElement
+    textarea.value = 'ab'
+    inputEvt(target)
+    textarea.value = 'a'
+    inputEvt(target)
+
+    const chars = getCharLog()
+    expect(chars).toHaveLength(1)
+    expect(chars[0]).toMatchObject({ inputType: 'deleteContentBackward', data: null })
+  })
+})
+
+describe('capture — paste/drop blocked in the capture surface (CAPT-04, T-01-08, D-04)', () => {
+  it('insertFromPaste is prevented, not recorded as a CommittedChar, and fires the paste-blocked subscriber', () => {
+    attachCapture(target)
+    let fired = false
+    setPasteBlockedHandler(() => {
+      fired = true
+    })
+
+    const evt = beforeInput(target, { inputType: 'insertFromPaste' })
+
+    expect(evt.defaultPrevented).toBe(true)
+    expect(getCharLog()).toHaveLength(0)
+    expect(fired).toBe(true)
+
+    setPasteBlockedHandler(null)
+  })
+
+  it('insertFromDrop is prevented and not recorded', () => {
+    attachCapture(target)
+    const evt = beforeInput(target, { inputType: 'insertFromDrop' })
+    expect(evt.defaultPrevented).toBe(true)
+    expect(getCharLog()).toHaveLength(0)
+  })
+})
+
+describe('capture — IME composition suspends per-char attribution (Pitfall 9)', () => {
+  it('beforeinput pushes during composition are suspended; compositionend records exactly one CommittedChar', () => {
+    attachCapture(target)
+
+    target.dispatchEvent(trustedCompositionEvent('compositionstart', ''))
+    beforeInput(target, { inputType: 'insertText', data: 'に' })
+    beforeInput(target, { inputType: 'insertText', data: 'ん' })
+    target.dispatchEvent(trustedCompositionEvent('compositionend', 'ni'))
+
+    const chars = getCharLog()
+    expect(chars).toHaveLength(1)
+    expect(chars[0]).toMatchObject({ inputType: 'insertFromComposition', data: 'ni' })
+  })
+})
+
+describe('capture — empty state (CAPT-03)', () => {
+  it('idle: getEvents(), getCharLog(), getMarkers() are all empty', () => {
+    attachCapture(target)
+    expect(getEvents()).toEqual([])
+    expect(getCharLog()).toEqual([])
+    expect(getMarkers()).toEqual([])
   })
 })
