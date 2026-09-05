@@ -17,48 +17,116 @@
 // Formulas (D-01/D-02), verbatim:
 //   wpm = correctAttempts / 5 / (elapsedMs / 60000)
 //   accuracy = correctAttempts / (correctAttempts + incorrectAttempts)
+//
+// Slowest-5 aggregation (D-03/D-04, METR-03): group latency-gap samples by
+// the logical character committed (CommittedChar.data code point), discard
+// samples outside the exclusive (25ms, 1000ms) window, require >=3 samples
+// remaining POST-filter before a character is eligible, then rank by median
+// gap descending and cap at 5 entries. Do NOT group by KeyboardEvent.code
+// (D-03) and do NOT gate the minimum-sample count on raw pre-filter
+// occurrence count (Pitfall 4).
 
 import type { CommittedChar, CaptureMarker } from '../capture/types'
 import { computeActiveElapsedMs } from '../trainer/active-time'
 
 export const METRICS_SCHEMA_VERSION = 1
 
+export interface SlowestKeyEntry {
+  char: string
+  medianMs: number
+}
+
 export interface MetricsResult {
   schemaVersion: number
   wpm: number
   accuracy: number
+  slowest5: SlowestKeyEntry[]
 }
+
+const MIN_GAP_MS = 25
+const MAX_GAP_MS = 1000
+const MIN_SAMPLES = 3
 
 /** Mirrors computeTrainerState's delete/insert branching exactly (D-02), but
  *  replays every insert-branch attempt individually — including attempts
  *  later overwritten by a backspace-and-retype — rather than collapsing to
- *  one final status per position. */
+ *  one final status per position. Also accumulates per-character latency-gap
+ *  samples (D-03) — the gap between this record's tMs and the previous
+ *  record's tMs (of any type), attributed only to the LAST codepoint of a
+ *  multi-codepoint (IME) insert record (Pitfall 7). */
 function replayAttempts(
   target: string,
   charLog: readonly CommittedChar[],
-): { correctAttempts: number; incorrectAttempts: number } {
+): {
+  correctAttempts: number
+  incorrectAttempts: number
+  latencySamplesByChar: Map<string, number[]>
+} {
   let cursor = 0
   let correctAttempts = 0
   let incorrectAttempts = 0
+  const latencySamplesByChar = new Map<string, number[]>()
+  let prevTMs: number | null = null
 
   for (const rec of charLog) {
     if (rec.inputType.startsWith('delete')) {
       if (cursor > 0) cursor -= 1
+      prevTMs = rec.tMs
       continue
     }
 
-    for (const ch of rec.data ?? '') {
-      if (cursor >= target.length) break
+    const codepoints = Array.from(rec.data ?? '')
+    codepoints.forEach((ch, i) => {
+      if (cursor >= target.length) return
       if (ch === target[cursor]) {
         correctAttempts += 1
       } else {
         incorrectAttempts += 1
       }
+
+      if (i === codepoints.length - 1 && prevTMs !== null) {
+        const gap = rec.tMs - prevTMs
+        const arr = latencySamplesByChar.get(ch) ?? []
+        arr.push(gap)
+        latencySamplesByChar.set(ch, arr)
+      }
       cursor += 1
-    }
+    })
+    prevTMs = rec.tMs
   }
 
-  return { correctAttempts, incorrectAttempts }
+  return { correctAttempts, incorrectAttempts, latencySamplesByChar }
+}
+
+/** Guards samples.length === 0 -> 0 (unreachable in practice, since callers
+ *  only invoke this after the >=MIN_SAMPLES gate); every indexed read is
+ *  guarded against `undefined` for noUncheckedIndexedAccess safety, without
+ *  a non-null assertion. */
+function median(samples: readonly number[]): number {
+  if (samples.length === 0) return 0
+  const sorted = [...samples].sort((a, b) => a - b)
+  const mid = Math.floor(sorted.length / 2)
+  if (sorted.length % 2 === 0) {
+    const lo = sorted[mid - 1]
+    const hi = sorted[mid]
+    return lo !== undefined && hi !== undefined ? (lo + hi) / 2 : 0
+  }
+  const value = sorted[mid]
+  return value !== undefined ? value : 0
+}
+
+/** D-03/D-04, METR-03: filters each character's samples to the exclusive
+ *  (MIN_GAP_MS, MAX_GAP_MS) window, requires >=MIN_SAMPLES POST-filter
+ *  samples (Pitfall 4), computes the median of the survivors, sorts
+ *  descending by median, and caps the result at 5 entries. */
+function slowestFive(latencySamplesByChar: Map<string, number[]>): SlowestKeyEntry[] {
+  const eligible: SlowestKeyEntry[] = []
+  for (const [char, samples] of latencySamplesByChar) {
+    const filtered = samples.filter((gap) => gap > MIN_GAP_MS && gap < MAX_GAP_MS)
+    if (filtered.length < MIN_SAMPLES) continue
+    eligible.push({ char, medianMs: median(filtered) })
+  }
+  return eligible.sort((a, b) => b.medianMs - a.medianMs).slice(0, 5)
 }
 
 /** Guard elapsedMs <= 0 -> 0 (Pitfall 2) so a degenerate active-time never
@@ -82,11 +150,12 @@ export function computeSessionMetrics(
   now: number,
 ): MetricsResult {
   const elapsedMs = computeActiveElapsedMs(charLog, markers, now)
-  const { correctAttempts, incorrectAttempts } = replayAttempts(target, charLog)
+  const { correctAttempts, incorrectAttempts, latencySamplesByChar } = replayAttempts(target, charLog)
 
   return {
     schemaVersion: METRICS_SCHEMA_VERSION,
     wpm: computeWpm(correctAttempts, elapsedMs),
     accuracy: computeAccuracy(correctAttempts, correctAttempts + incorrectAttempts),
+    slowest5: slowestFive(latencySamplesByChar),
   }
 }
