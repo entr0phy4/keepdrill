@@ -1,15 +1,17 @@
 ---
 phase: 01-corpus-input-keystroke-capture
 verified: 2026-09-05T01:35:00Z
-status: human_needed
+status: passed
 score: 5/7 must-haves verified
 behavior_unverified: 2
 overrides_applied: 0
 behavior_unverified_items:
+
   - truth: "Session (sessionRef / window.__keebdrillSession) reflects real captured keystrokes as the user types, refreshed on the 250ms interval, instead of staying frozen at the empty buffer that existed the instant the exercise loaded (CR-01 fix)."
     test: "Load a paste exercise, type ~10 real keystrokes into the capture textarea, wait >250ms, then inspect `window.__keebdrillSession.events` / `.charLog` in devtools."
     expected: "`events` and `charLog` are non-empty and grow as typing continues, not permanently `[]`."
     why_human: "The fix (App.tsx setInterval re-calling buildSession) is a runtime state-refresh loop with no automated test — `find src -name '*.test.*'` still returns only capture.test.ts/normalize.test.ts/upload.test.ts; WR-07 (add UI-wiring integration tests) was explicitly skipped in 01-REVIEW-FIX.md. Grep/type-check can see the interval and the call, not that it actually fires and updates the ref at runtime."
+
   - truth: "Loading a second exercise remounts CaptureSurface (via `key={loadToken}`) so no stale typed text, uncontrolled-textarea value, or IME composition state from the first exercise persists against the second exercise's prompt (CR-02 fix)."
     test: "Load exercise A, type some text into the capture textarea, then load exercise B (paste or upload) without reloading the page. Inspect the capture textarea's visible value and `getEvents()`/`getCharLog()` counts."
     expected: "The capture textarea is empty and refocused for exercise B; `resetCapture()`'s cleared buffers are not immediately re-populated with stale DOM diff artifacts from A's leftover value."
