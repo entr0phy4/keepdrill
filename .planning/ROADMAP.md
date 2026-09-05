@@ -13,7 +13,7 @@ keebdrill v1 is a hard serial chain that delivers exactly one loop: paste or upl
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Corpus Input & Keystroke Capture** - Load real code/text as a typing-ready exercise and record every keystroke as a high-resolution, append-only event log
+- [x] **Phase 1: Corpus Input & Keystroke Capture** - Load real code/text as a typing-ready exercise and record every keystroke as a high-resolution, append-only event log (completed 2026-09-04)
 - [ ] **Phase 2: Interactive Typing Trainer** - Type a loaded exercise with live per-character feedback and natural editing under a free-correction policy
 - [ ] **Phase 3: Session Metrics** - On finishing an exercise, see trustworthy WPM, accuracy, and five-slowest-key numbers
 
@@ -83,6 +83,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Corpus Input & Keystroke Capture | 3/3 | In Progress|  |
+| 1. Corpus Input & Keystroke Capture | 3/3 | Complete    | 2026-09-04 |
 | 2. Interactive Typing Trainer | 0/TBD | Not started | - |
 | 3. Session Metrics | 0/TBD | Not started | - |
