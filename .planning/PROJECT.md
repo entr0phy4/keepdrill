@@ -15,6 +15,17 @@ The user can paste or upload a real code/text file, type it with keystroke
 capture, and see WPM, accuracy, and their five slowest keys. If that single loop
 is useful for a week of daily self-use, the project is worth continuing.
 
+## Current Milestone: v1.1 Persistencia y Analíticas
+
+**Goal:** Persistir cada sesión localmente y exponer analíticas de dígrafo/trígrafo, heatmap de teclado, perfil por lenguaje y WPM ajustado por símbolos, para poder medir mejora real a través del tiempo.
+
+**Target features:**
+- Persistencia de sesiones (Dexie/IndexedDB) + vista de historial (fecha, WPM, accuracy)
+- Latencia por dígrafo/trígrafo acumulada entre sesiones
+- Heatmap de teclado
+- Perfil por lenguaje
+- WPM ajustado por densidad de símbolos
+
 ## Requirements
 
 ### Validated
@@ -26,14 +37,14 @@ is useful for a week of daily self-use, the project is worth continuing.
 
 ### Active
 
-- [ ] None — v1.0 shipped. Next: use it daily for a week to validate the core loop, then decide v1.1/v2 direction from real data (see Out of Scope for candidates: persistence, per-digraph analytics, keyboard heatmap, symbol-adjusted WPM).
+- [ ] Scoping in progress for v1.1 — see Current Milestone above (persistence, digraph/trigraph latency, keyboard heatmap, per-language profile, symbol-adjusted WPM). REQ-IDs to follow in REQUIREMENTS.md.
 
 ### Out of Scope
 
 - User accounts / authentication — not needed for single-user self-validation in v1
 - Multiplayer / competitive modes — not core to the training value
 - Gamification (streaks, badges, XP) — deferred until the core loop proves useful
-- Historical progress dashboard and evolution charts — v1 proves the loop first; dashboard is a later phase
+- Rich evolution charts / trend visualizations over the session history — v1.1 covers a basic session list plus per-metric analytics (digraph latency, heatmap); charted trend lines are a later phase
 - Syntactic chunking with tree-sitter (function/YAML-block boundaries) — later phase; v1 uses whole pasted/uploaded content
 - Adaptive drill generation from detected weaknesses — later phase
 - Repo ingestion (local/remote Git), docs mode, shell-history mode — later phases
@@ -111,4 +122,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-05 after v1.0 milestone*
+*Last updated: 2026-09-05 — v1.1 milestone started*
