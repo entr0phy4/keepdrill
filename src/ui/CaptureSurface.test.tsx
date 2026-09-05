@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { beforeEach, afterEach, describe, it, expect } from 'vitest'
-import { resetCapture, getCharLog } from '../capture/capture'
+import { resetCapture, getCharLog, getMarkers } from '../capture/capture'
+import { computeSessionMetrics, type MetricsResult } from '../metrics/metrics'
 import { CaptureSurface } from './CaptureSurface'
+import { ResultsView } from './ResultsView'
 
 // React-DOM + happy-dom end-to-end render test — proves the tracer's single
 // happy path (load "ab", type "a" correctly) without manual verification.
@@ -18,6 +20,15 @@ function trustedInputEvent(type: string, init: InputEventInit = {}): InputEvent 
 
 function beforeInput(el: HTMLElement, init: InputEventInit = {}): InputEvent {
   const evt = trustedInputEvent('beforeinput', init)
+  el.dispatchEvent(evt)
+  return evt
+}
+
+/** Matches capture.test.ts's timeStamp-override convention (Object.defineProperty
+ *  before dispatch) so keystroke timing is deterministic in tests. */
+function beforeInputAt(el: HTMLElement, init: InputEventInit, tMs: number): InputEvent {
+  const evt = trustedInputEvent('beforeinput', init)
+  Object.defineProperty(evt, 'timeStamp', { value: tMs, configurable: true })
   el.dispatchEvent(evt)
   return evt
 }
@@ -374,5 +385,85 @@ describe('CaptureSurface — caret resync on selection drift (gap closure, T-02-
     const caret = container.querySelector('.trainer-caret')
     expect(caret?.nextElementSibling?.getAttribute('data-status')).toBe('pending')
     expect(caret?.nextElementSibling?.textContent).toBe('a')
+  })
+})
+
+// Task 1 tracer (D-07): mirrors RestartHarness's precedent — a minimal
+// harness wiring CaptureSurface's onComplete to computeSessionMetrics and a
+// local ResultsView mount, proving the whole architecture (completion signal
+// -> pure fold over the capture log -> auto-revealed display) end-to-end
+// without depending on App.tsx's other concerns.
+function MetricsHarness({ text, onCompleteCalled }: { text: string; onCompleteCalled?: () => void }) {
+  const [metrics, setMetrics] = useState<MetricsResult | null>(null)
+  const handleComplete = (completedAt: number) => {
+    onCompleteCalled?.()
+    const result = computeSessionMetrics(text, getCharLog(), getMarkers(), completedAt)
+    setMetrics(result)
+  }
+  return (
+    <div>
+      <CaptureSurface text={text} onComplete={handleComplete} />
+      {metrics !== null && <ResultsView metrics={metrics} />}
+    </div>
+  )
+}
+
+describe('CaptureSurface — tracer: completion to WPM + accuracy, auto-revealed (D-01/D-02/D-07)', () => {
+  it('typing "ab" to completion auto-reveals a .results-panel showing 40 wpm and 100%', async () => {
+    act(() => {
+      root.render(<MetricsHarness text="ab" />)
+    })
+
+    const textarea = container.querySelector('textarea')!
+
+    beforeInputAt(textarea, { inputType: 'insertText', data: 'a' }, 0)
+
+    await act(async () => {
+      await nextFrame()
+    })
+
+    beforeInputAt(textarea, { inputType: 'insertText', data: 'b' }, 600)
+
+    await act(async () => {
+      await nextFrame()
+    })
+
+    const panel = container.querySelector('.results-panel')
+    expect(panel).not.toBeNull()
+    // elapsedMs=600ms -> 0.01 active minutes -> 2 correct chars / 5 / 0.01 = 40
+    expect(panel!.textContent).toContain('40')
+    expect(panel!.textContent).toContain('wpm')
+    expect(panel!.textContent).toContain('100%')
+  })
+
+  it('onComplete fires exactly once for the same completedAt, even after a further post-completion frame tick (D-07)', async () => {
+    let calls = 0
+
+    act(() => {
+      root.render(<MetricsHarness text="ab" onCompleteCalled={() => (calls += 1)} />)
+    })
+
+    const textarea = container.querySelector('textarea')!
+
+    beforeInputAt(textarea, { inputType: 'insertText', data: 'a' }, 0)
+
+    await act(async () => {
+      await nextFrame()
+    })
+
+    beforeInputAt(textarea, { inputType: 'insertText', data: 'b' }, 600)
+
+    await act(async () => {
+      await nextFrame()
+    })
+
+    expect(calls).toBe(1)
+
+    // One further post-completion animation-frame tick must not re-fire.
+    await act(async () => {
+      await nextFrame()
+    })
+
+    expect(calls).toBe(1)
   })
 })

@@ -51,13 +51,18 @@ function useCharLogTick(): number {
 export function CaptureSurface({
   text,
   onRestartRequested,
+  onComplete,
 }: {
   text: string
   onRestartRequested?: () => void
+  onComplete?: (completedAt: number) => void
 }) {
   const ref = useRef<HTMLTextAreaElement | null>(null)
   const [pasteBlocked, setPasteBlocked] = useState(false)
   const fadeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // D-07: guards onComplete so it fires at most once per distinct
+  // `completedAt` value, even across re-renders/rAF ticks after completion.
+  const firedCompletedAtRef = useRef<number | null>(null)
   // D-07 amended / D-09: focus+visibility-driven caret blink gate. Starts
   // `true` because the textarea is focused on mount (see the focus effect
   // below) — the caret should render as active/blinking from first paint,
@@ -128,7 +133,19 @@ export function CaptureSurface({
     }
   }
 
-  const { perCharStatus, cursor } = computeTrainerState(text, getCharLog())
+  const { perCharStatus, cursor, completedAt } = computeTrainerState(text, getCharLog())
+
+  // D-07: fires onComplete exactly once per distinct completedAt transition
+  // (null -> non-null, or one non-null value to a different one — though the
+  // latter never happens per state.ts's "never overwritten" comment). The
+  // ref guard makes repeated calls to computeSessionMetrics safe even if this
+  // effect re-runs on an unrelated re-render.
+  useEffect(() => {
+    if (completedAt !== null && firedCompletedAtRef.current !== completedAt) {
+      firedCompletedAtRef.current = completedAt
+      onComplete?.(completedAt)
+    }
+  }, [completedAt, onComplete])
 
   // D-10 / T-02-08: force the native selection back to the logical cursor
   // whenever it drifts (arrow keys / Home / End / click) — the rendered

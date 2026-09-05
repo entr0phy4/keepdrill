@@ -4,9 +4,12 @@ import type { Session } from '../capture/types'
 import { buildSession } from '../session'
 import { readCrossOriginIsolated, probeTimerResolutionUs } from '../platform/isolation'
 import { resetCapture } from '../capture/capture'
+import { computeSessionMetrics } from '../metrics/metrics'
+import type { MetricsResult } from '../metrics/metrics'
 import { Banners } from './Banners'
 import { CorpusInput } from './CorpusInput'
 import { CaptureSurface } from './CaptureSurface'
+import { ResultsView } from './ResultsView'
 
 declare global {
   interface Window {
@@ -44,11 +47,13 @@ export function App() {
 
   const sessionRef = useRef<Session | null>(null)
   const loadRef = useRef<{ exercise: Exercise; startedAt: number } | null>(null)
+  const [metrics, setMetrics] = useState<MetricsResult | null>(null)
 
   const handleLoad = (loaded: Exercise) => {
     resetCapture() // fresh buffer per exercise
     setExercise(loaded)
     setLoadToken((token) => token + 1)
+    setMetrics(null) // no stale results panel survives a fresh load
     const startedAt = Date.now()
     loadRef.current = { exercise: loaded, startedAt }
     const session = buildSession(loaded, startedAt)
@@ -57,6 +62,19 @@ export function App() {
     if (import.meta.env.DEV) {
       window.__keebdrillSession = session
     }
+  }
+
+  // Computes a fresh MetricsResult the instant CaptureSurface reports
+  // completion (D-07's fire-once guarantee). Re-reads the exercise/startedAt
+  // from loadRef (never a stale closure) and builds a LIVE session snapshot
+  // (session.ts's CR-01) rather than reading the interval-refreshed
+  // sessionRef, since completion can happen between refresh ticks.
+  const handleComplete = (completedAt: number) => {
+    const current = loadRef.current
+    if (!current) return
+    const session = buildSession(current.exercise, current.startedAt)
+    const result = computeSessionMetrics(current.exercise.text, session.charLog, session.markers, completedAt)
+    setMetrics(result)
   }
 
   // D-08: Restart keeps the SAME loaded exercise content — only the session
@@ -69,6 +87,7 @@ export function App() {
     if (!current) return
     resetCapture()
     setLoadToken((token) => token + 1)
+    setMetrics(null) // discard the just-computed metrics (D-06)
     const startedAt = Date.now()
     loadRef.current = { exercise: current.exercise, startedAt }
     const session = buildSession(current.exercise, startedAt)
@@ -121,7 +140,13 @@ export function App() {
         </section>
       ) : (
         <div style={{ display: 'grid', gap: 'var(--space-md)' }}>
-          <CaptureSurface key={loadToken} text={exercise.text} onRestartRequested={handleRestart} />
+          <CaptureSurface
+            key={loadToken}
+            text={exercise.text}
+            onRestartRequested={handleRestart}
+            onComplete={handleComplete}
+          />
+          {metrics !== null && <ResultsView metrics={metrics} />}
           <button type="button" className="primary" onClick={handleRestart}>
             Restart exercise
           </button>
