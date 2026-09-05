@@ -229,6 +229,9 @@ textarea {
       border-color var(--motion-duration) ease,
       outline-color var(--motion-duration) ease;
   }
+  .results-panel {
+    animation: results-fade-in var(--motion-duration) ease;
+  }
 }
 
 /* Trainer overlay (D-01/D-02, 02-UI-SPEC.md) — transparent-textarea-over-
@@ -325,4 +328,70 @@ textarea {
    dimmed (02-UI-SPEC.md). */
 .ws-glyph {
   opacity: 0.55;
+}
+
+/* Results panel (03-UI-SPEC.md) — a bordered secondary-surface card, same
+   visual treatment as .preview/.banner, reused rather than re-invented. */
+.results-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: var(--space-lg);
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.results-stats {
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .results-stats {
+    grid-template-columns: 1fr 1fr;
+    column-gap: var(--space-lg);
+    row-gap: var(--space-md);
+  }
+}
+
+.results-stat {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.results-slowest {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.results-slowest-list {
+  display: grid;
+  gap: var(--space-xs);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.results-slowest-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.key-chip {
+  display: inline-block;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-surface);
+}
+
+@keyframes results-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
