@@ -23,11 +23,13 @@ is useful for a week of daily self-use, the project is worth continuing.
 - ✓ User can type the exercise with keydown/keyup capture at high-resolution timestamps — Phase 1
 - ✓ User sees live per-character correctness feedback with a custom caret and whitespace glyphs, under a free-correction policy with backspace-to-correct, restart, and honest session timing (excludes blurred/hidden time) — Phase 2
 
+### Validated (continued)
+
+- ✓ User sees net WPM, accuracy, and the five slowest keystrokes on completion, from a pure re-runnable metrics engine — Phase 3
+
 ### Active
 
-- [ ] User sees WPM for the completed exercise
-- [ ] User sees accuracy (error rate) for the completed exercise
-- [ ] User sees the five slowest keys/keystrokes from the session
+- [ ] None — v1's three-phase roadmap (capture → trainer → metrics) is complete. Core value loop is fully built; next step is a week of daily self-use to validate it.
 
 ### Out of Scope
 
@@ -107,4 +109,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-05 after Phase 2*
+*Last updated: 2026-09-05 after Phase 3 (v1.0 milestone complete — all 3 phases shipped)*

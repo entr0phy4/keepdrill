@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Corpus Input & Keystroke Capture** - Load real code/text as a typing-ready exercise and record every keystroke as a high-resolution, append-only event log (completed 2026-09-04)
 - [x] **Phase 2: Interactive Typing Trainer** - Type a loaded exercise with live per-character feedback and natural editing under a free-correction policy (completed 2026-09-05)
-- [ ] **Phase 3: Session Metrics** - On finishing an exercise, see trustworthy WPM, accuracy, and five-slowest-key numbers
+- [x] **Phase 3: Session Metrics** - On finishing an exercise, see trustworthy WPM, accuracy, and five-slowest-key numbers (completed 2026-09-05)
 
 ## Phase Details
 
@@ -99,7 +99,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 03-02-PLAN.md — Slowest-5 keystrokes + full visual polish
+- [x] 03-02-PLAN.md — Slowest-5 keystrokes + full visual polish
 
 **UI hint**: yes
 
@@ -112,4 +112,4 @@ Phases execute in numeric order: 1 → 2 → 3
 |-------|----------------|--------|-----------|
 | 1. Corpus Input & Keystroke Capture | 3/3 | Complete    | 2026-09-04 |
 | 2. Interactive Typing Trainer | 3/3 | Complete    | 2026-09-05 |
-| 3. Session Metrics | 2/2 | In Progress|  |
+| 3. Session Metrics | 2/2 | Complete    | 2026-09-05 |
