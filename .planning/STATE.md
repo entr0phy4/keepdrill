@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 3
+current_phase: 03
 current_phase_name: Session Metrics
 status: executing
-stopped_at: Phase 3 UI-SPEC approved
-last_updated: "2026-09-05T20:05:50.600Z"
+stopped_at: Completed 03-01-PLAN.md
+last_updated: "2026-09-05T20:10:59.782Z"
 last_activity: 2026-09-05
 last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 8
-  completed_plans: 6
+  completed_plans: 7
 ---
 
 # Project State
@@ -23,16 +23,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-05)
 
 **Core value:** The user can paste or upload a real code/text file, type it with keystroke capture, and see WPM, accuracy, and their five slowest keys — useful enough for a week of daily self-use.
-**Current focus:** Phase 3 — Session Metrics
+**Current focus:** Phase 03 — Session Metrics
 
 ## Current Position
 
-Phase: 3 — Session Metrics
-Plan: Not started
+Phase: 03 (Session Metrics) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
-Last activity: 2026-09-05 — Phase 02 complete, transitioned to Phase 3
+Last activity: 2026-09-05 — Phase 03 execution started
 
-Progress: [██████████] 100%
+Progress: [█████████░] 88%
 
 ## Performance Metrics
 
@@ -65,6 +65,7 @@ Progress: [██████████] 100%
 | Phase 02 P01 | 15min | 2 tasks | 7 files |
 | Phase 02 P02 | 5min | 3 tasks | 6 files |
 | Phase 02 P03 | 12min | 2 tasks | 2 files |
+| Phase 03 P01 | ~15 min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -88,6 +89,7 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 02-02]: computeActiveElapsedMs is a pure toggle-state-machine over CaptureMarker[] (single inactiveSince), not index-based pair-matching — robust to overlapping/duplicate markers (D-09)
 - [Phase ?]: [Phase 02-03]: resyncCaret() now fires on every native selection-change event via onSelect, not only when cursor changes (closes T-02-08/WR-1)
 - [Phase ?]: [Phase 02-03]: handleKeyDown rejects untrusted keydown events before evaluating Escape/Tab, matching capture.ts's T-01-04 convention (closes T-02-09/WR-2)
+- [Phase ?]: [Phase 03-01]: completedAt destructure moved earlier in CaptureSurface.tsx so the onComplete-firing effect has it in scope (Rule 1 fix, no architectural change)
 
 ### Pending Todos
 
@@ -113,6 +115,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-05T19:40:37.643Z
-Stopped at: Phase 3 UI-SPEC approved
-Resume file: .planning/phases/03-session-metrics/03-UI-SPEC.md
+Last session: 2026-09-05T20:10:59.770Z
+Stopped at: Completed 03-01-PLAN.md
+Resume file: None
