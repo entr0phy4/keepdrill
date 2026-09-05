@@ -1,20 +1,14 @@
 ---
-status: testing
+status: complete
 phase: 01-corpus-input-keystroke-capture
 source: [01-VERIFICATION.md]
 started: 2026-09-05T01:33:24Z
-updated: 2026-09-05T01:33:24Z
+updated: 2026-09-05T02:45:10Z
 ---
 
 ## Current Test
 
-number: 1
-name: End-to-end paste flow + live session reflection (CR-01 regression)
-expected: |
-  Preview shows the normalized pasted text; capture textarea has focus without an extra
-  click; `window.__keebdrillSession.events`/`.charLog` are non-empty and grow as you keep
-  typing (not stuck at `[]`).
-awaiting: user response
+[testing complete]
 
 ## Tests
 
@@ -26,7 +20,7 @@ expected: |
   Preview shows the normalized pasted text; capture textarea has focus without an extra
   click; `window.__keebdrillSession.events`/`.charLog` are non-empty and grow as you keep
   typing (not stuck at `[]`).
-result: [pending]
+result: pass
 
 ### 2. Second-exercise reload does not leak stale state (CR-02 regression)
 expected: |
@@ -34,7 +28,7 @@ expected: |
   (different paste or a file) without refreshing the page. The capture textarea is empty
   and refocused for exercise B — no leftover text from A is visible, and typing in B does
   not misfire a spurious deletion record.
-result: [pending]
+result: pass
 
 ### 3. Upload states and inline copy
 expected: |
@@ -44,7 +38,7 @@ expected: |
   shows "This file is over 100 KB..." inline beneath the file control with no reflow;
   UTF-16 file shows "This file isn't UTF-8 text..."; empty press shows "Nothing to load
   yet..." beneath the (still-enabled) button.
-result: [pending]
+result: pass
 
 ### 4. Chrome banners and timer-resolution readout
 expected: |
@@ -55,7 +49,7 @@ expected: |
   shift of the controls below. Type several dozen keystrokes and confirm the readout
   eventually reflects a measured value rather than staying at the static per-browser
   expectation.
-result: [pending]
+result: pass
 
 ### 5. Paste-blocked flag in the typing surface
 expected: |
@@ -64,14 +58,14 @@ expected: |
   blocked, shows the inline "Pasting into the typing area is disabled - type the exercise
   to record real keystrokes." message, and the message fades out after ~4 seconds. Pasting
   into the corpus paste box works normally and is unaffected.
-result: [pending]
+result: pass
 
 ## Summary
 
 total: 5
-passed: 0
+passed: 5
 issues: 0
-pending: 5
+pending: 0
 skipped: 0
 blocked: 0
 
