@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 02
-current_phase_name: Interactive Typing Trainer
-status: verifying
+current_phase: 3
+current_phase_name: Session Metrics
+status: planning
 stopped_at: Completed 02-03-PLAN.md (gap closure)
-last_updated: "2026-09-05T14:03:31.762Z"
+last_updated: "2026-09-05T14:21:11.568Z"
 last_activity: 2026-09-05
 last_activity_desc: Phase 02 execution started
 progress:
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-05)
 
 **Core value:** The user can paste or upload a real code/text file, type it with keystroke capture, and see WPM, accuracy, and their five slowest keys — useful enough for a week of daily self-use.
-**Current focus:** Phase 02 — Interactive Typing Trainer
+**Current focus:** Phase 3 — Session Metrics
 
 ## Current Position
 
-Phase: 02 (Interactive Typing Trainer) — EXECUTING
-Plan: 2 of 2
-Status: Phase complete — ready for verification
-Last activity: 2026-09-05 — Phase 02 execution started
+Phase: 3 — Session Metrics
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-09-05 — Phase 02 complete, transitioned to Phase 3
 
 Progress: [██████████] 100%
 
@@ -38,7 +38,7 @@ Progress: [██████████] 100%
 
 **Velocity:**
 
-- Total plans completed: 3
+- Total plans completed: 6
 - Average duration: -
 - Total execution time: 0 hours
 
@@ -47,6 +47,7 @@ Progress: [██████████] 100%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01 | 3 | - | - |
+| 02 | 3 | - | - |
 
 **Recent Trend:**
 
@@ -99,7 +100,7 @@ None yet.
 [Issues that affect future work]
 
 - [Phase 1 — RESOLVED]: Platform locked to browser SPA (Vite 8 + React 19 + TS); capture approach resolved to `beforeinput`/`input` + keydown-for-timing (no blanket `preventDefault`); content scope resolved to "type as-is" (D-08); COOP/COEP served via `vite.config.ts` `server`+`preview` headers, verified live.
-- [Phase 2]: Correction policy (free vs forced) and indentation / auto-indent model must be decided at phase start.
+- [Phase 2 — RESOLVED]: Correction policy locked to free-correction (D-04); Tab is a no-op with Escape as the keyboard-only Restart path (D-07 amended) — no auto-indent model needed since Tab never inserts anything.
 - [Phase 3]: Symbol-adjusted WPM is explicitly out of v1 scope; keep any adjusted metric labeled separately if it appears.
 
 ## Deferred Items
@@ -112,6 +113,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-05T14:03:31.752Z
-Stopped at: Completed 02-03-PLAN.md (gap closure)
+Last session: 2026-09-05T14:22:00.000Z
+Stopped at: Phase 2 complete (UAT + security review passed), ready to plan Phase 3
 Resume file: None

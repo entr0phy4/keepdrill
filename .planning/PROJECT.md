@@ -21,6 +21,7 @@ is useful for a week of daily self-use, the project is worth continuing.
 
 - ✓ User can paste text or upload a file to use as the typing exercise source — Phase 1
 - ✓ User can type the exercise with keydown/keyup capture at high-resolution timestamps — Phase 1
+- ✓ User sees live per-character correctness feedback with a custom caret and whitespace glyphs, under a free-correction policy with backspace-to-correct, restart, and honest session timing (excludes blurred/hidden time) — Phase 2
 
 ### Active
 
@@ -78,8 +79,8 @@ is useful for a week of daily self-use, the project is worth continuing.
 | Platform architecture: browser SPA (Vite 8 + React 19 + TS), no backend | Browser is the only platform with guaranteed cross-OS keyup + sub-ms timestamps | ✓ Good — Phase 1 |
 | Capture mechanism: `beforeinput`/`input` for committed chars, `keydown`/`keyup` for timing only, no blanket `preventDefault` | Preserves dead keys/IME/AltGr; keeps the hot-path handler to a single buffer push | ✓ Good — Phase 1 |
 | Content scope: type corpus as-is, no stripping of comments/strings | v1 doesn't parse; structural filtering is a later tree-sitter concern | ✓ Good — Phase 1 |
-| Mandatory vs free error correction | Forcing correction of every error changes the state engine completely | — Pending (Phase 2) |
-| Indentation handling (auto-indent like an editor vs manual) | Auto-indent is realistic but removes Tab/space training | — Pending (Phase 2) |
+| Mandatory vs free error correction | Forcing correction of every error changes the state engine completely | ✓ Good — free-correction locked (D-04); advancing past an error is never blocked, corrected/uncorrected tracked separately — Phase 2 |
+| Indentation handling (auto-indent like an editor vs manual) | Auto-indent is realistic but removes Tab/space training | ✓ Good — Tab is fully absorbed as a no-op (no indent insertion, no synthetic character); Escape is the keyboard-only path to Restart since Tab can't reach it via tab-order (D-07 amended) — Phase 2 |
 | Keyboard layout support (US ANSI only vs es-LA / US-International) | Changes the symbol map | ✓ Good — v1 assumes US ANSI only, static notice banner (Phase 1) |
 
 ## Success Criteria
@@ -106,4 +107,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-05 after Phase 1*
+*Last updated: 2026-09-05 after Phase 2*
