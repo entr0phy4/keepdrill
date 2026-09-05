@@ -18,9 +18,9 @@ project-level risk).
 ### Capture
 
 - [x] **CAPT-01**: The app captures keydown and keyup events for the entire session, stamped from `event.timeStamp` (monotonic, high-resolution), with the listener doing nothing but appending to a buffer
-- [ ] **CAPT-02**: The app ignores OS key-repeat events (`event.repeat`) so a held key does not register as multiple keystrokes
+- [x] **CAPT-02**: The app ignores OS key-repeat events (`event.repeat`) so a held key does not register as multiple keystrokes
 - [x] **CAPT-03**: The full raw keystroke event log (seq, key, code, modifiers, timestamp, isRepeat) is retained for the session as the single source of truth from which all metrics are derived
-- [ ] **CAPT-04**: The app captures committed characters via `input`/`beforeinput` (not blanket `preventDefault` on keydown) and shows a "US ANSI layout only" notice
+- [x] **CAPT-04**: The app captures committed characters via `input`/`beforeinput` (not blanket `preventDefault` on keydown) and shows a "US ANSI layout only" notice
 - [x] **CAPT-05**: The app is served cross-origin-isolated (COOP/COEP), verifies `crossOriginIsolated === true`, and records the achieved timer resolution with the session
 
 ### Typing
@@ -90,9 +90,9 @@ Which phases cover which requirements. Populated during roadmap creation.
 | INPUT-02 | Phase 1 | Complete |
 | INPUT-03 | Phase 1 | Complete |
 | CAPT-01 | Phase 1 | Complete |
-| CAPT-02 | Phase 1 | Pending |
+| CAPT-02 | Phase 1 | Complete |
 | CAPT-03 | Phase 1 | Complete |
-| CAPT-04 | Phase 1 | Pending |
+| CAPT-04 | Phase 1 | Complete |
 | CAPT-05 | Phase 1 | Complete |
 | TYPE-01 | Phase 2 | Pending |
 | TYPE-02 | Phase 2 | Pending |
