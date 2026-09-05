@@ -360,6 +360,35 @@ describe('capture — IME composition suspends per-char attribution (Pitfall 9)'
   })
 })
 
+describe('capture — WR-06: blur/hidden mid-composition does not wedge composing state', () => {
+  it('window blur during an active IME composition resets composing, so a later beforeinput is not silently dropped', () => {
+    attachCapture(target)
+    target.dispatchEvent(trustedCompositionEvent('compositionstart', ''))
+    // The IME never fires compositionend (abandoned by the blur) — this is
+    // the exact scenario WR-06 covers.
+    window.dispatchEvent(new Event('blur'))
+
+    beforeInput(target, { inputType: 'insertText', data: 'a' })
+
+    const chars = getCharLog()
+    expect(chars).toHaveLength(1)
+    expect(chars[0]).toMatchObject({ inputType: 'insertText', data: 'a' })
+  })
+
+  it('visibilitychange -> hidden during an active IME composition resets composing', () => {
+    attachCapture(target)
+    target.dispatchEvent(trustedCompositionEvent('compositionstart', ''))
+    Object.defineProperty(document, 'hidden', { value: true, configurable: true })
+    document.dispatchEvent(new Event('visibilitychange'))
+    Object.defineProperty(document, 'hidden', { value: false, configurable: true })
+
+    beforeInput(target, { inputType: 'insertText', data: 'a' })
+
+    expect(getCharLog()).toHaveLength(1)
+    expect(getCharLog()[0]).toMatchObject({ inputType: 'insertText', data: 'a' })
+  })
+})
+
 describe('capture — empty state (CAPT-03)', () => {
   it('idle: getEvents(), getCharLog(), getMarkers() are all empty', () => {
     attachCapture(target)

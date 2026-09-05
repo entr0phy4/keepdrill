@@ -145,9 +145,15 @@ function pushMarker(kind: MarkerKind, tMs: number): void {
   markers.push(Object.freeze({ seq: seq++, kind, tMs }))
 }
 
-/** Alt-tab mid-hold must not wedge a key — clear the down-set (PITFALLS #3, A7). */
+/** Alt-tab mid-hold must not wedge a key — clear the down-set (PITFALLS #3, A7).
+ *  WR-06: also reset `composing` — if a blur interrupts an active IME
+ *  composition and the platform/IME never fires `compositionend` (behavior
+ *  varies), `composing` would otherwise stay `true` forever, silently
+ *  dropping every subsequent beforeinput from charLog (onBeforeInput's
+ *  `if (composing) return` guard). */
 function onWindowBlur(e: FocusEvent): void {
   downCodes.clear()
+  composing = false
   pushMarker('blur', e.timeStamp)
 }
 
@@ -158,6 +164,7 @@ function onWindowFocus(e: FocusEvent): void {
 function onVisibilityChange(e: Event): void {
   if (document.hidden) {
     downCodes.clear()
+    composing = false // WR-06 — same abandoned-composition risk as blur
     pushMarker('hidden', e.timeStamp)
   } else {
     pushMarker('visible', e.timeStamp)
