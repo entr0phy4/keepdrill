@@ -22,14 +22,11 @@ is useful for a week of daily self-use, the project is worth continuing.
 - ✓ User can paste text or upload a file to use as the typing exercise source — Phase 1
 - ✓ User can type the exercise with keydown/keyup capture at high-resolution timestamps — Phase 1
 - ✓ User sees live per-character correctness feedback with a custom caret and whitespace glyphs, under a free-correction policy with backspace-to-correct, restart, and honest session timing (excludes blurred/hidden time) — Phase 2
-
-### Validated (continued)
-
 - ✓ User sees net WPM, accuracy, and the five slowest keystrokes on completion, from a pure re-runnable metrics engine — Phase 3
 
 ### Active
 
-- [ ] None — v1's three-phase roadmap (capture → trainer → metrics) is complete. Core value loop is fully built; next step is a week of daily self-use to validate it.
+- [ ] None — v1.0 shipped. Next: use it daily for a week to validate the core loop, then decide v1.1/v2 direction from real data (see Out of Scope for candidates: persistence, per-digraph analytics, keyboard heatmap, symbol-adjusted WPM).
 
 ### Out of Scope
 
@@ -45,6 +42,9 @@ is useful for a week of daily self-use, the project is worth continuing.
 
 ## Context
 
+- **v1.0 shipped 2026-09-05** (Sept 3 → Sept 5, ~2 days): Vite 8 / React 19 / TS
+  5.9 browser SPA, ~3,156 LOC in `src/`, zero runtime dependencies beyond
+  React itself. 3 phases, 8 plans, 15 tasks, 132 passing tests.
 - Target user is the author (a developer) doing daily self-use; success is judged
   on personal data, not adoption metrics.
 - Pain point: existing typing platforms train on English prose and barely
@@ -77,7 +77,9 @@ is useful for a week of daily self-use, the project is worth continuing.
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| v1 = minimal paste/type/metrics loop, no accounts or gamification | Validate the idea with a week of self-use before investing further | — Pending |
+| v1 = minimal paste/type/metrics loop, no accounts or gamification | Validate the idea with a week of self-use before investing further | ✓ Shipped 2026-09-05 — daily-use validation still pending |
+| WPM/accuracy time and denominator basis: active-time (excludes blurred/hidden periods) for WPM; every keypress attempt incl. corrections for accuracy denominator | "Honest session timing" over Monkeytype's simpler wall-clock model; ROADMAP explicitly required corrections to affect the accuracy denominator | ✓ Good — Phase 3 |
+| Unicode indexing: iterate/index target text by code point (`Array.from`), never raw UTF-16 string indexing | Code review found a critical bug — code-unit indexing desynced scoring (and could make an exercise uncompletable) for any supplementary-plane character (emoji, etc.); fixed across state.ts/metrics.ts/CaptureSurface.tsx, independently re-verified | ✓ Good — Phase 3 (retroactive fix) |
 | Platform architecture: browser SPA (Vite 8 + React 19 + TS), no backend | Browser is the only platform with guaranteed cross-OS keyup + sub-ms timestamps | ✓ Good — Phase 1 |
 | Capture mechanism: `beforeinput`/`input` for committed chars, `keydown`/`keyup` for timing only, no blanket `preventDefault` | Preserves dead keys/IME/AltGr; keeps the hot-path handler to a single buffer push | ✓ Good — Phase 1 |
 | Content scope: type corpus as-is, no stripping of comments/strings | v1 doesn't parse; structural filtering is a later tree-sitter concern | ✓ Good — Phase 1 |
@@ -109,4 +111,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-05 after Phase 3 (v1.0 milestone complete — all 3 phases shipped)*
+*Last updated: 2026-09-05 after v1.0 milestone*
