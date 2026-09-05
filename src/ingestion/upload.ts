@@ -17,7 +17,9 @@ import { CorpusTooLargeError, NonUtf8Error } from './errors'
 // file.name is used ONLY for the caption / Exercise.sourceRef — never as a path,
 // URL, fetch argument, or dynamic import (T-01-06).
 
-const MAX_BYTES = 100_000
+// Exported (WR-04) so the paste path (CorpusInput.tsx) can enforce the same
+// cap instead of accepting arbitrarily large pasted input unchecked.
+export const MAX_BYTES = 100_000
 
 export async function fromFile(file: File, tabWidth = 4): Promise<Exercise> {
   if (file.size > MAX_BYTES) {

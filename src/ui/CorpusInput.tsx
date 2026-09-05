@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import type { Exercise } from '../ingestion/types'
 import { fromPaste } from '../ingestion/paste'
-import { fromFile } from '../ingestion/upload'
+import { fromFile, MAX_BYTES } from '../ingestion/upload'
 import { CorpusTooLargeError, NonUtf8Error } from '../ingestion/errors'
 
 // Handles paste (INPUT-01) and upload (INPUT-02) plus every error / empty /
@@ -15,6 +15,7 @@ const COPY = {
   cta: 'Load exercise',
   ctaBusy: 'Loading…',
   errTooLarge: 'This file is over 100 KB. Paste a smaller section, or trim the file first.',
+  errTooLargePaste: 'This paste is over 100 KB. Trim it down, or upload a smaller file instead.',
   errNonUtf8: "This file isn't UTF-8 text. Save it as UTF-8, or paste the contents instead.",
   errNothing: 'Nothing to load yet. Paste text or choose a file first.',
   caption: (name: string) => `Loaded from ${name}`,
@@ -43,6 +44,17 @@ export function CorpusInput({ onLoad }: CorpusInputProps) {
   const handleLoad = () => {
     if (value.trim() === '') {
       setEmptyError(COPY.errNothing)
+      return
+    }
+
+    // WR-04: apply the same size cap upload.ts enforces before ever reading a
+    // file — pasted content had no limit at all, so an arbitrarily large
+    // clipboard payload ran normalize() synchronously on the full string
+    // with nothing to stop it (worse than the jank WR-03 addresses, since
+    // there is no upper bound). Measured in bytes (TextEncoder), matching
+    // MAX_BYTES' unit (file.size), not JS string length.
+    if (new TextEncoder().encode(value).length > MAX_BYTES) {
+      setEmptyError(COPY.errTooLargePaste)
       return
     }
     setEmptyError(null)
