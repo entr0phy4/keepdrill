@@ -20,10 +20,10 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-09-03)
+See: .planning/PROJECT.md (updated 2026-09-05)
 
 **Core value:** The user can paste or upload a real code/text file, type it with keystroke capture, and see WPM, accuracy, and their five slowest keys — useful enough for a week of daily self-use.
-**Current focus:** Phase 01 — Corpus Input & Keystroke Capture
+**Current focus:** Phase 2 — Interactive Typing Trainer
 
 ## Current Position
 
@@ -88,7 +88,7 @@ None yet.
 
 [Issues that affect future work]
 
-- [Phase 1]: Open decisions to resolve during planning — platform architecture (research recommends browser SPA), character-stream capture approach (`input`/`beforeinput` + keydown-for-timing vs `preventDefault`) needs a spike, content scope (structural code only vs comments/strings). COOP/COEP deployment specifics flagged for deeper research.
+- [Phase 1 — RESOLVED]: Platform locked to browser SPA (Vite 8 + React 19 + TS); capture approach resolved to `beforeinput`/`input` + keydown-for-timing (no blanket `preventDefault`); content scope resolved to "type as-is" (D-08); COOP/COEP served via `vite.config.ts` `server`+`preview` headers, verified live.
 - [Phase 2]: Correction policy (free vs forced) and indentation / auto-indent model must be decided at phase start.
 - [Phase 3]: Symbol-adjusted WPM is explicitly out of v1 scope; keep any adjusted metric labeled separately if it appears.
 
@@ -102,6 +102,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-05T01:05:27.743Z
-Stopped at: Completed 01-03-PLAN.md
+Last session: 2026-09-05
+Stopped at: Phase 1 complete (UAT 5/5 passed, security verified, threats_open: 0), ready to plan Phase 2
 Resume file: None

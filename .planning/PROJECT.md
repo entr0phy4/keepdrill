@@ -19,12 +19,11 @@ is useful for a week of daily self-use, the project is worth continuing.
 
 ### Validated
 
-(None yet — ship to validate)
+- ✓ User can paste text or upload a file to use as the typing exercise source — Phase 1
+- ✓ User can type the exercise with keydown/keyup capture at high-resolution timestamps — Phase 1
 
 ### Active
 
-- [ ] User can paste text or upload a file to use as the typing exercise source
-- [ ] User can type the exercise with keydown/keyup capture at high-resolution timestamps
 - [ ] User sees WPM for the completed exercise
 - [ ] User sees accuracy (error rate) for the completed exercise
 - [ ] User sees the five slowest keys/keystrokes from the session
@@ -62,14 +61,13 @@ is useful for a week of daily self-use, the project is worth continuing.
 - **Scope**: v1 is deliberately minimal — paste/upload, type with capture, see
   WPM + accuracy + five slowest keys. Nothing else. — Validates the idea cheaply
   before further investment.
-- **Tech stack**: Undecided between three options — (A) Web: FastAPI backend,
-  SQLite→PostgreSQL, React + TypeScript frontend, `performance.now()` keystroke
-  capture; (B) TUI: Rust (ratatui) or Python (Textual), local SQLite; (C) Hybrid:
-  TUI for daily practice + web dashboard sharing one database. — Choice shapes the
-  capture engine and must be resolved before building.
-- **Keystroke timing**: Capture must use high-resolution timestamps
-  (`performance.now()` or equivalent) — per-digraph latency measurement is the
-  core differentiator and depends on timing precision.
+- **Tech stack**: Resolved in Phase 1 — local-first browser SPA (Vite 8 + React
+  19 + TypeScript, pnpm), no backend. No FastAPI/PostgreSQL, no TUI. Tauri v2
+  remains the evolution path if native filesystem/Git access is needed later.
+- **Keystroke timing**: Capture uses `event.timeStamp` (DOMHighResTimeStamp),
+  never `performance.now()` read inside the handler — per-digraph latency
+  measurement is the core differentiator and depends on timing precision. Served
+  cross-origin-isolated (COOP/COEP) for maximum timer resolution.
 - **Privacy**: Ingested third-party content stays local — licensing / IP concern.
 
 ## Key Decisions
@@ -77,11 +75,12 @@ is useful for a week of daily self-use, the project is worth continuing.
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
 | v1 = minimal paste/type/metrics loop, no accounts or gamification | Validate the idea with a week of self-use before investing further | — Pending |
-| Platform architecture (Web vs TUI vs Hybrid) | Conditions the design of the capture engine | — Pending (resolve before Phase 1 build) |
-| Mandatory vs free error correction | Forcing correction of every error changes the state engine completely | — Pending |
-| Indentation handling (auto-indent like an editor vs manual) | Auto-indent is realistic but removes Tab/space training | — Pending |
-| Content scope (structural code only vs including comments and long strings) | Affects what the exercise measures | — Pending |
-| Keyboard layout support (US ANSI only vs es-LA / US-International) | Changes the symbol map | — Pending (v1 assumes US ANSI) |
+| Platform architecture: browser SPA (Vite 8 + React 19 + TS), no backend | Browser is the only platform with guaranteed cross-OS keyup + sub-ms timestamps | ✓ Good — Phase 1 |
+| Capture mechanism: `beforeinput`/`input` for committed chars, `keydown`/`keyup` for timing only, no blanket `preventDefault` | Preserves dead keys/IME/AltGr; keeps the hot-path handler to a single buffer push | ✓ Good — Phase 1 |
+| Content scope: type corpus as-is, no stripping of comments/strings | v1 doesn't parse; structural filtering is a later tree-sitter concern | ✓ Good — Phase 1 |
+| Mandatory vs free error correction | Forcing correction of every error changes the state engine completely | — Pending (Phase 2) |
+| Indentation handling (auto-indent like an editor vs manual) | Auto-indent is realistic but removes Tab/space training | — Pending (Phase 2) |
+| Keyboard layout support (US ANSI only vs es-LA / US-International) | Changes the symbol map | ✓ Good — v1 assumes US ANSI only, static notice banner (Phase 1) |
 
 ## Success Criteria
 
@@ -107,4 +106,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-03 after initialization*
+*Last updated: 2026-09-05 after Phase 1*
