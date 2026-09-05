@@ -25,10 +25,10 @@ project-level risk).
 
 ### Typing
 
-- [ ] **TYPE-01**: User sees the exercise text with a caret and per-character correctness feedback (correct / incorrect / pending) updating live while typing
-- [ ] **TYPE-02**: User types under a free-correction policy — advancing past an error is allowed, and both corrected and uncorrected errors are tracked
-- [ ] **TYPE-03**: User can press backspace to correct earlier characters
-- [ ] **TYPE-04**: Whitespace characters (spaces, tabs, newlines) are rendered with visible glyphs and must be typed explicitly
+- [x] **TYPE-01**: User sees the exercise text with a caret and per-character correctness feedback (correct / incorrect / pending) updating live while typing
+- [x] **TYPE-02**: User types under a free-correction policy — advancing past an error is allowed, and both corrected and uncorrected errors are tracked
+- [x] **TYPE-03**: User can press backspace to correct earlier characters
+- [x] **TYPE-04**: Whitespace characters (spaces, tabs, newlines) are rendered with visible glyphs and must be typed explicitly
 - [ ] **TYPE-05**: User can restart the current exercise, keeping the loaded content and resetting all session state
 - [ ] **TYPE-06**: Session timing starts on the first keystroke and excludes time while the window is blurred or hidden; pasting the exercise answer is blocked or flagged
 
@@ -94,10 +94,10 @@ Which phases cover which requirements. Populated during roadmap creation.
 | CAPT-03 | Phase 1 | Complete |
 | CAPT-04 | Phase 1 | Complete |
 | CAPT-05 | Phase 1 | Complete |
-| TYPE-01 | Phase 2 | Pending |
-| TYPE-02 | Phase 2 | Pending |
-| TYPE-03 | Phase 2 | Pending |
-| TYPE-04 | Phase 2 | Pending |
+| TYPE-01 | Phase 2 | Complete |
+| TYPE-02 | Phase 2 | Complete |
+| TYPE-03 | Phase 2 | Complete |
+| TYPE-04 | Phase 2 | Complete |
 | TYPE-05 | Phase 2 | Pending |
 | TYPE-06 | Phase 2 | Pending |
 | METR-01 | Phase 3 | Pending |

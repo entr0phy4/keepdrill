@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 2
+current_phase: 02
 current_phase_name: Interactive Typing Trainer
 status: executing
-stopped_at: Phase 2 UI-SPEC approved
-last_updated: "2026-09-05T13:15:42.426Z"
-last_activity: 2026-09-04
-last_activity_desc: Phase 01 execution started
+stopped_at: Completed 02-01-PLAN.md
+last_updated: "2026-09-05T13:25:44.466Z"
+last_activity: 2026-09-05
+last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 5
-  completed_plans: 3
+  completed_plans: 4
 ---
 
 # Project State
@@ -23,16 +23,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-05)
 
 **Core value:** The user can paste or upload a real code/text file, type it with keystroke capture, and see WPM, accuracy, and their five slowest keys — useful enough for a week of daily self-use.
-**Current focus:** Phase 2 — Interactive Typing Trainer
+**Current focus:** Phase 02 — Interactive Typing Trainer
 
 ## Current Position
 
-Phase: 2 — Interactive Typing Trainer
-Plan: Not started
+Phase: 02 (Interactive Typing Trainer) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
-Last activity: 2026-09-04 — Phase 01 complete, transitioned to Phase 2
+Last activity: 2026-09-05 — Phase 02 execution started
 
-Progress: [██████████] 100%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
@@ -61,6 +61,7 @@ Progress: [██████████] 100%
 | Phase 01 P01-01 | 14 | 3 tasks | 30 files |
 | Phase 01 P01-02 | 12 | 2 tasks | 5 files |
 | Phase 01 P03 | 8min | 3 tasks | 9 files |
+| Phase 02 P01 | 15min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,8 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 01-02]: File upload guards run pre-read (100 KB cap) then a 2-byte UTF-16 BOM sniff before File.text(); U+FFFD scan after — non-UTF-8 rejected, not transcoded (A5/A6)
 - [Phase ?]: attachCapture/detachCapture own all listener wiring (not the React hook), keeping capture.ts testable without React
 - [Phase ?]: Session.timingResolutionUs stays a single combined (measured ?? expected) number; the {expectedUs, measuredUs} pair is additionally exposed via platform/isolation.ts getTimingResolutionUs()
+- [Phase ?]: [Phase 02-01]: computeTrainerState treats every delete* inputType as exactly one position back (D-11) — no multi-char delete-length inference from data
+- [Phase ?]: [Phase 02-01]: Caret position derived solely from computeTrainerState's cursor, never textarea.selectionStart — resynced via useLayoutEffect (D-10)
 
 ### Pending Todos
 
@@ -102,6 +105,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-05T03:14:24.097Z
-Stopped at: Phase 2 UI-SPEC approved
-Resume file: .planning/phases/02-interactive-typing-trainer/02-UI-SPEC.md
+Last session: 2026-09-05T13:25:37.942Z
+Stopped at: Completed 02-01-PLAN.md
+Resume file: None
