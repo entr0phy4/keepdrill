@@ -220,6 +220,29 @@ describe('CaptureSurface — Tab no-op + Escape restart + caret active state (TY
     expect(calls).toBe(1)
   })
 
+  it('an untrusted (script-dispatched) Escape keydown does not call onRestartRequested (WR-2, T-02-09)', () => {
+    let calls = 0
+    const spy = () => {
+      calls += 1
+    }
+
+    act(() => {
+      root.render(<CaptureSurface text="ab" onRestartRequested={spy} />)
+    })
+
+    const textarea = container.querySelector('textarea')!
+    textarea.focus()
+
+    // Plain `new KeyboardEvent(...)` (NOT wrapped by trustedKeyEvent/keyDown)
+    // defaults isTrusted to false — exactly what an untrusted-event
+    // regression test needs, with no new helper required.
+    act(() => {
+      textarea.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }))
+    })
+
+    expect(calls).toBe(0)
+  })
+
   it('Escape keydown without onRestartRequested supplied does not throw', () => {
     act(() => {
       root.render(<CaptureSurface text="ab" />)
