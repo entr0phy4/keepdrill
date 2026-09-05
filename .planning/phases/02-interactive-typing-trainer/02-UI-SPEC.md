@@ -1,10 +1,11 @@
 ---
 phase: 2
 slug: interactive-typing-trainer
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-09-05
+reviewed_at: 2026-09-05
 ---
 
 # Phase 2 — UI Design Contract
@@ -26,6 +27,8 @@ created: 2026-09-05
 ---
 
 ## Design System
+
+**Primary focal point:** the caret's current position within the trainer surface — the single element the user's eye must track every keystroke. Everything else (Restart, the whitespace glyphs, the status coloring) is secondary to it.
 
 | Property | Value |
 |----------|-------|
@@ -214,11 +217,11 @@ No shadcn, no third-party registries, no external component blocks introduced by
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS (non-blocking recommendation applied — focal point stated above)
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** APPROVED (gsd-ui-checker, 2026-09-05)
