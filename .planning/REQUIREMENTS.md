@@ -12,7 +12,7 @@ project-level risk).
 ### Input
 
 - [x] **INPUT-01**: User can paste text into the app to use as the typing exercise source
-- [ ] **INPUT-02**: User can upload a local file to use as the typing exercise source
+- [x] **INPUT-02**: User can upload a local file to use as the typing exercise source
 - [x] **INPUT-03**: Exercise content is normalized before typing (CRLF→LF, configurable tab width, trailing whitespace stripped, single trailing newline) and the normalizer is unit-tested
 
 ### Capture
@@ -87,7 +87,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | INPUT-01 | Phase 1 | Complete |
-| INPUT-02 | Phase 1 | Pending |
+| INPUT-02 | Phase 1 | Complete |
 | INPUT-03 | Phase 1 | Complete |
 | CAPT-01 | Phase 1 | Complete |
 | CAPT-02 | Phase 1 | Pending |
