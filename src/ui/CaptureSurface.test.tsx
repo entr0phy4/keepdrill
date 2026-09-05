@@ -76,3 +76,33 @@ describe('CaptureSurface — tracer end-to-end (TYPE-01)', () => {
     expect(caret?.nextElementSibling?.getAttribute('data-status')).toBe('pending')
   })
 })
+
+describe('CaptureSurface — whitespace glyphs (TYPE-04, D-06 amended)', () => {
+  it('a space target renders a .ws-glyph middle dot inside its status span', () => {
+    act(() => {
+      root.render(<CaptureSurface text="a b" />)
+    })
+
+    const spans = container.querySelectorAll('.trainer-rendered-layer [data-status]')
+    // index 1 is the space target character.
+    const spaceSpan = spans[1]
+    expect(spaceSpan?.querySelector('.ws-glyph')?.textContent).toBe('·')
+  })
+
+  it('an incorrectly-typed space keeps the incorrect background/underline on the outer span, dimming only .ws-glyph', async () => {
+    act(() => {
+      root.render(<CaptureSurface text=" " />)
+    })
+
+    const textarea = container.querySelector('textarea')!
+    beforeInput(textarea, { inputType: 'insertText', data: 'x' })
+
+    await act(async () => {
+      await nextFrame()
+    })
+
+    const incorrectSpan = container.querySelector('[data-status="incorrect"]')
+    expect(incorrectSpan).not.toBeNull()
+    expect(incorrectSpan?.querySelector('.ws-glyph')?.textContent).toBe('·')
+  })
+})

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { computeTrainerState } from './state'
+import { computeTrainerState, glyphFor } from './state'
 import type { CommittedChar } from '../capture/types'
 
 // Golden-case-table pattern (normalize.test.ts convention). Task 1 covers the
@@ -77,6 +77,27 @@ const cases: Case[] = [
     charLog: [char(0, 'insertText', 'a', 10), char(1, 'insertText', 'b', 42)],
     expected: { perCharStatus: ['correct', 'correct'], cursor: 2, completedAt: 42 },
   },
+  {
+    n: 7,
+    name: 'an IME-composed 2-codepoint commit scores both positions in one record',
+    target: 'ab',
+    charLog: [char(0, 'insertFromComposition', 'ab', 10)],
+    expected: { perCharStatus: ['correct', 'correct'], cursor: 2, completedAt: 10 },
+  },
+  {
+    n: 8,
+    name: 'a second delete-type record when cursor is already 0 is a no-op (no throw, no negative index)',
+    target: 'a',
+    charLog: [char(0, 'deleteContentBackward', null, 10), char(1, 'deleteContentBackward', null, 20)],
+    expected: { perCharStatus: ['pending'], cursor: 0, uncorrectedCount: 0 },
+  },
+  {
+    n: 9,
+    name: 'once completedAt is set, a further insert record past target.length does not overwrite it',
+    target: 'a',
+    charLog: [char(0, 'insertText', 'a', 10), char(1, 'insertText', 'x', 20)],
+    expected: { perCharStatus: ['correct'], cursor: 1, completedAt: 10 },
+  },
 ]
 
 describe('computeTrainerState() — golden cases (TYPE-01/02/03)', () => {
@@ -87,6 +108,25 @@ describe('computeTrainerState() — golden cases (TYPE-01/02/03)', () => {
     if (expected.correctedCount !== undefined) expect(result.correctedCount).toBe(expected.correctedCount)
     if (expected.uncorrectedCount !== undefined) expect(result.uncorrectedCount).toBe(expected.uncorrectedCount)
     if (expected.completedAt !== undefined) expect(result.completedAt).toBe(expected.completedAt)
+  })
+})
+
+interface GlyphCase {
+  n: number
+  name: string
+  input: string
+  expected: string
+}
+
+const glyphCases: GlyphCase[] = [
+  { n: 1, name: 'space -> middle dot (U+00B7)', input: ' ', expected: '·' },
+  { n: 2, name: 'newline -> downwards arrow (U+21B5)', input: '\n', expected: '↵' },
+  { n: 3, name: 'any other character is unchanged', input: 'a', expected: 'a' },
+]
+
+describe('glyphFor() — 3 golden cases (TYPE-04, D-06 amended)', () => {
+  it.each(glyphCases)('case $n: $name', ({ input, expected }) => {
+    expect(glyphFor(input)).toBe(expected)
   })
 })
 

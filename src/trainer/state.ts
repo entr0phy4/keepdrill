@@ -69,3 +69,18 @@ export function computeTrainerState(target: string, charLog: readonly CommittedC
 
   return { perCharStatus, cursor, correctedCount, uncorrectedCount, completedAt }
 }
+
+/** Whitespace-glyph mapping (D-06 amended, TYPE-04): space -> middle dot,
+ *  newline -> downwards-arrow-with-corner-leftwards, all else unchanged.
+ *  Intentionally reachable-but-inert for the tab character: `Exercise.text`
+ *  can never contain one because Phase 1's normalize.ts unconditionally
+ *  expands every tab to spaces before an Exercise exists — do NOT add a
+ *  tab-to-glyph mapping here, and do NOT add any capture.ts export for
+ *  synthetic tab-character insertion (02-RESEARCH.md's pre-amendment
+ *  synthetic-char-recording design and 02-PATTERNS.md's pre-amendment
+ *  pattern both predate CONTEXT.md's amendment of D-06/D-07). */
+export function glyphFor(char: string): string {
+  if (char === ' ') return '·'
+  if (char === '\n') return '↵'
+  return char
+}

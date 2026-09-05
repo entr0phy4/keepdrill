@@ -293,3 +293,10 @@ textarea {
   border-left: 2px solid var(--color-accent);
   display: inline-block;
 }
+
+/* Whitespace glyphs (D-06 amended, TYPE-04) — dims only the glyph's own
+   opacity; the parent [data-status] span's background/underline are never
+   dimmed (02-UI-SPEC.md). */
+.ws-glyph {
+  opacity: 0.55;
+}

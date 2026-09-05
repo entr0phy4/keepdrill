@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExter
 import type { ReactNode } from 'react'
 import { useCapture } from '../capture/use-capture'
 import { getCharLog } from '../capture/capture'
-import { computeTrainerState } from '../trainer/state'
+import { computeTrainerState, glyphFor } from '../trainer/state'
 
 // The transparent-textarea-over-rendered-layer overlay (D-01/D-02): the native
 // <textarea> stays the sole input/focus/caret host (beforeinput/input, IME,
@@ -103,9 +103,11 @@ export function CaptureSurface({ text }: { text: string }) {
     if (i === cursor) {
       nodes.push(<span key={`caret-${i}`} className="trainer-caret" aria-hidden="true" />)
     }
+    const targetChar = text[i] ?? ''
+    const isWhitespaceGlyph = targetChar === ' ' || targetChar === '\n'
     nodes.push(
       <span key={i} data-status={perCharStatus[i] ?? 'pending'}>
-        {text[i]}
+        {isWhitespaceGlyph ? <span className="ws-glyph">{glyphFor(targetChar)}</span> : targetChar}
       </span>,
     )
   }
