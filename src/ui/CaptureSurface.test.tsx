@@ -253,3 +253,84 @@ describe('CaptureSurface — Tab no-op + Escape restart + caret active state (TY
     expect(caret?.getAttribute('data-active')).toBe('false')
   })
 })
+
+// Gap closure (02-VERIFICATION.md gap #1 / 02-REVIEW.md WR-1, T-02-08): the
+// caret-resync effect (D-10/T-02-04) was previously keyed on `[cursor]`
+// alone, so it never corrected native-selection drift from ArrowLeft/Right/
+// Home/End/click — none of which change `cursor` or trigger any other
+// re-render. happy-dom has no layout engine and does not implement real
+// arrow-key/click-driven text-selection navigation, so drift is reproduced
+// directly by assigning selectionStart/selectionEnd (mirroring this suite's
+// existing convention of hand-dispatching events rather than relying on
+// browser-native editing behavior), then dispatching a native "select" event
+// to simulate what a real browser fires after such a drift.
+describe('CaptureSurface — caret resync on selection drift (gap closure, T-02-04)', () => {
+  it('a native "select" event after selectionStart/selectionEnd drift resyncs them back to cursor synchronously (no rAF wait)', async () => {
+    act(() => {
+      root.render(<CaptureSurface text="ab" />)
+    })
+
+    const textarea = container.querySelector('textarea')! as HTMLTextAreaElement
+
+    // Commit "a" so cursor advances to 1 and the post-commit effect resyncs
+    // native selection to 1.
+    beforeInput(textarea, { inputType: 'insertText', data: 'a' })
+
+    await act(async () => {
+      await nextFrame()
+    })
+
+    expect(textarea.selectionStart).toBe(1)
+    expect(textarea.selectionEnd).toBe(1)
+
+    // Simulate ArrowLeft/click drift with no accompanying cursor change:
+    // manually move native selection to 0.
+    act(() => {
+      textarea.selectionStart = 0
+      textarea.selectionEnd = 0
+      textarea.dispatchEvent(new Event('select', { bubbles: true }))
+    })
+
+    // No nextFrame()/act(async ...) wait here — the fix must resync
+    // synchronously inside the native "select" event handling, independent
+    // of any cursor-driven render.
+    expect(textarea.selectionStart).toBe(1)
+    expect(textarea.selectionEnd).toBe(1)
+  })
+
+  it('a delete-type commit after a drift-and-resync sequence still reopens the correct logical position to pending', async () => {
+    act(() => {
+      root.render(<CaptureSurface text="ab" />)
+    })
+
+    const textarea = container.querySelector('textarea')! as HTMLTextAreaElement
+
+    beforeInput(textarea, { inputType: 'insertText', data: 'a' })
+
+    await act(async () => {
+      await nextFrame()
+    })
+
+    expect(container.querySelector('[data-status="correct"]')?.textContent).toBe('a')
+
+    // Drift-and-resync sequence.
+    act(() => {
+      textarea.selectionStart = 0
+      textarea.selectionEnd = 0
+      textarea.dispatchEvent(new Event('select', { bubbles: true }))
+    })
+
+    expect(textarea.selectionStart).toBe(1)
+    expect(textarea.selectionEnd).toBe(1)
+
+    beforeInput(textarea, { inputType: 'deleteContentBackward', data: null })
+
+    await act(async () => {
+      await nextFrame()
+    })
+
+    const caret = container.querySelector('.trainer-caret')
+    expect(caret?.nextElementSibling?.getAttribute('data-status')).toBe('pending')
+    expect(caret?.nextElementSibling?.textContent).toBe('a')
+  })
+})
