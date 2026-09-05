@@ -33,7 +33,14 @@ ROADMAP left open.
   wall-clock time from first keystroke to completion. Time the window was
   blurred or the tab was hidden is excluded, exactly as Phase 2's D-09 was
   built to support ("Phase 2 does not display a running timer — Phase 3
-  consumes the value directly"). — **Reversibility:** costly — every stored/
+  consumes the value directly"). **Clarified by research (RESEARCH.md Open
+  Question 3):** the `now` argument passed to `computeActiveElapsedMs` at
+  completion MUST be `TrainerState.completedAt` — the completing record's own
+  `tMs` (already in the `event.timeStamp` clock domain) — never `Date.now()`
+  or a freshly-read timestamp (both are the wrong clock domain and/or add
+  handler-latency skew; `Session.startedAt` is explicitly `Date.now()`-based
+  and display-only per `session.ts`'s own doc comment — never use it for a
+  duration calculation). — **Reversibility:** costly — every stored/
   displayed WPM number is defined relative to this time basis; switching to
   wall-clock later changes the meaning of every historical number, not just
   the code path.
@@ -61,6 +68,16 @@ ROADMAP left open.
   (recommended: ROADMAP explicitly says "with corrections in the denominator"
   — the only reading that makes "corrections" affect the denominator at all
   is counting every keypress attempt, not just the final outcome per position).
+  **Clarified by research (RESEARCH.md Open Question 1, confirms Monkeytype's
+  own accuracy formula does NOT count corrections this way — this is a
+  deliberate, intentional divergence from Monkeytype for accuracy, even
+  though D-01's WPM formula deliberately DOES match Monkeytype):** only
+  insert-branch `CommittedChar` records (a real character-vs-target
+  comparison) count toward the denominator — a delete-type record itself is
+  NOT a separate denominator entry (it has no correctness verdict to score).
+  A corrected position already contributes 2 denominator entries (the wrong
+  insert + the retyped insert) without needing to additionally score the
+  backspace keystroke itself.
 
 ### Slowest-keystroke identity grouping
 
@@ -89,6 +106,10 @@ ROADMAP left open.
   qualifies for the slowest-5 list?" → Selected: "3" (recommended: standard
   typing-test convention — below 3 samples, median/trimmed aggregation is
   statistically meaningless and one outlier dominates the number).
+  **Clarified by research (RESEARCH.md Open Question 2):** the "3" gates on
+  samples remaining AFTER the outlier filter (>1000ms and <25ms gaps
+  discarded), not raw pre-filter occurrence count — D-04's own rationale is
+  about samples feeding the median, which by definition are post-filter.
 
 ### Results reveal UX
 
@@ -115,6 +136,24 @@ ROADMAP left open.
   results view?" → Selected: "Yes, same Restart control" (recommended: no
   reason to remove an already-working, already-tested control; forcing a
   detour would be pure friction).
+
+### Completion signaling mechanism
+
+- **D-07 (added after research):** `CaptureSurface` gains a new
+  `onComplete?: (completedAt: number) => void` prop, fired exactly once (via a
+  `useEffect` keyed on `completedAt` transitioning from `null` to non-null) —
+  mirroring the existing `onRestartRequested` prop pattern from Phase 2.
+  `App.tsx`'s existing 250ms `SESSION_REFRESH_MS` polling interval is NOT
+  reused for this — it exists for a different purpose (dev-inspection
+  polling) and is far too coarse for D-05's "instant" reveal requirement.
+  — **Reversibility:** reversible — an additive prop; no existing call site
+  changes shape.
+  [auto] Completion signaling — Q: "How does App.tsx learn the exercise
+  completed, given CaptureSurface has no such callback today?" → Selected:
+  "New onComplete callback prop" (recommended by research: verified
+  CaptureSurface computes completedAt internally every render but has no way
+  to surface it; the existing polling interval is both wrong-purpose and
+  too slow).
 
 ### Claude's Discretion
 
