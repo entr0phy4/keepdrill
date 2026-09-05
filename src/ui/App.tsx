@@ -59,6 +59,26 @@ export function App() {
     }
   }
 
+  // D-08: Restart keeps the SAME loaded exercise content — only the session
+  // state resets. Never calls setExercise; only resetCapture() + a loadToken
+  // bump (remounting CaptureSurface to discard stale DOM/IME state) plus a
+  // fresh startedAt for the session snapshot, mirroring handleLoad's shape
+  // without loading new content.
+  const handleRestart = () => {
+    const current = loadRef.current
+    if (!current) return
+    resetCapture()
+    setLoadToken((token) => token + 1)
+    const startedAt = Date.now()
+    loadRef.current = { exercise: current.exercise, startedAt }
+    const session = buildSession(current.exercise, startedAt)
+    sessionRef.current = session
+    setTimingResolutionUs(session.timingResolutionUs)
+    if (import.meta.env.DEV) {
+      window.__keebdrillSession = session
+    }
+  }
+
   // Re-snapshot on an interval while an exercise is loaded, so sessionRef and
   // the dev inspection point pick up keystrokes typed after load instead of
   // staying frozen at the empty buffer captured the instant the exercise
@@ -100,7 +120,12 @@ export function App() {
           </p>
         </section>
       ) : (
-        <CaptureSurface key={loadToken} text={exercise.text} />
+        <div style={{ display: 'grid', gap: 'var(--space-md)' }}>
+          <CaptureSurface key={loadToken} text={exercise.text} onRestartRequested={handleRestart} />
+          <button type="button" className="primary" onClick={handleRestart}>
+            Restart exercise
+          </button>
+        </div>
       )}
     </main>
   )
