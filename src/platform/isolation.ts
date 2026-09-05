@@ -5,10 +5,11 @@ export function readCrossOriginIsolated(): boolean {
   return typeof self !== 'undefined' && self.crossOriginIsolated === true
 }
 
-// Plan 01-03 wires this to real keystroke deltas (measured smallest non-zero
-// event.timeStamp gap). Until then the probe reports the per-browser EXPECTED
-// resolution keyed on cross-origin isolation (assumption A10) — a tight
-// perf-counter loop would measure call overhead, not stamp granularity.
+// Wired by Plan 01-03: capture.ts feeds real inter-keystroke deltas (measured
+// smallest non-zero event.timeStamp gap) via a microtask tap on each real
+// keydown. Until enough keystrokes exist, the probe reports the per-browser
+// EXPECTED resolution keyed on cross-origin isolation (assumption A10) — a
+// tight perf-counter loop would measure call overhead, not stamp granularity.
 let measuredResolutionUs: number | null = null
 
 /** Documented hook for Plan 01-03: feed it observed inter-sample deltas (µs). */
@@ -30,4 +31,12 @@ function expectedResolutionUs(): number {
  *  measurement once Plan 01-03 supplies one, else the per-browser expectation. */
 export function probeTimerResolutionUs(): number {
   return measuredResolutionUs ?? expectedResolutionUs()
+}
+
+/** The full combined figure (planner_assumption on CAPT-05, A10): the
+ *  per-browser expected resolution keyed on crossOriginIsolated, plus the
+ *  measured smallest non-zero event.timeStamp delta once enough real
+ *  keystrokes exist (null until then). */
+export function getTimingResolutionUs(): { expectedUs: number; measuredUs: number | null } {
+  return { expectedUs: expectedResolutionUs(), measuredUs: measuredResolutionUs }
 }
