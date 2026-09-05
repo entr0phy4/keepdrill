@@ -60,7 +60,12 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 2 plans (2 waves)
 
 Plans:
+**Wave 1**
+
 - [ ] 02-01-PLAN.md — Tracer: trainer reducer (computeTrainerState) + transparent overlay rendering + whitespace glyphs (TYPE-01..04)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 02-02-PLAN.md — Restart control + Tab no-op/caret motion + computeActiveElapsedMs (TYPE-05, TYPE-06)
 
 **UI hint**: yes
