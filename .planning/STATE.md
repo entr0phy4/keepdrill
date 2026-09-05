@@ -23,7 +23,7 @@ current_phase_name: Session Metrics
 See: .planning/PROJECT.md (updated 2026-09-05)
 
 **Core value:** The user can paste or upload a real code/text file, type it with keystroke capture, and see WPM, accuracy, and their five slowest keys — useful enough for a week of daily self-use.
-**Current focus:** Phase 03 — Session Metrics
+**Current focus:** Planning next milestone (v1.0 shipped 2026-09-05)
 
 ## Current Position
 
