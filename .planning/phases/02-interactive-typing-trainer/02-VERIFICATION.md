@@ -1,7 +1,7 @@
 ---
 phase: 02-interactive-typing-trainer
 verified: 2026-09-05T09:10:00Z
-status: human_needed
+status: passed
 score: 7/9 must-haves verified
 behavior_unverified: 2 # caret-blink cycle + long-unbroken-line wrap — UI-SPEC backstops, unrenderable under happy-dom (unchanged carry-forward from prior verification; not touched by 02-03)
 overrides_applied: 0
@@ -9,21 +9,26 @@ re_verification:
   previous_status: gaps_found
   previous_score: 6/9
   gaps_closed:
+
     - "Arrow-key/mouse-click native-selection drift is silently re-synced to the logical cursor within one render frame (gap #1 / WR-1) — CLOSED by 02-03-PLAN.md: resyncCaret() extracted and wired to the textarea's onSelect prop, which fires independent of React's render cycle (React's onSelect polyfill listens on document for focusout/contextmenu/dragend/focusin/keydown/keyup/mousedown/mouseup/selectionchange). Confirmed genuine (not tautological) by reverting src/ui/CaptureSurface.tsx to its pre-fix (ca6f44e) state and re-running the new regression tests: 3 of 11 tests fail without the fix (the two drift-resync tests plus the untrusted-Escape test), confirming they exercise real production code paths."
   gaps_remaining: []
   regressions: []
 human_verification:
+
   - test: "Type a long unbroken line (minified code, no whitespace) into the loaded exercise and confirm it wraps via `overflow-wrap: anywhere` in both the invisible textarea and the rendered layer, identically, with no horizontal scroll."
     expected: "Text wraps identically in both stacked layers; no independent scroll container appears."
     why_human: "UI-SPEC-designated backstop — visual layout behavior not observable under happy-dom's no-layout-engine test environment. Unaffected by 02-03 (index.css untouched)."
+
   - test: "Focus the capture surface and observe the custom caret for several seconds, then blur the window/tab and observe again; also enable `prefers-reduced-motion: reduce` in the OS/browser and repeat."
     expected: "Caret blinks on a ~1s cycle (~530ms visible/hidden) while focused+visible; renders solid (never hidden) while blurred/tab-hidden; renders solid under reduced-motion."
     why_human: "CSS `@keyframes` animation timing/visual blink is not exercised by happy-dom (no CSS animation engine); only the `data-active` attribute wiring that gates the animation was verified automatically. Unaffected by 02-03 (index.css untouched)."
 behavior_unverified_items:
+
   - truth: "The custom caret blinks ~1s while focused+visible, renders solid under reduced-motion, renders solid while blurred/hidden (UI-SPEC backstop)"
     test: "Focus the capture surface, watch for ~2-3s, then blur/hide the tab and watch again; repeat with prefers-reduced-motion: reduce enabled."
     expected: "Blink cycle visible only while focused+visible+no-reduced-motion; solid otherwise."
     why_human: "CSS animation timing cannot be observed under happy-dom (no CSS engine)."
+
   - truth: "A long unbroken line wraps via overflow-wrap: anywhere identically in both stacked layers, no horizontal scroll (UI-SPEC backstop)"
     test: "Paste/load a long minified line with no whitespace and observe wrap behavior in both the textarea and rendered layer."
     expected: "Both layers wrap identically at the same points; no horizontal scrollbar."
@@ -141,6 +146,7 @@ These are advisory per `workflow.human_verify_mode: end-of-phase` and do not blo
 ### Gaps Summary
 
 **No blocking gaps remain.** The one gap from the prior verification (caret-resync never firing on arrow-key/click-only drift, risking a silently-dropped Backspace) has been closed by `02-03-PLAN.md`/`02-03-SUMMARY.md` and independently re-verified in this session by:
+
 - Direct code reading confirming the `onSelect={resyncCaret}` wiring exists and is backed by a real React event-polyfill mechanism (not a test-only artifice).
 - Reverting the file to its pre-fix commit and re-running the test suite, confirming 3 of the 11 `ui`-project tests genuinely fail without the fix — proof the new regression tests are not tautological.
 - A full-suite run (115/115 pass) and a clean strict TypeScript compile.
