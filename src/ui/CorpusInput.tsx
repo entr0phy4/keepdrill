@@ -20,10 +20,6 @@ const COPY = {
   caption: (name: string) => `Loaded from ${name}`,
 } as const
 
-// A normalize() transform that outlasts one animation frame (~16ms) is the only
-// case that shows the disabled "Loading…" button state (backstop truth).
-const FRAME_MS = 16
-
 interface CorpusInputProps {
   onLoad: (exercise: Exercise) => void
 }
@@ -51,27 +47,26 @@ export function CorpusInput({ onLoad }: CorpusInputProps) {
     }
     setEmptyError(null)
 
+    // WR-03: fromPaste() is synchronous and can block the main thread for a
+    // large paste. Setting busy AFTER running it (the old code measured
+    // duration post-hoc) meant the jank had already happened by the time
+    // "Loading…" appeared, for at most one already-too-late frame. Set busy
+    // first and force a paint via requestAnimationFrame BEFORE running the
+    // transform, so the disabled button is actually visible for the
+    // duration of the blocking work it exists to signal.
     const token = ++loadTokenRef.current
-    const started = performance.now()
-    const exercise = fromPaste(value)
-    const slow = performance.now() - started > FRAME_MS
-
-    const commit = () => {
-      if (loadTokenRef.current !== token) return
+    setBusy(true)
+    requestAnimationFrame(() => {
+      if (loadTokenRef.current !== token) {
+        setBusy(false)
+        return
+      }
+      const exercise = fromPaste(value)
       setCaption(null)
       setFileError(null)
       onLoad(exercise)
-    }
-
-    if (slow) {
-      setBusy(true)
-      requestAnimationFrame(() => {
-        commit()
-        setBusy(false)
-      })
-    } else {
-      commit()
-    }
+      setBusy(false)
+    })
   }
 
   const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
