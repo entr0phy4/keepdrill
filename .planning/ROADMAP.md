@@ -86,16 +86,16 @@ Plans:
   3. On completion, user sees the five slowest keystrokes — gated by a minimum sample count, using median/trimmed aggregation with outlier gaps (>1000ms and <25ms) discarded — or a "not enough data" message when below threshold.
   4. The metrics engine is a pure module with no I/O, re-runnable over any keystroke log; the WPM and accuracy formulas are documented in the repo, the metric schema is versioned, and golden-file unit tests pass.
 
-**Plans**: 1/2 plans executed (2 waves)
+**Plans**: 2/2 plans executed (2 waves)
 
 Plans:
 
 - [x] 03-01-PLAN.md — Tracer: completion signal -> WPM + accuracy, auto-revealed results panel (METR-01, METR-02, METR-04)
-- [ ] 03-02-PLAN.md — Slowest-5 keystrokes + full visual polish (METR-03, METR-04)
+- [x] 03-02-PLAN.md — Slowest-5 keystrokes + full visual polish (METR-03, METR-04)
 
 **Wave 1**
 
-- [ ] 03-01-PLAN.md — Tracer: completion signal -> WPM + accuracy, auto-revealed results panel
+- [x] 03-01-PLAN.md — Tracer: completion signal -> WPM + accuracy, auto-revealed results panel
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -112,4 +112,4 @@ Phases execute in numeric order: 1 → 2 → 3
 |-------|----------------|--------|-----------|
 | 1. Corpus Input & Keystroke Capture | 3/3 | Complete    | 2026-09-04 |
 | 2. Interactive Typing Trainer | 3/3 | Complete    | 2026-09-05 |
-| 3. Session Metrics | 1/2 | In Progress|  |
+| 3. Session Metrics | 2/2 | In Progress|  |

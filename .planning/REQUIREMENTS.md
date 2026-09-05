@@ -36,7 +36,7 @@ project-level risk).
 
 - [x] **METR-01**: On completion, user sees net WPM for the exercise using the industry-standard formula (correct chars / 5 / minutes), matching Monkeytype's definition
 - [x] **METR-02**: On completion, user sees accuracy / error rate for the exercise (correct keypresses / total keypresses, with corrections in the denominator)
-- [ ] **METR-03**: On completion, user sees the five slowest keystrokes, gated by a minimum sample count, using median/trimmed aggregation with outlier filtering (>1000ms and <25ms gaps discarded); shows "not enough data" when below threshold
+- [x] **METR-03**: On completion, user sees the five slowest keystrokes, gated by a minimum sample count, using median/trimmed aggregation with outlier filtering (>1000ms and <25ms gaps discarded); shows "not enough data" when below threshold
 - [x] **METR-04**: The metrics engine is a pure module with no I/O, re-runnable over any keystroke log; the WPM/accuracy formulas are documented in the repo and the metric schema is versioned; covered by golden-file unit tests
 
 ## v2 Requirements
@@ -102,7 +102,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | TYPE-06 | Phase 2 | Complete |
 | METR-01 | Phase 3 | Complete |
 | METR-02 | Phase 3 | Complete |
-| METR-03 | Phase 3 | Pending |
+| METR-03 | Phase 3 | Complete |
 | METR-04 | Phase 3 | Complete |
 
 **Coverage:**
