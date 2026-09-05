@@ -57,7 +57,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. Whitespace characters (spaces, tabs, newlines) render as visible glyphs and must be typed explicitly to advance.
   5. User can restart the current exercise (content preserved, all session state reset); session timing starts on the first keystroke, pauses while the window is blurred or hidden, and pasting into the exercise is blocked or flagged.
 
-**Plans**: TBD
+**Plans**: 2 plans (2 waves)
+
+Plans:
+- [ ] 02-01-PLAN.md — Tracer: trainer reducer (computeTrainerState) + transparent overlay rendering + whitespace glyphs (TYPE-01..04)
+- [ ] 02-02-PLAN.md — Restart control + Tab no-op/caret motion + computeActiveElapsedMs (TYPE-05, TYPE-06)
+
 **UI hint**: yes
 
 ### Phase 3: Session Metrics
@@ -84,5 +89,5 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Corpus Input & Keystroke Capture | 3/3 | Complete    | 2026-09-04 |
-| 2. Interactive Typing Trainer | 0/TBD | Not started | - |
+| 2. Interactive Typing Trainer | 0/2 | Not started | - |
 | 3. Session Metrics | 0/TBD | Not started | - |
