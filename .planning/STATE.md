@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 02
 current_phase_name: Interactive Typing Trainer
 status: verifying
-stopped_at: Completed 02-02-PLAN.md
-last_updated: "2026-09-05T13:33:24.202Z"
+stopped_at: Completed 02-03-PLAN.md (gap closure)
+last_updated: "2026-09-05T14:03:31.762Z"
 last_activity: 2026-09-05
 last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 2
   completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 6
+  completed_plans: 6
 ---
 
 # Project State
@@ -63,6 +63,7 @@ Progress: [██████████] 100%
 | Phase 01 P03 | 8min | 3 tasks | 9 files |
 | Phase 02 P01 | 15min | 2 tasks | 7 files |
 | Phase 02 P02 | 5min | 3 tasks | 6 files |
+| Phase 02 P03 | 12min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -84,6 +85,8 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 02-02]: handleRestart never calls setExercise — only resetCapture() + a loadToken bump, keeping the same exercise content, no confirmation dialog (D-08)
 - [Phase ?]: [Phase 02-02]: Escape is checked before Tab in CaptureSurface's onKeyDown — the keyboard-only path to Restart since Tab is fully absorbed (D-07 amended)
 - [Phase ?]: [Phase 02-02]: computeActiveElapsedMs is a pure toggle-state-machine over CaptureMarker[] (single inactiveSince), not index-based pair-matching — robust to overlapping/duplicate markers (D-09)
+- [Phase ?]: [Phase 02-03]: resyncCaret() now fires on every native selection-change event via onSelect, not only when cursor changes (closes T-02-08/WR-1)
+- [Phase ?]: [Phase 02-03]: handleKeyDown rejects untrusted keydown events before evaluating Escape/Tab, matching capture.ts's T-01-04 convention (closes T-02-09/WR-2)
 
 ### Pending Todos
 
@@ -109,6 +112,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-05T13:33:24.193Z
-Stopped at: Completed 02-02-PLAN.md
+Last session: 2026-09-05T14:03:31.752Z
+Stopped at: Completed 02-03-PLAN.md (gap closure)
 Resume file: None
