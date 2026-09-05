@@ -128,9 +128,14 @@ export function CorpusInput({ onLoad }: CorpusInputProps) {
           {COPY.fileLabel}
         </label>
         <input id="corpus-file" type="file" onChange={handleFileChange} />
-        {/* Reserve the row so showing an error / caption causes no reflow. */}
+        {/* Reserve the row so showing an error / caption causes no reflow.
+            WR-05: role must track which branch is showing — "alert" is an
+            assertive live region reserved for errors; the ordinary success
+            caption ("Loaded from main.ts") used the same role and so was
+            announced by screen readers with the same urgency as a real
+            error every time a file loaded successfully. */}
         <p
-          role="alert"
+          role={fileError ? 'alert' : 'status'}
           className={fileError ? undefined : 'text-muted'}
           style={{
             margin: 0,
