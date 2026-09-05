@@ -482,7 +482,11 @@ open by `03-CONTEXT.md` rather than claims about external facts — they are lis
 **Open Questions** below (for plan/discuss confirmation) rather than in this
 Assumptions Log, since they are recommendations, not unverified factual claims.
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+All 4 questions below were resolved and locked into `03-CONTEXT.md` (D-01, D-02,
+D-04, D-07) after this research completed, then implemented and verified by
+the plan-checker against `03-01-PLAN.md`/`03-02-PLAN.md`.
 
 1. **Does "total keypresses" (METR-02's denominator) include delete-type
    (backspace) `CommittedChar` records, or only insert-branch attempts?**
