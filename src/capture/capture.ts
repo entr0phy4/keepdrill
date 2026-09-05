@@ -43,18 +43,26 @@ function onKey(e: KeyboardEvent, type: 'keydown' | 'keyup'): void {
 
   const tMs = e.timeStamp
 
-  buffer.push({
-    seq: seq++,
-    type,
-    key: e.key,
-    code: e.code,
-    ctrl: e.ctrlKey,
-    alt: e.altKey,
-    shift: e.shiftKey,
-    meta: e.metaKey,
-    tMs,
-    isRepeat,
-  })
+  // WR-02: freeze each element at push time, not just the array returned by
+  // getEvents() — Object.freeze on the outer array (getEvents) only blocks
+  // push/pop/index-reassignment, not property mutation on the elements it
+  // contains, since buffer.slice() copies references, not the objects
+  // themselves. Freezing here guarantees every consumer (regardless of how
+  // they got the reference) gets an immutable event.
+  buffer.push(
+    Object.freeze({
+      seq: seq++,
+      type,
+      key: e.key,
+      code: e.code,
+      ctrl: e.ctrlKey,
+      alt: e.altKey,
+      shift: e.shiftKey,
+      meta: e.metaKey,
+      tMs,
+      isRepeat,
+    }),
+  )
   // nothing else in the hot path — the resolution sample is scheduled, not
   // computed inline.
   if (type === 'keydown' && !isRepeat) scheduleResolutionSample(tMs)
@@ -93,7 +101,7 @@ function onBeforeInput(e: Event): void {
   if (composing) return // per-char attribution suspended during IME composition
 
   const { inputType, data } = charRecordFor(e)
-  charLog.push({ seq: seq++, inputType, data, tMs: e.timeStamp })
+  charLog.push(Object.freeze({ seq: seq++, inputType, data, tMs: e.timeStamp }))
 }
 
 /** `input` fires after the DOM changed — textarea.value is the authoritative
@@ -109,12 +117,14 @@ function onInput(e: Event): void {
   const capturedThisTick = last !== undefined && last.tMs === e.timeStamp
   if (!capturedThisTick && value.length < lastValue.length) {
     // beforeinput was skipped for this deletion — value diff is ground truth.
-    charLog.push({
-      seq: seq++,
-      inputType: e.inputType || 'deleteContentBackward',
-      data: null,
-      tMs: e.timeStamp,
-    })
+    charLog.push(
+      Object.freeze({
+        seq: seq++,
+        inputType: e.inputType || 'deleteContentBackward',
+        data: null,
+        tMs: e.timeStamp,
+      }),
+    )
   }
   lastValue = value
 }
@@ -128,11 +138,11 @@ function onCompositionEnd(e: Event): void {
   if (!e.isTrusted) return
   composing = false
   const data = e instanceof CompositionEvent ? e.data : null
-  charLog.push({ seq: seq++, inputType: 'insertFromComposition', data, tMs: e.timeStamp })
+  charLog.push(Object.freeze({ seq: seq++, inputType: 'insertFromComposition', data, tMs: e.timeStamp }))
 }
 
 function pushMarker(kind: MarkerKind, tMs: number): void {
-  markers.push({ seq: seq++, kind, tMs })
+  markers.push(Object.freeze({ seq: seq++, kind, tMs }))
 }
 
 /** Alt-tab mid-hold must not wedge a key — clear the down-set (PITFALLS #3, A7). */
@@ -198,7 +208,10 @@ export function setPasteBlockedHandler(handler: (() => void) | null): void {
 }
 
 /** Append-only buffer, exposed read-only (D-13). Returns a frozen snapshot so
- *  callers cannot mutate capture state; the hot path is the push, not this read. */
+ *  callers cannot mutate capture state; the hot path is the push, not this
+ *  read. Each element is also frozen at push time (WR-02) so mutating a
+ *  property of a returned event throws (or is a silent no-op outside strict
+ *  mode) rather than corrupting the live buffer through a shared reference. */
 export function getEvents(): readonly KeystrokeEvent[] {
   return Object.freeze(buffer.slice())
 }

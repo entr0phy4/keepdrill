@@ -202,6 +202,32 @@ describe('capture — read-only exposure (D-13)', () => {
     }).toThrow()
     expect(getCharLog()).toHaveLength(1)
   })
+
+  it('WR-02: mutating a property on a returned event does not corrupt the live buffer', () => {
+    attachCapture(target)
+    press(target, 'keydown', { code: 'KeyA' })
+
+    const event = getEvents()[0]!
+    expect(Object.isFrozen(event)).toBe(true)
+    expect(() => {
+      ;(event as { tMs: number }).tMs = 0
+    }).toThrow()
+    // Even if the throw above were swallowed (sloppy mode), the live buffer
+    // must be unaffected — re-read it fresh and confirm it is untouched.
+    expect(getEvents()[0]?.tMs).toBe(event.tMs)
+  })
+
+  it('WR-02: mutating a property on a returned char-log entry does not corrupt the live buffer', () => {
+    attachCapture(target)
+    beforeInput(target, { inputType: 'insertText', data: 'a' })
+
+    const entry = getCharLog()[0]!
+    expect(Object.isFrozen(entry)).toBe(true)
+    expect(() => {
+      ;(entry as { data: string | null }).data = 'z'
+    }).toThrow()
+    expect(getCharLog()[0]?.data).toBe('a')
+  })
 })
 
 describe('capture — logical keystroke count excludes repeats (CAPT-02)', () => {
