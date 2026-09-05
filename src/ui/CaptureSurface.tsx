@@ -11,6 +11,18 @@ const PASTE_BLOCKED_COPY =
   'Pasting into the typing area is disabled - type the exercise to record real keystrokes.'
 const PASTE_BLOCKED_FADE_MS = 4000
 
+/** No `index.css` access in this plan's scope (Interaction Contract's fade is
+ *  a global `@media (prefers-reduced-motion: no-preference)` concern) — honor
+ *  the same rule locally via `matchMedia` so the opacity transition is skipped
+ *  entirely for users who asked for reduced motion. */
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  )
+}
+
 export function CaptureSurface() {
   const ref = useRef<HTMLTextAreaElement | null>(null)
   const [pasteBlocked, setPasteBlocked] = useState(false)
@@ -66,8 +78,14 @@ export function CaptureSurface() {
       <p
         id="capture-paste-blocked"
         role="status"
-        className="text-muted banner-fade"
-        style={{ margin: 0, minHeight: '1.4em', visibility: pasteBlocked ? 'visible' : 'hidden' }}
+        aria-hidden={!pasteBlocked}
+        className="text-muted"
+        style={{
+          margin: 0,
+          minHeight: '1.4em',
+          opacity: pasteBlocked ? 1 : 0,
+          transition: prefersReducedMotion() ? 'none' : 'opacity var(--motion-duration) ease',
+        }}
       >
         {PASTE_BLOCKED_COPY}
       </p>
