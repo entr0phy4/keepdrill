@@ -23,6 +23,13 @@ const SESSION_REFRESH_MS = 250
 
 export function App() {
   const [exercise, setExercise] = useState<Exercise | null>(null)
+  // CR-02: a monotonic token, not exercise content, so CaptureSurface remounts
+  // on every load — including loading the *same* text/file twice in a row,
+  // which a content-derived key would miss. The remount discards the stale
+  // uncontrolled <textarea> DOM node (and its stale value/IME state) rather
+  // than leaving it mounted with the previous exercise's typed text still
+  // visible against the new prompt.
+  const [loadToken, setLoadToken] = useState(0)
 
   // Read the platform environment once (D-16). These do not change over the
   // lifetime of the document.
@@ -40,6 +47,7 @@ export function App() {
   const handleLoad = (loaded: Exercise) => {
     resetCapture() // fresh buffer per exercise
     setExercise(loaded)
+    setLoadToken((token) => token + 1)
     const startedAt = Date.now()
     loadRef.current = { exercise: loaded, startedAt }
     const session = buildSession(loaded, startedAt)
@@ -94,7 +102,7 @@ export function App() {
             <h2>Exercise</h2>
             <pre className="preview">{exercise.text}</pre>
           </section>
-          <CaptureSurface />
+          <CaptureSurface key={loadToken} />
         </>
       )}
     </main>
