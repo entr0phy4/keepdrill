@@ -31,15 +31,16 @@ export function App() {
   // visible against the new prompt.
   const [loadToken, setLoadToken] = useState(0)
 
-  // Read the platform environment once (D-16). These do not change over the
-  // lifetime of the document.
-  const platform = useMemo(
-    () => ({
-      crossOriginIsolated: readCrossOriginIsolated(),
-      timingResolutionUs: probeTimerResolutionUs(),
-    }),
-    [],
-  )
+  // crossOriginIsolated does not change over the lifetime of the document
+  // (D-16), so it is read once. timingResolutionUs DOES change — it starts as
+  // a static per-browser expectation and is meant to update once real
+  // keystrokes are measured (A10) — so, unlike crossOriginIsolated, it is
+  // state kept fresh by the same refresh interval that re-snapshots the
+  // session below (WR-01: previously read once via this same useMemo and
+  // frozen forever, so the Banner's "Timer resolution" text never reflected
+  // an actual measurement no matter how much the user typed).
+  const crossOriginIsolated = useMemo(() => readCrossOriginIsolated(), [])
+  const [timingResolutionUs, setTimingResolutionUs] = useState(() => probeTimerResolutionUs())
 
   const sessionRef = useRef<Session | null>(null)
   const loadRef = useRef<{ exercise: Exercise; startedAt: number } | null>(null)
@@ -52,6 +53,7 @@ export function App() {
     loadRef.current = { exercise: loaded, startedAt }
     const session = buildSession(loaded, startedAt)
     sessionRef.current = session
+    setTimingResolutionUs(session.timingResolutionUs)
     if (import.meta.env.DEV) {
       window.__keebdrillSession = session
     }
@@ -68,6 +70,7 @@ export function App() {
       if (!current) return
       const session = buildSession(current.exercise, current.startedAt)
       sessionRef.current = session
+      setTimingResolutionUs(session.timingResolutionUs)
       if (import.meta.env.DEV) {
         window.__keebdrillSession = session
       }
@@ -82,8 +85,8 @@ export function App() {
       </header>
 
       <Banners
-        crossOriginIsolated={platform.crossOriginIsolated}
-        timingResolutionUs={platform.timingResolutionUs}
+        crossOriginIsolated={crossOriginIsolated}
+        timingResolutionUs={timingResolutionUs}
       />
 
       <CorpusInput onLoad={handleLoad} />
