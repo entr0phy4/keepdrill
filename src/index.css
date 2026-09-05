@@ -50,6 +50,13 @@
   --color-destructive: #c0362c;
   --color-warning-surface: #fff8c5;
   --color-warning-text: #7a5c00;
+
+  /* Trainer per-status colors (02-UI-SPEC.md) — alias existing tokens, no new
+     contrast audit needed. */
+  --color-correct: #1c1c1a;
+  --color-pending: #5c5c57;
+  --color-incorrect: #c0362c;
+  --color-incorrect-bg: rgba(192, 54, 44, 0.14);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -64,6 +71,11 @@
     --color-destructive: #f85149;
     --color-warning-surface: #272115;
     --color-warning-text: #d29922;
+
+    --color-correct: #e6edf3;
+    --color-pending: #8b949e;
+    --color-incorrect: #f85149;
+    --color-incorrect-bg: rgba(248, 81, 73, 0.18);
   }
 }
 
@@ -217,4 +229,67 @@ textarea {
       border-color var(--motion-duration) ease,
       outline-color var(--motion-duration) ease;
   }
+}
+
+/* Trainer overlay (D-01/D-02, 02-UI-SPEC.md) — transparent-textarea-over-
+   rendered-layer. Both stacked children MUST share identical font metrics
+   (font-family/size/line-height/letter-spacing/padding/border/white-space/
+   word-break/overflow-wrap/tab-size/box-sizing) or the invisible textarea's
+   native caret and the rendered caret marker drift apart (Pitfall 6). */
+.trainer-stack {
+  position: relative;
+  display: grid;
+}
+
+.trainer-stack > * {
+  grid-area: 1 / 1;
+  font-family: var(--font-mono);
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line);
+  letter-spacing: normal;
+  padding: var(--space-md);
+  border: 1px solid transparent;
+  white-space: pre-wrap;
+  word-break: normal;
+  overflow-wrap: anywhere;
+  tab-size: 4;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.trainer-rendered-layer {
+  pointer-events: none;
+}
+
+.trainer-textarea {
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  background: transparent;
+  caret-color: transparent;
+  resize: none;
+  overflow: hidden;
+}
+
+/* Per-status rendering rule (02-UI-SPEC.md, precise for executor parity). */
+.trainer-rendered-layer [data-status='pending'] {
+  color: var(--color-pending);
+}
+
+.trainer-rendered-layer [data-status='correct'] {
+  color: var(--color-correct);
+}
+
+.trainer-rendered-layer [data-status='incorrect'] {
+  color: var(--color-incorrect);
+  background: var(--color-incorrect-bg);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+}
+
+/* In-flow, zero-width caret marker — never positioned via getBoundingClientRect
+   or pixel math (D-10). */
+.trainer-caret {
+  border-left: 2px solid var(--color-accent);
+  display: inline-block;
 }

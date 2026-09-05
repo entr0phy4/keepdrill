@@ -100,13 +100,7 @@ export function App() {
           </p>
         </section>
       ) : (
-        <>
-          <section style={{ display: 'grid', gap: 'var(--space-sm)' }}>
-            <h2>Exercise</h2>
-            <pre className="preview">{exercise.text}</pre>
-          </section>
-          <CaptureSurface key={loadToken} />
-        </>
+        <CaptureSurface key={loadToken} text={exercise.text} />
       )}
     </main>
   )

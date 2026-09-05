@@ -31,6 +31,13 @@ export default defineConfig({
           include: ['src/capture/**/*.test.ts'],
         },
       },
+      {
+        test: {
+          name: 'ui',
+          environment: 'happy-dom',
+          include: ['src/ui/**/*.test.tsx'],
+        },
+      },
     ],
   },
 })
