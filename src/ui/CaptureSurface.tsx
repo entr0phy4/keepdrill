@@ -106,6 +106,11 @@ export function CaptureSurface({
   }, [])
 
   const handleKeyDown = (e: ReactKeyboardEvent<HTMLTextAreaElement>) => {
+    // T-02-09 / WR-2: reject non-trusted (script-dispatched) keydown events
+    // before evaluating Escape/Tab, matching the same guard shape already
+    // used by every handler in src/capture/capture.ts (T-01-04 convention) —
+    // a synthetic Escape must never be able to trigger Restart.
+    if (!e.isTrusted) return
     // Escape checked first (D-07 amended, UI-SPEC's Keyboard-only Restart
     // access amendment): the keyboard-only path to Restart, since Tab order
     // can never reach the Restart button while Tab is fully absorbed below.
