@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
-import type { ReactNode } from 'react'
+import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react'
 import { useCapture } from '../capture/use-capture'
 import { getCharLog } from '../capture/capture'
 import { computeTrainerState, glyphFor } from '../trainer/state'
@@ -48,10 +48,21 @@ function useCharLogTick(): number {
   return useSyncExternalStore(subscribeCharLogTick, getCharLogTickSnapshot, getCharLogTickSnapshot)
 }
 
-export function CaptureSurface({ text }: { text: string }) {
+export function CaptureSurface({
+  text,
+  onRestartRequested,
+}: {
+  text: string
+  onRestartRequested?: () => void
+}) {
   const ref = useRef<HTMLTextAreaElement | null>(null)
   const [pasteBlocked, setPasteBlocked] = useState(false)
   const fadeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // D-07 amended / D-09: focus+visibility-driven caret blink gate. Starts
+  // `true` because the textarea is focused on mount (see the focus effect
+  // below) — the caret should render as active/blinking from first paint,
+  // not flash to inactive before the focus effect runs.
+  const [isActive, setIsActive] = useState(true)
 
   const handlePasteBlocked = useCallback(() => {
     if (fadeTimeoutRef.current !== null) clearTimeout(fadeTimeoutRef.current)
@@ -82,6 +93,36 @@ export function CaptureSurface({ text }: { text: string }) {
     }
   }, [])
 
+  // D-09 backstop: the caret renders solid (not blinking) while the tab is
+  // hidden, independent of textarea focus/blur — a hidden tab cannot receive
+  // a native blur event on some platforms, so visibilitychange is tracked
+  // separately from onFocus/onBlur below.
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      setIsActive(!document.hidden)
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange)
+  }, [])
+
+  const handleKeyDown = (e: ReactKeyboardEvent<HTMLTextAreaElement>) => {
+    // Escape checked first (D-07 amended, UI-SPEC's Keyboard-only Restart
+    // access amendment): the keyboard-only path to Restart, since Tab order
+    // can never reach the Restart button while Tab is fully absorbed below.
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      onRestartRequested?.()
+      return
+    }
+    // D-07 amended: Tab is fully absorbed — no character insertion, no
+    // cursor movement, no new capture.ts synthetic-record export at all.
+    // Supersedes 02-RESEARCH.md's pre-amendment synthetic-character-capture
+    // design (and 02-PATTERNS.md's matching pre-amendment pattern).
+    if (e.key === 'Tab') {
+      e.preventDefault()
+    }
+  }
+
   const { perCharStatus, cursor } = computeTrainerState(text, getCharLog())
 
   // D-10: force the native selection back to the logical cursor whenever it
@@ -101,7 +142,7 @@ export function CaptureSurface({ text }: { text: string }) {
   const nodes: ReactNode[] = []
   for (let i = 0; i < text.length; i++) {
     if (i === cursor) {
-      nodes.push(<span key={`caret-${i}`} className="trainer-caret" aria-hidden="true" />)
+      nodes.push(<span key={`caret-${i}`} className="trainer-caret" data-active={isActive} aria-hidden="true" />)
     }
     const targetChar = text[i] ?? ''
     const isWhitespaceGlyph = targetChar === ' ' || targetChar === '\n'
@@ -112,7 +153,7 @@ export function CaptureSurface({ text }: { text: string }) {
     )
   }
   if (cursor >= text.length) {
-    nodes.push(<span key="caret-end" className="trainer-caret" aria-hidden="true" />)
+    nodes.push(<span key="caret-end" className="trainer-caret" data-active={isActive} aria-hidden="true" />)
   }
 
   return (
@@ -132,6 +173,9 @@ export function CaptureSurface({ text }: { text: string }) {
           spellCheck={false}
           autoComplete="off"
           aria-describedby="capture-count capture-paste-blocked"
+          onKeyDown={handleKeyDown}
+          onFocus={() => setIsActive(true)}
+          onBlur={() => setIsActive(false)}
         />
         <div className="trainer-rendered-layer" aria-hidden="true">
           {nodes}

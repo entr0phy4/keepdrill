@@ -288,10 +288,36 @@ textarea {
 }
 
 /* In-flow, zero-width caret marker — never positioned via getBoundingClientRect
-   or pixel math (D-10). */
+   or pixel math (D-10). Blinks on a ~1s cycle (~530ms visible / ~530ms hidden)
+   while the window is focused and visible (D-07 amended, D-09 backstop);
+   renders solid under prefers-reduced-motion: reduce and while blurred/hidden. */
 .trainer-caret {
   border-left: 2px solid var(--color-accent);
   display: inline-block;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes trainer-caret-blink {
+    0%,
+    49% {
+      opacity: 1;
+    }
+    50%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  .trainer-caret {
+    animation: trainer-caret-blink 1060ms step-end infinite;
+  }
+}
+
+/* Solid (not hidden) while blurred/backgrounded — D-09's "timing is paused"
+   passive cue, not an absence of the caret. */
+.trainer-caret[data-active='false'] {
+  animation: none;
+  opacity: 1;
 }
 
 /* Whitespace glyphs (D-06 amended, TYPE-04) — dims only the glyph's own
