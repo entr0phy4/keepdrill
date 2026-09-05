@@ -4,16 +4,16 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 02
 current_phase_name: Interactive Typing Trainer
-status: executing
-stopped_at: Completed 02-01-PLAN.md
-last_updated: "2026-09-05T13:25:44.466Z"
+status: verifying
+stopped_at: Completed 02-02-PLAN.md
+last_updated: "2026-09-05T13:33:24.202Z"
 last_activity: 2026-09-05
 last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 2
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 5
-  completed_plans: 4
+  completed_plans: 5
 ---
 
 # Project State
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-09-05)
 
 Phase: 02 (Interactive Typing Trainer) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-09-05 — Phase 02 execution started
 
-Progress: [████████░░] 80%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -62,6 +62,7 @@ Progress: [████████░░] 80%
 | Phase 01 P01-02 | 12 | 2 tasks | 5 files |
 | Phase 01 P03 | 8min | 3 tasks | 9 files |
 | Phase 02 P01 | 15min | 2 tasks | 7 files |
+| Phase 02 P02 | 5min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -80,6 +81,9 @@ Recent decisions affecting current work:
 - [Phase ?]: Session.timingResolutionUs stays a single combined (measured ?? expected) number; the {expectedUs, measuredUs} pair is additionally exposed via platform/isolation.ts getTimingResolutionUs()
 - [Phase ?]: [Phase 02-01]: computeTrainerState treats every delete* inputType as exactly one position back (D-11) — no multi-char delete-length inference from data
 - [Phase ?]: [Phase 02-01]: Caret position derived solely from computeTrainerState's cursor, never textarea.selectionStart — resynced via useLayoutEffect (D-10)
+- [Phase ?]: [Phase 02-02]: handleRestart never calls setExercise — only resetCapture() + a loadToken bump, keeping the same exercise content, no confirmation dialog (D-08)
+- [Phase ?]: [Phase 02-02]: Escape is checked before Tab in CaptureSurface's onKeyDown — the keyboard-only path to Restart since Tab is fully absorbed (D-07 amended)
+- [Phase ?]: [Phase 02-02]: computeActiveElapsedMs is a pure toggle-state-machine over CaptureMarker[] (single inactiveSince), not index-based pair-matching — robust to overlapping/duplicate markers (D-09)
 
 ### Pending Todos
 
@@ -105,6 +109,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-05T13:25:37.942Z
-Stopped at: Completed 02-01-PLAN.md
+Last session: 2026-09-05T13:33:24.193Z
+Stopped at: Completed 02-02-PLAN.md
 Resume file: None

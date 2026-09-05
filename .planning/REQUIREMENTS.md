@@ -29,8 +29,8 @@ project-level risk).
 - [x] **TYPE-02**: User types under a free-correction policy — advancing past an error is allowed, and both corrected and uncorrected errors are tracked
 - [x] **TYPE-03**: User can press backspace to correct earlier characters
 - [x] **TYPE-04**: Whitespace characters (spaces, tabs, newlines) are rendered with visible glyphs and must be typed explicitly
-- [ ] **TYPE-05**: User can restart the current exercise, keeping the loaded content and resetting all session state
-- [ ] **TYPE-06**: Session timing starts on the first keystroke and excludes time while the window is blurred or hidden; pasting the exercise answer is blocked or flagged
+- [x] **TYPE-05**: User can restart the current exercise, keeping the loaded content and resetting all session state
+- [x] **TYPE-06**: Session timing starts on the first keystroke and excludes time while the window is blurred or hidden; pasting the exercise answer is blocked or flagged
 
 ### Metrics
 
@@ -98,8 +98,8 @@ Which phases cover which requirements. Populated during roadmap creation.
 | TYPE-02 | Phase 2 | Complete |
 | TYPE-03 | Phase 2 | Complete |
 | TYPE-04 | Phase 2 | Complete |
-| TYPE-05 | Phase 2 | Pending |
-| TYPE-06 | Phase 2 | Pending |
+| TYPE-05 | Phase 2 | Complete |
+| TYPE-06 | Phase 2 | Complete |
 | METR-01 | Phase 3 | Pending |
 | METR-02 | Phase 3 | Pending |
 | METR-03 | Phase 3 | Pending |
