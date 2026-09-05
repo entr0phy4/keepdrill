@@ -201,6 +201,19 @@ const cases: Case[] = [
       ],
     },
   },
+  {
+    n: 12,
+    name: 'a supplementary-plane character (surrogate pair) in target is one code point, not two UTF-16 units — accuracy/wpm unaffected past it',
+    // 🎉 (U+1F389) is 2 UTF-16 code units but 1 code point; target has 2 code points total.
+    target: '🎉a',
+    charLog: [char(0, 'insertText', '🎉', 10), char(1, 'insertText', 'a', 610)],
+    markers: [],
+    now: 610,
+    expected: {
+      wpm: 2 / 5 / (600 / 60000),
+      accuracy: 1,
+    },
+  },
 ]
 
 describe('computeSessionMetrics() — golden cases (D-01/D-02/D-03/D-04, Pitfalls 1/2/3/4/6/7)', () => {

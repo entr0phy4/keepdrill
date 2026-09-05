@@ -62,6 +62,11 @@ function replayAttempts(
   incorrectAttempts: number
   latencySamplesByChar: Map<string, number[]>
 } {
+  // Code-point array, not raw string indexing — mirrors state.ts's identical
+  // fix: `target[cursor]`/`target.length` are UTF-16-code-unit semantics,
+  // but `cursor` advances one per Unicode code point. A supplementary-plane
+  // character (surrogate pair) in `target` would otherwise desync the two.
+  const targetChars = Array.from(target)
   let cursor = 0
   let correctAttempts = 0
   let incorrectAttempts = 0
@@ -77,8 +82,8 @@ function replayAttempts(
 
     const codepoints = Array.from(rec.data ?? '')
     codepoints.forEach((ch, i) => {
-      if (cursor >= target.length) return
-      if (ch === target[cursor]) {
+      if (cursor >= targetChars.length) return
+      if (ch === targetChars[cursor]) {
         correctAttempts += 1
       } else {
         incorrectAttempts += 1

@@ -20,11 +20,20 @@ export interface TrainerState {
 }
 
 export function computeTrainerState(target: string, charLog: readonly CommittedChar[]): TrainerState {
-  const perCharStatus: PerCharStatus[] = new Array(target.length).fill('pending')
+  // Code-point array, not raw string indexing: `target[i]`/`target.length`
+  // are UTF-16-code-unit semantics, but `cursor` below advances one per
+  // Unicode code point (via for...of, matching the insert branch's own
+  // iteration). Any supplementary-plane character (surrogate pair — most
+  // emoji, some math/CJK-extension symbols) desyncs the two if target is
+  // indexed directly, corrupting scoring past that character and — since
+  // `cursor` could never reach the larger UTF-16 `target.length` — making
+  // the exercise permanently uncompletable.
+  const targetChars = Array.from(target)
+  const perCharStatus: PerCharStatus[] = new Array(targetChars.length).fill('pending')
   // Tracks whether a position was ever marked incorrect at any point, even
   // after a later backspace resets it to 'pending' (D-04's "corrected" needs
   // this history; the delete branch below intentionally does NOT clear it).
-  const wasEverWrong: boolean[] = new Array(target.length).fill(false)
+  const wasEverWrong: boolean[] = new Array(targetChars.length).fill(false)
   let cursor = 0
   let completedAt: number | null = null
 
@@ -43,8 +52,8 @@ export function computeTrainerState(target: string, charLog: readonly CommittedC
     //    UTF-16 units), so an IME multi-codepoint commit scores every
     //    position in a single record. Stops once the target is exhausted.
     for (const ch of rec.data ?? '') {
-      if (cursor >= target.length) break
-      if (ch === target[cursor]) {
+      if (cursor >= targetChars.length) break
+      if (ch === targetChars[cursor]) {
         perCharStatus[cursor] = 'correct'
       } else {
         perCharStatus[cursor] = 'incorrect'
@@ -55,14 +64,14 @@ export function computeTrainerState(target: string, charLog: readonly CommittedC
 
     // 3. Completion check — set once to the record's own tMs, never
     //    overwritten by any later record (D-04: complete != all-correct).
-    if (completedAt === null && cursor >= target.length) {
+    if (completedAt === null && cursor >= targetChars.length) {
       completedAt = rec.tMs
     }
   }
 
   let correctedCount = 0
   let uncorrectedCount = 0
-  for (let i = 0; i < target.length; i++) {
+  for (let i = 0; i < targetChars.length; i++) {
     if (perCharStatus[i] === 'correct' && wasEverWrong[i]) correctedCount += 1
     if (perCharStatus[i] === 'incorrect') uncorrectedCount += 1
   }

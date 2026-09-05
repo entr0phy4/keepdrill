@@ -98,6 +98,14 @@ const cases: Case[] = [
     charLog: [char(0, 'insertText', 'a', 10), char(1, 'insertText', 'x', 20)],
     expected: { perCharStatus: ['correct'], cursor: 1, completedAt: 10 },
   },
+  {
+    n: 10,
+    name: 'a supplementary-plane character (surrogate pair) in target is one code point, not two UTF-16 units — exercise completes',
+    // 🎉 (U+1F389) is 2 UTF-16 code units but 1 code point; target has 2 code points total.
+    target: '🎉a',
+    charLog: [char(0, 'insertText', '🎉', 10), char(1, 'insertText', 'a', 20)],
+    expected: { perCharStatus: ['correct', 'correct'], cursor: 2, completedAt: 20 },
+  },
 ]
 
 describe('computeTrainerState() — golden cases (TYPE-01/02/03)', () => {

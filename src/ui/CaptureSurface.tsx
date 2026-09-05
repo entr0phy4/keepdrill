@@ -172,12 +172,18 @@ export function CaptureSurface({
 
   const reclaimFocus = () => ref.current?.focus()
 
+  // Code-point array, not raw string indexing — matches computeTrainerState's
+  // (state.ts) code-point-indexed `perCharStatus`. `textChars.length` and
+  // `textChars[i]` are UTF-16-code-unit semantics if taken directly from
+  // `text`, which would desync from `cursor`/`perCharStatus` for any
+  // supplementary-plane character (surrogate pair) in the exercise.
+  const textChars = Array.from(text)
   const nodes: ReactNode[] = []
-  for (let i = 0; i < text.length; i++) {
+  for (let i = 0; i < textChars.length; i++) {
     if (i === cursor) {
       nodes.push(<span key={`caret-${i}`} className="trainer-caret" data-active={isActive} aria-hidden="true" />)
     }
-    const targetChar = text[i] ?? ''
+    const targetChar = textChars[i] ?? ''
     const isWhitespaceGlyph = targetChar === ' ' || targetChar === '\n'
     nodes.push(
       <span key={i} data-status={perCharStatus[i] ?? 'pending'}>
@@ -185,7 +191,7 @@ export function CaptureSurface({
       </span>,
     )
   }
-  if (cursor >= text.length) {
+  if (cursor >= textChars.length) {
     nodes.push(<span key="caret-end" className="trainer-caret" data-active={isActive} aria-hidden="true" />)
   }
 
