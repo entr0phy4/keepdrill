@@ -262,15 +262,32 @@ describe('CaptureSurface — Tab no-op + Escape restart + caret active state (TY
 // arrow-key/click-driven text-selection navigation, so drift is reproduced
 // directly by assigning selectionStart/selectionEnd (mirroring this suite's
 // existing convention of hand-dispatching events rather than relying on
-// browser-native editing behavior), then dispatching a native "select" event
-// to simulate what a real browser fires after such a drift.
+// browser-native editing behavior). React 19's onSelect prop is a polyfill
+// dispatched from focusout/contextmenu/dragend/focusin/keydown/keyup/
+// mousedown/mouseup/selectionchange (registered on `document`), NOT from a
+// native "select" event on the element — so the test fires a native
+// `selectionchange` event on `document` (which is exactly what a real
+// browser fires after ArrowLeft/Right/Home/End/click drift) to trigger it.
+//
+// happy-dom also does not implement `beforeinput`'s native default action
+// (it never mutates `textarea.value` on dispatch, unlike a real browser), so
+// `textarea.selectionStart`/`selectionEnd` would otherwise stay clamped to 0
+// (a selection index can never exceed `value.length`). The production code
+// never reads `textarea.value` (CaptureSurface's overlay renders purely from
+// `computeTrainerState(text, getCharLog())` — D-01/D-02), so setting
+// `textarea.value` directly in these tests is a test-environment-only
+// workaround to make non-zero `selectionStart`/`selectionEnd` assignments
+// observable; it does not touch any code path these tests are verifying.
 describe('CaptureSurface — caret resync on selection drift (gap closure, T-02-04)', () => {
-  it('a native "select" event after selectionStart/selectionEnd drift resyncs them back to cursor synchronously (no rAF wait)', async () => {
+  it('a native "selectionchange" event after selectionStart/selectionEnd drift resyncs them back to cursor synchronously (no rAF wait)', async () => {
     act(() => {
       root.render(<CaptureSurface text="ab" />)
     })
 
     const textarea = container.querySelector('textarea')! as HTMLTextAreaElement
+    // happy-dom workaround (see describe-block comment) — lets
+    // selectionStart/selectionEnd hold a non-zero value below.
+    textarea.value = 'ab'
 
     // Commit "a" so cursor advances to 1 and the post-commit effect resyncs
     // native selection to 1.
@@ -288,12 +305,12 @@ describe('CaptureSurface — caret resync on selection drift (gap closure, T-02-
     act(() => {
       textarea.selectionStart = 0
       textarea.selectionEnd = 0
-      textarea.dispatchEvent(new Event('select', { bubbles: true }))
+      document.dispatchEvent(new Event('selectionchange', { bubbles: true }))
     })
 
     // No nextFrame()/act(async ...) wait here — the fix must resync
-    // synchronously inside the native "select" event handling, independent
-    // of any cursor-driven render.
+    // synchronously inside React's onSelect dispatch, independent of any
+    // cursor-driven render.
     expect(textarea.selectionStart).toBe(1)
     expect(textarea.selectionEnd).toBe(1)
   })
@@ -304,6 +321,8 @@ describe('CaptureSurface — caret resync on selection drift (gap closure, T-02-
     })
 
     const textarea = container.querySelector('textarea')! as HTMLTextAreaElement
+    // happy-dom workaround (see describe-block comment).
+    textarea.value = 'ab'
 
     beforeInput(textarea, { inputType: 'insertText', data: 'a' })
 
@@ -317,7 +336,7 @@ describe('CaptureSurface — caret resync on selection drift (gap closure, T-02-
     act(() => {
       textarea.selectionStart = 0
       textarea.selectionEnd = 0
-      textarea.dispatchEvent(new Event('select', { bubbles: true }))
+      document.dispatchEvent(new Event('selectionchange', { bubbles: true }))
     })
 
     expect(textarea.selectionStart).toBe(1)

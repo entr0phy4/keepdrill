@@ -125,16 +125,27 @@ export function CaptureSurface({
 
   const { perCharStatus, cursor } = computeTrainerState(text, getCharLog())
 
-  // D-10: force the native selection back to the logical cursor whenever it
-  // drifts (arrow keys / click) — the rendered caret is the only source of
-  // truth for cursor position, never textarea.selectionStart.
-  useLayoutEffect(() => {
+  // D-10 / T-02-08: force the native selection back to the logical cursor
+  // whenever it drifts (arrow keys / Home / End / click) — the rendered
+  // caret is the only source of truth for cursor position, never
+  // textarea.selectionStart. Recreated each render (same pattern as
+  // handleKeyDown/reclaimFocus) so it always closes over this render's
+  // `cursor`. Called from two sites: the post-commit useLayoutEffect below
+  // (cursor-driven re-renders) AND the textarea's onSelect handler (native
+  // "select" events fired by ArrowLeft/Right/Home/End/click, which don't
+  // change `cursor` and so schedule no re-render on their own — this is
+  // the actual fix for 02-VERIFICATION.md gap #1 / 02-REVIEW.md WR-1).
+  const resyncCaret = () => {
     const el = ref.current
     if (!el) return
     if (el.selectionStart !== cursor || el.selectionEnd !== cursor) {
       el.selectionStart = cursor
       el.selectionEnd = cursor
     }
+  }
+
+  useLayoutEffect(() => {
+    resyncCaret()
   }, [cursor])
 
   const reclaimFocus = () => ref.current?.focus()
@@ -174,6 +185,7 @@ export function CaptureSurface({
           autoComplete="off"
           aria-describedby="capture-count capture-paste-blocked"
           onKeyDown={handleKeyDown}
+          onSelect={resyncCaret}
           onFocus={() => setIsActive(true)}
           onBlur={() => setIsActive(false)}
         />
