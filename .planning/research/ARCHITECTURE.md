@@ -1,458 +1,331 @@
 # Architecture Research
 
-**Domain:** Developer typing-trainer (local-first, single-user) — high-resolution keystroke capture + code-specific typing analytics
-**Researched:** 2026-09-03
-**Confidence:** MEDIUM-HIGH (capture-engine platform differences: HIGH, documented; component decomposition + build order: MEDIUM, design judgment applied to the stated scope)
+**Domain:** Local-first browser SPA — adding persistence + cross-session analytics to an existing keystroke-capture typing trainer
+**Researched:** 2026-09-05
+**Confidence:** HIGH (integration design — grounded directly in the read source of `src/session.ts`, `src/metrics/metrics.ts`, `src/ui/App.tsx`, `src/ui/CaptureSurface.tsx`, `src/capture/types.ts`); MEDIUM (Dexie schema-versioning conventions, raw-vs-aggregate storage pattern — web-sourced)
 
 ## Standard Architecture
-
-keebdrill is a **linear content-and-measurement pipeline**, not a service mesh. Content flows
-in one direction from a source to a typing target; keystrokes flow in one direction from the
-keyboard to a metrics report. There is exactly one feedback loop (the drill generator, a later
-phase) and it runs offline, not in the hot path.
 
 ### System Overview
 
 ```
-┌──────────────────────────────────────────────────────────────────────┐
-│                        CONTENT TRACK (one-way)                        │
-│  ┌───────────────┐   ┌────────────┐   ┌───────────────┐               │
-│  │  Ingestion    │──▶│  Document  │──▶│   Chunker /   │──▶ Kata[]     │
-│  │  Sources      │   │ (normalized│   │  Kata Builder │   (15-60s     │
-│  │ paste│upload  │   │  text +    │   │  v1: naive    │    targets)   │
-│  │ (later: git,  │   │  language) │   │  later: tree- │               │
-│  │  docs, shell) │   │            │   │  sitter CST)  │               │
-│  └───────────────┘   └────────────┘   └───────────────┘               │
-├──────────────────────────────────────────────────────────────────────┤
-│                       TRAINER (live loop)                             │
-│  ┌───────────────┐   ┌───────────────────┐   ┌────────────────────┐   │
-│  │   Trainer UI  │◀─▶│  Session State    │◀──│  Capture Engine    │   │
-│  │  renders Kata │   │  Machine          │   │  key events +      │   │
-│  │  text, caret, │   │  cursor, per-char │   │  monotonic hi-res  │   │
-│  │  per-char clr │   │  verdict, backsp, │   │  timestamps,       │   │
-│  │  live stats   │   │  correction policy│   │  normalization     │   │
-│  └───────┬───────┘   └─────────┬─────────┘   └────────────────────┘   │
-│          │                     │ AnnotatedKeystroke[]                 │
-│          │ realtime metrics    ▼                                      │
-│          │           ┌───────────────────┐                            │
-│          └───────────│  Metrics Engine   │  (pure functions)          │
-│                      │  realtime: WPM,   │                            │
-│                      │  progress         │                            │
-│                      │  post-session:    │                            │
-│                      │  accuracy, per-   │                            │
-│                      │  key/digraph      │                            │
-│                      │  latency, slowest │                            │
-│                      └─────────┬─────────┘                            │
-├────────────────────────────────┼─────────────────────────────────────┤
-│                       PERSISTENCE + REPORTING (later phases)          │
-│                      ┌─────────▼─────────┐   ┌────────────────────┐   │
-│                      │  Session Store    │──▶│  Dashboard UI      │   │
-│                      │  raw event log +  │   │  trends, heatmap,  │   │
-│                      │  cached metrics   │   │  digraph table,    │   │
-│                      │  v1: in-memory    │   │  per-language      │   │
-│                      │  later: SQLite    │   │  profile           │   │
-│                      └─────────┬─────────┘   └────────────────────┘   │
-│                                │                                      │
-│                      ┌─────────▼─────────┐                            │
-│                      │  Drill Generator  │── synthetic Document ──▶   │
-│                      │  weakness detect  │   (back into Chunker)      │
-│                      │  → targeted text  │                            │
-│                      └───────────────────┘                            │
-└──────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────────┐
+│  HOT PATH (unchanged — capture/, trainer/, live rendering)                │
+│  ┌──────────────┐   keydown/keyup    ┌──────────────┐                    │
+│  │ CaptureSurface│ ─────────────────▶ │  capture.ts  │  (module state:    │
+│  │   .tsx        │  beforeinput/input │  getEvents() │   events[],       │
+│  │               │ ◀───────────────── │  getCharLog()│   charLog[],      │
+│  └──────┬────────┘   trainer/state.ts │  getMarkers()│   markers[])      │
+│         │ onComplete(completedAt)      └──────────────┘                    │
+├─────────┼───────────────────────────────────────────────────────────────┤
+│         ▼           SINGLE INTEGRATION POINT (write)                      │
+│  ┌──────────────┐   buildSession()   ┌──────────────┐                    │
+│  │   App.tsx     │ ─────────────────▶│  session.ts  │  Session snapshot   │
+│  │ handleComplete│                    └──────────────┘  (exercise+raw log)│
+│  │               │   computeSessionMetrics()                              │
+│  │               │ ─────────────────▶ metrics/metrics.ts (unchanged shape,│
+│  │               │                    + symbolAdjustedWpm, v2)            │
+│  │               │                                                        │
+│  │               │   fire-and-forget, NOT awaited in render path          │
+│  │               │ ─────────────────▶ persistence/repository.ts           │
+│  └──────┬────────┘                          │                             │
+│         │ mounts sibling views              ▼                             │
+│         │                            ┌──────────────┐                     │
+│         │                            │ persistence/ │  Dexie / IndexedDB  │
+│         │                            │   db.ts      │  (platform seam)    │
+│         │                            └──────┬───────┘                     │
+├─────────┼──────────────────────────────────┼─────────────────────────────┤
+│         ▼  NEW READ-SIDE VIEWS (no coupling into the hot path)            │
+│  ┌──────────────┐   listSessions()   ┌──────────────┐                    │
+│  │ HistoryView   │ ◀──────────────── │ repository.ts │                    │
+│  │   .tsx        │                    └──────┬───────┘                    │
+│  └──────────────┘                            │ raw Sessions (N)           │
+│  ┌──────────────┐                            ▼                            │
+│  │ Analytics     │   analytics/analytics.ts (PURE, folds over N sessions)  │
+│  │ Dashboard.tsx │   → digraph/trigraph latency, keyboard heatmap,        │
+│  │  (+ subviews) │     per-language profile                                │
+│  └──────────────┘                                                          │
+└───────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Component Responsibilities
 
-| Component | Owns | Does NOT know about | Typical Implementation |
-|-----------|------|---------------------|------------------------|
-| **Capture Engine** | The raw input event stream: subscribe to key events, stamp each with a monotonic high-resolution clock, normalize to `KeystrokeEvent`, emit an ordered log. Guard against paste / IME / auto-repeat / blur. | Target text, correctness, WPM, scoring | Browser: `keydown`/`keyup` listeners on a focused element + `performance.now()`. TUI: stdin raw mode + per-read `perf_counter_ns()`. |
-| **Session State Machine** | "Where am I in the target." Joins `KeystrokeEvent[]` with `Kata.text`: cursor position, per-character status (untyped / correct / incorrect / corrected), backspace handling, error-correction policy (mandatory vs free). Emits `AnnotatedKeystroke[]`. | How WPM/latency are computed; rendering | Pure reducer / state machine, one per session. This is the **only** place the correction policy lives. |
-| **Metrics Engine** | Pure, stateless functions over `AnnotatedKeystroke[]`. Realtime tier (cheap, incremental): live WPM, progress, running accuracy. Post-session tier (full pass): net/raw WPM, accuracy, per-key & per-digraph latency, five slowest keys, consistency, correction rate; later: keyboard heatmap, per-language profile. | Where events came from, where results go, DB | Library of pure functions. No I/O. Re-runnable over any historical event log. |
-| **Ingestion Sources** | Turn a source into a normalized `Document` (raw text + detected language + provenance metadata). v1: paste + file upload. Later: git repo walker, docs parser (Markdown/rST/man), shell-history reader. | Katas, durations, typing | One adapter per source, all returning the same `Document` shape. Later sources need filesystem/subprocess access → backend. |
-| **Chunker / Kata Builder** | `Document` → ordered `Kata[]`, each a 15-60s typing target with provenance spans back into the document. v1: naive (whole doc, or fixed line/char window with a typing-time estimate). Later: tree-sitter parse → walk CST → cut on syntactic boundaries (functions, classes, YAML blocks), pack into duration-bounded chunks. | Capture, metrics, storage | v1: ~30 lines. Later: `web-tree-sitter` (WASM) in browser or native bindings in backend, **behind the same interface**. |
-| **Session Store** | Append + query `SessionRecord` (kata ref, full raw `KeystrokeEvent[]`, cached `SessionMetrics`, timestamps, source). v1: in-memory object. Later: SQLite with date/language indices + aggregate tables. | Everything else — it is a passive repository | v1: a variable. Later: SQLite via a thin repository module. |
-| **Drill Generator** (later) | Read aggregated metrics from the store, detect weaknesses (slow digraphs, error-prone keys), synthesize targeted practice text (generated symbol sequences and/or filtered corpus lines), emit a synthetic `Document`. | Live capture, rendering | Offline batch job. Feeds its output back into the Chunker — the one cycle in the system. |
-| **Dashboard / Reporting UI** (later) | Read-only views over store aggregates: WPM trend, keyboard heatmap, digraph latency table, per-language profile, correction-rate trend. | Writing data, live capture | Same frontend stack as the Trainer UI; a separate route/screen. |
-| **Trainer UI** | Render the current `Kata` text, caret, per-character coloring from the state machine, and live stats from the realtime metrics tier. Capture the session's start/stop. | How verdicts or metrics are computed | The live typing screen. Subscribes to State Machine + Metrics Engine. |
+| Component | Responsibility | Typical Implementation |
+|-----------|----------------|-------------------------|
+| `src/capture/capture.ts`, `src/trainer/state.ts`, `src/ui/CaptureSurface.tsx` | Hot-path capture + live rendering | **UNCHANGED.** No new imports, no persistence awareness. This is the boundary that must stay untouched — jitter here is the product's core differentiator. |
+| `src/session.ts` (`buildSession`) | Assembles the durable unit-of-record: `Exercise` + raw `events`/`charLog`/`markers` | **UNCHANGED shape.** Already documented in its own header comment as "Phase 4 persists it" — this milestone is that Phase 4. |
+| `src/metrics/metrics.ts` | Pure, single-session derived metrics (wpm, accuracy, slowest5) | **MODIFIED** — add `symbolAdjustedWpm`, bump `METRICS_SCHEMA_VERSION` to 2. Still zero DOM access, still re-runnable over `{target, charLog, markers, now}`. |
+| `src/metrics/symbol-density.ts` (new) | Pure codepoint → "is this a symbol" classifier + density-weighted WPM formula | New pure module, sibling to `metrics.ts`. No persistence/cross-session data needed — a single-session concern. |
+| `src/persistence/db.ts` (new) | Dexie schema definition + version(s) | Platform seam — the only place that imports Dexie. Analogous to `capture/use-capture.ts` and `ingestion/upload.ts` as the "impure edge." |
+| `src/persistence/repository.ts` (new) | `saveSession`, `listSessions`, `getSession`, `deleteSession` | Platform seam. Thin wrapper around `db.ts` tables — no business logic, no metric computation. |
+| `src/analytics/analytics.ts` (new) | Pure, **cross-session** fold: digraph/trigraph latency, keyboard heatmap aggregation, per-language profile | Analogous to `metrics.ts` but takes `readonly Session[]` (or a lighter `SessionRecord[]` read from persistence) instead of a single session. Zero DOM access, zero import of Dexie. |
+| `src/analytics/keyboard-geometry.ts` (new) | Static US-ANSI `code → {row, col}` position table for heatmap rendering | Pure static data, distinct from `platform/layout.ts` (which is a *runtime layout-mismatch warning*, not a position map — do not conflate the two). |
+| `src/ui/HistoryView.tsx` (new) | Session list: date, wpm, accuracy, language | Prop-driven, `role="status"`-style dumb component, same convention as `ResultsView.tsx`/`Banners.tsx`. |
+| `src/ui/AnalyticsDashboard.tsx` + subviews (new) | Renders `analytics.ts` output | `DigraphLatencyView.tsx`, `KeyboardHeatmap.tsx`, `LanguageProfileView.tsx` as prop-driven leaf components under one dashboard container. |
+| `src/ui/App.tsx` | Orchestration | **MODIFIED** — add the persistence write call inside `handleComplete`; add simple view-switch state (Practice / History / Analytics) — no router needed at this scale. |
 
 ## Recommended Project Structure
 
-Stack-agnostic module layout (names map cleanly onto a React+TS SPA, a FastAPI+React app, or a Rust/Python TUI):
-
 ```
 src/
-├── capture/                # Capture Engine — platform-specific, isolated
-│   ├── types.ts            # KeystrokeEvent, KeyboardLayout
-│   ├── browser-capture.ts  # keydown/keyup + performance.now(); paste/IME/repeat guards
-│   └── (tui-capture.rs)    # later: raw-mode stdin + Kitty protocol negotiation
-├── session/                # Session State Machine
-│   ├── state-machine.ts    # reducer: events + target -> AnnotatedKeystroke[]
-│   ├── correction-policy.ts# mandatory | free-correction strategies
-│   └── types.ts            # AnnotatedKeystroke, CharStatus, SessionState
-├── metrics/                # Metrics Engine — pure, no I/O
-│   ├── realtime.ts         # incremental: live WPM, progress, running accuracy
-│   ├── wpm.ts              # net / raw WPM, normalized
-│   ├── latency.ts          # per-key flight time, per-digraph latency, slowest-N
-│   ├── accuracy.ts         # error rate, correction rate
-│   ├── consistency.ts      # coefficient of variation of raw WPM over time
-│   └── (heatmap.ts, profile.ts)   # later
-├── ingestion/              # Ingestion Sources
-│   ├── types.ts            # Document, SourceRef, Language
-│   ├── paste.ts            # string -> Document
-│   ├── file-upload.ts      # File -> Document (language from extension)
-│   └── (git.ts, docs.ts, shell-history.ts)   # later, backend-side
-├── chunking/               # Chunker / Kata Builder
-│   ├── types.ts            # Kata, ChunkStrategy interface
-│   ├── naive.ts            # v1: window by estimated typing time
-│   └── (tree-sitter.ts)    # later: CST-boundary chunking, same interface
-├── store/                  # Session Store
-│   ├── types.ts            # SessionRecord, SessionMetrics
-│   ├── memory-store.ts     # v1
-│   └── (sqlite-store.ts)   # later
-├── drills/                 # Drill Generator — later
-├── ui/
-│   ├── trainer/            # live typing screen
-│   └── dashboard/          # later: reporting screens
-└── app.ts                  # wiring / composition root
+├── capture/                 # UNCHANGED — hot path
+│   ├── capture.ts
+│   ├── types.ts
+│   └── use-capture.ts
+├── ingestion/                # UNCHANGED
+│   ├── normalize.ts
+│   ├── upload.ts / paste.ts
+│   ├── language-map.ts
+│   └── types.ts
+├── metrics/                  # MODIFIED — single-session pure metrics
+│   ├── metrics.ts            # + symbolAdjustedWpm, METRICS_SCHEMA_VERSION -> 2
+│   └── symbol-density.ts     # NEW — pure symbol classifier + density weighting
+├── analytics/                 # NEW — cross-session pure fold (sibling to metrics/)
+│   ├── analytics.ts           # digraph/trigraph latency, per-language profile
+│   ├── heatmap.ts             # keyboard-code latency/error aggregation (or fold into analytics.ts)
+│   ├── keyboard-geometry.ts   # static US-ANSI code->{row,col} layout table
+│   └── types.ts               # AnalyticsResult, DigraphEntry, HeatmapEntry, LanguageProfile
+├── persistence/                # NEW — platform seam (the only Dexie import site)
+│   ├── db.ts                   # Dexie schema + version(s)
+│   ├── repository.ts           # saveSession/listSessions/getSession/deleteSession
+│   └── types.ts                 # StoredSession (persisted shape, schemaVersion-tagged)
+├── trainer/                    # UNCHANGED
+│   ├── state.ts
+│   └── active-time.ts
+├── platform/                   # UNCHANGED
+│   ├── isolation.ts
+│   └── layout.ts
+├── session.ts                  # UNCHANGED — buildSession() already anticipates this milestone
+└── ui/
+    ├── App.tsx                 # MODIFIED — persistence write in handleComplete, view switch
+    ├── Banners.tsx              # UNCHANGED
+    ├── CaptureSurface.tsx       # UNCHANGED — contract (onComplete) stays identical
+    ├── CorpusInput.tsx          # UNCHANGED
+    ├── ResultsView.tsx          # MODIFIED — render symbolAdjustedWpm
+    ├── HistoryView.tsx          # NEW
+    └── AnalyticsDashboard.tsx   # NEW, + DigraphLatencyView.tsx, KeyboardHeatmap.tsx, LanguageProfileView.tsx
 ```
 
 ### Structure Rationale
 
-- **`capture/` is the only platform-coupled module.** Everything downstream consumes
-  `KeystrokeEvent[]`. Swapping browser → TUI, or adding a TUI client alongside the web app,
-  touches only this folder plus a new composition root.
-- **`session/` owns the correction policy, not `metrics/`.** Whether every error must be fixed
-  is a *state* question ("can the cursor advance past an error?"), not a *measurement* question.
-  Keeping it here means the Metrics Engine stays a set of pure functions that never branch on
-  policy.
-- **`metrics/` has zero I/O and zero dependencies on `store/` or `ui/`.** It is re-runnable over
-  any historical event log. This is load-bearing: the entire project premise is that the metric
-  set will grow (heatmap, per-language profile, new digraph analyses), and you will want to
-  re-analyze old sessions with new metrics.
-- **`chunking/` defines `ChunkStrategy` now and ships the naive implementation.** tree-sitter is
-  a drop-in behind that interface later — deferring it costs nothing if the seam exists.
-- **`ingestion/` adapters all return `Document`.** The Trainer never sees a git repo or a shell
-  history file — only normalized text + a language tag + provenance.
+- **`analytics/` is a new top-level sibling to `metrics/`, not a subfolder of it.** The codebase already draws a hard line at "pure, re-runnable over data, zero DOM access" (see `metrics.ts`'s header comment). `metrics.ts` folds over **one** session's `{target, charLog, markers, now}`; `analytics.ts` folds over **N** sessions. Different arity, different cardinality of inputs, same purity contract — worth a distinct module so a future contributor doesn't have to guess whether a given analytics function needs one session or the whole history.
+- **`persistence/` is a new platform seam, isolated the same way `capture/use-capture.ts` isolates the DOM.** Dexie/IndexedDB access must never leak into `analytics.ts` or `metrics.ts` — those stay pure and testable with plain arrays/golden fixtures, exactly like today's `metrics.test.ts`. `repository.ts` is the only file that imports `db.ts`; `db.ts` is the only file that imports Dexie.
+- **`symbol-density.ts` lives inside `metrics/`, not `analytics/` or `ingestion/`.** It's consumed only by `metrics.ts` (a single-session WPM variant), has no cross-session or persistence concern, and (unlike `language-map.ts`) classifies *characters*, not *file extensions* — different axis from `ingestion/language-map.ts`, so don't conflate the two despite both being "language-adjacent" lookup tables.
+- **`keyboard-geometry.ts` is new, not a reuse of `platform/layout.ts`.** `layout.ts` exists solely to *warn* about a non-ANSI physical layout via the Chromium-only `navigator.keyboard.getLayoutMap()` API — it holds no row/column geometry. The heatmap needs a static `code → {row, col}` table for rendering; that's a different, purely presentational concern and deserves its own file so `layout.ts`'s narrow fingerprinting-safe scope isn't muddied.
+
+## Data Model — what gets persisted per session
+
+**Persist the raw `Session` (source of truth), not just derived metrics — and cache one derived-metrics snapshot alongside it as a read-performance optimization, not as the durable record.**
+
+This directly continues an existing convention already visible in the code, not a new invention:
+
+- `session.ts`'s header comment states outright: *"Phase 3 metrics fold over this; Phase 4 persists it"* — referring to the full `Session` object (`exercise`, `events`, `charLog`, `markers`), not a metrics summary. This milestone **is** that Phase 4.
+- `metrics.ts` already carries a `schemaVersion`/`METRICS_SCHEMA_VERSION` field and a header comment forbidding rounding "at this layer" — both signal an existing intent: derived values are meant to be **recomputed from raw data**, not treated as permanently frozen artifacts. A formula fix (e.g. changing `MIN_GAP_MS`/`MAX_GAP_MS`/`MIN_SAMPLES`, or adding symbol-adjusted WPM) should be able to retroactively improve *all* historical sessions the next time they're read, not require a data migration.
+
+Concretely, per completed session, the `persistence/` layer stores:
+
+| Field | Source | Why persisted |
+|-------|--------|----------------|
+| `id`, `startedAt`, `completedAt` | `App.tsx`'s `loadRef`/`completedAt` | Row identity + ordering for `HistoryView`. |
+| `exercise: Exercise` (`text`, `language`, `sourceType`, `sourceRef`) | `session.ts`'s `Session.exercise` | Needed to re-derive metrics (target text) and to bucket by language for the per-language profile. |
+| `events: KeystrokeEvent[]` | `session.ts`'s `Session.events` | Needed for the **keyboard heatmap** — heatmap is keyed by physical `KeyboardEvent.code`, which only `events` carries; `charLog` carries logical committed characters (post-IME), not physical keys. |
+| `charLog: CommittedChar[]` | `session.ts`'s `Session.charLog` | Needed to re-derive `metrics.ts`'s slowest-5, plus the new digraph/trigraph latency (an extension of the exact same gap-between-consecutive-records logic, generalized from 1-char to 2-/3-char windows). |
+| `markers: CaptureMarker[]` | `session.ts`'s `Session.markers` | Needed to re-derive active-elapsed-time (`computeActiveElapsedMs`) if WPM formulas change later. |
+| `metricsSnapshot: MetricsResult` (+ its `schemaVersion`) | `computeSessionMetrics()` output at completion time | **Cache only.** Lets `HistoryView` render a list of 100+ sessions without replaying every raw log on every app load. `HistoryView`/`AnalyticsDashboard` compare `metricsSnapshot.schemaVersion` against the current `METRICS_SCHEMA_VERSION`; on mismatch, recompute from the raw fields above (cheap — a single pure fold) rather than trusting the stale cached copy, and optionally rewrite the cache. |
+
+**Do NOT** persist only a metrics summary and discard the raw log — that would make `symbolAdjustedWpm`, digraph/trigraph latency, and the heatmap permanently unavailable for every session recorded before those features shipped (all of v1.0's future self-use history would be dead weight). **Do NOT** treat the raw log as disposable "already summarized, safe to prune" — the schema-versioned-recompute pattern is the whole point of persisting it.
+
+Storage-size sanity check for the "single local user, self-validation" scale (see PROJECT.md success criteria — a month of daily use): a technical-corpus exercise of a few hundred to a couple thousand keystrokes produces an `events`+`charLog` array on the order of a few thousand small objects — low hundreds of KB per session even unindexed. A year of one daily session is on the order of tens of MB, comfortably inside IndexedDB's typical quota. This is not a "prune raw data" problem at this project's scale; revisit only if corpus/session sizes grow by 1–2 orders of magnitude (e.g. multi-hour repo-kata sessions in a later milestone).
 
 ## Architectural Patterns
 
-### Pattern 1: Event-log as source of truth (event sourcing, lightweight)
+### Pattern 1: Raw-log-as-source-of-truth with schema-versioned derived cache
 
-**What:** The Capture Engine produces an immutable, ordered `KeystrokeEvent[]`. All state (cursor
-position, per-char verdict) and all metrics are *derived* by replaying that log. The Session
-Store persists the **raw log**, not just computed metrics.
-
-**When to use:** Whenever the downstream analysis is expected to evolve. That is exactly this
-project — the differentiator is a growing set of code-specific metrics.
-
-**Trade-offs:** More storage per session (a 60s code kata ~= 300-600 events ~= a few KB
-uncompressed; trivial for single-user). Buys the ability to answer questions you had not thought
-of yet ("what was my `->` latency six months ago?") and to fix metric bugs retroactively.
+**What:** Persist the full raw `Session` per completed exercise. Compute and cache a `MetricsResult` (and later an analytics snapshot) alongside it, tagged with the schema version that produced it. On read, compare versions; recompute from the raw fields when stale.
+**When to use:** Any time the derivation formula is expected to improve over the product's lifetime (this project's `metrics.ts` already assumes so via `METRICS_SCHEMA_VERSION`).
+**Trade-offs:** More storage than aggregates-only; in exchange, every historical session stays fully reprocessable — new analytics features (digraph, heatmap, symbol-adjusted WPM, per-language) apply retroactively to *all* prior self-use data with zero migration, which is exactly what the PROJECT.md success criterion ("a measurable reduction in latency... after one month of use") needs.
 
 ```typescript
-// Everything is a fold over the log
-const state   = keystrokes.reduce(applyKeystroke, initialState(kata.text));
-const metrics = analyze(state.annotated);          // pure, re-runnable
-store.append({ kataId, events: keystrokes, metrics }); // persist RAW events
+// persistence/types.ts
+export interface StoredSession {
+  id: string
+  startedAt: number
+  completedAt: number
+  exercise: Exercise
+  events: KeystrokeEvent[]
+  charLog: CommittedChar[]
+  markers: CaptureMarker[]
+  metricsSnapshot: MetricsResult // includes its own schemaVersion
+}
 ```
 
-### Pattern 2: Two-tier metrics (realtime incremental vs post-session full pass)
+### Pattern 2: Fire-and-forget write at the single existing completion boundary
 
-**What:** Split the Metrics Engine into a cheap incremental path (updates a small accumulator on
-each keystroke: elapsed time, correct-char count → live WPM) and an expensive batch path (one
-full pass over the annotated log at session end for digraph latency, slowest keys, consistency).
+**What:** `App.tsx`'s `handleComplete` already computes `MetricsResult` synchronously and calls `setMetrics(result)`. Add exactly one more call — `void saveSession(session, result).catch(...)` — after that, never awaited inside the render path, never blocking `setMetrics`.
+**When to use:** Any write that must not delay the results panel appearing (D-05/D-07 already lock "auto-revealed the instant the exercise completes" with no gating).
+**Trade-offs:** A failed write (e.g. IndexedDB unavailable in strict-private-browsing Safari/Firefox) must degrade silently to "this session's results are shown but not saved" — surface it as a non-blocking `Banners.tsx`-style notice, never as a blocking error or a retry loop in the hot path.
 
-**When to use:** Any live-feedback UI. Keeps per-keystroke work O(1) so the hot path never
-stutters, while allowing arbitrarily rich end-of-session analysis.
+```typescript
+// App.tsx, inside handleComplete — the ONLY write integration point
+const handleComplete = (completedAt: number) => {
+  const current = loadRef.current
+  if (!current) return
+  const session = buildSession(current.exercise, current.startedAt)
+  const result = computeSessionMetrics(current.exercise.text, session.charLog, session.markers, completedAt)
+  setMetrics(result)
+  void saveSession({ ...session, completedAt }, result).catch((err) => {
+    console.warn('[keebdrill] session not persisted:', err)
+    setPersistenceWarning(true) // renders via Banners.tsx-style non-blocking notice
+  })
+}
+```
 
-**Trade-offs:** Two code paths for "WPM". Mitigate by having the realtime path compute only the
-handful of numbers actually shown live, and treating the batch path as authoritative.
+### Pattern 3: Single-session pure fold vs. cross-session pure fold, kept in separate modules
 
-### Pattern 3: Strategy interface for chunking (and for ingestion sources)
+**What:** `metrics.ts` stays a fold over one `{target, charLog, markers, now}` tuple. `analytics.ts` is a *new*, separate fold over `readonly StoredSession[]` (or a lighter read-projection of it). Both are pure — no DOM, no IndexedDB import — but their cardinality differs, so their tests, golden fixtures, and mental model differ too.
+**When to use:** Any metric that inherently needs to compare across sessions (digraph/trigraph latency trend, heatmap, per-language profile) belongs in `analytics.ts`. Any metric fully determined by one session's own log (WPM, accuracy, slowest-5, symbol-adjusted WPM) belongs in `metrics.ts`.
+**Trade-offs:** Slight duplication of the "group latency samples, filter by (MIN_GAP_MS, MAX_GAP_MS), require MIN_SAMPLES, take median" logic that `metrics.ts`'s `slowestFive`/`median` already implement — extract that as a small shared internal helper (e.g. `metrics/latency-stats.ts`) imported by both, rather than copy-pasting the filter/median logic into `analytics.ts` wholesale.
 
-**What:** `interface ChunkStrategy { chunk(doc: Document): Kata[] }`. v1 registers `NaiveChunker`;
-a later phase registers `TreeSitterChunker`. Same for ingestion: `interface Source { load(input): Document }`.
+```typescript
+// analytics/analytics.ts (illustrative shape)
+export interface DigraphEntry { pair: string; medianMs: number; sampleCount: number }
+export interface HeatmapEntry { code: string; medianMs: number; errorRate: number }
+export interface LanguageProfile { language: string; sessionCount: number; avgWpm: number; avgAccuracy: number }
 
-**When to use:** When a component has a known-cheap v1 and a known-expensive "real" version, and
-the roadmap explicitly defers the expensive one.
-
-**Trade-offs:** A small amount of indirection now. Prevents the naive implementation's assumptions
-(e.g. "a kata is a slice of lines") from leaking into the Trainer and Metrics code.
-
-### Pattern 4: Optional fields for platform-variable capture data
-
-**What:** `KeystrokeEvent.type` may be `"keyup"` or not; `dwellMs` may be absent. The state
-machine and metrics engine treat keyup / dwell as a bonus, and always rely on
-keydown→keydown **flight time** as the primary latency signal.
-
-**When to use:** Cross-target capture (browser has native keyup; legacy terminals do not — see
-below).
-
-**Trade-offs:** Metrics that need dwell time (e.g. true key-hold analysis) are conditionally
-available. Acceptable — flight time / inter-key interval is the metric that matters for digraph
-latency, and it is always present.
+export function computeDigraphLatency(sessions: readonly StoredSession[]): DigraphEntry[] { /* ... */ }
+export function computeKeyboardHeatmap(sessions: readonly StoredSession[]): HeatmapEntry[] { /* ... */ }
+export function computeLanguageProfile(sessions: readonly StoredSession[]): LanguageProfile[] { /* ... */ }
+```
 
 ## Data Flow
 
-### Content flow (one-way, happens before typing)
+### Write flow (session completion)
 
 ```
-paste string  ──┐
-file upload    ──┼──▶ Ingestion adapter ──▶ Document{ text, language, sourceRef }
-(later: git)   ──┘                              │
-                                                ▼
-                                    Chunker.chunk(doc) ──▶ Kata[]{ text, provenanceSpan }
-                                                │
-                                                ▼
-                                    Trainer UI renders Kata.text
+User finishes typing (D-07 completion trigger, unchanged)
+    ↓
+CaptureSurface.tsx: computeTrainerState → completedAt transitions null→non-null
+    ↓ onComplete(completedAt)   [UNCHANGED CONTRACT — no new params]
+App.tsx: handleComplete(completedAt)
+    ↓ buildSession() [session.ts, unchanged]     ↓ computeSessionMetrics() [metrics.ts, +symbolAdjustedWpm]
+    ↓                                             ↓
+    setMetrics(result)  ← existing, unchanged     saveSession(session, result)  ← NEW, fire-and-forget
+                                                      ↓
+                                            persistence/repository.ts
+                                                      ↓
+                                            persistence/db.ts (Dexie) → IndexedDB
 ```
 
-### Keystroke flow (one-way, during typing)
+### Read flow (history / analytics views)
 
 ```
-physical keypress
-      ↓
-Capture Engine  ──▶  KeystrokeEvent{ seq, type, key, code, modifiers, tMonotonic, isRepeat }
-      ↓  (ordered log, buffered — NOT analyzed in the handler)
-Session State Machine  ──join with Kata.text──▶  AnnotatedKeystroke{ ...event, targetIndex,
-      ↓                                            expected, actual, verdict, flightMs,
-      ↓                                            dwellMs?, digraph, corrected, sinceStartMs }
-      ├──▶ realtime Metrics tier ──▶ live WPM / progress ──▶ Trainer UI
-      │
-      └──(on completion)──▶ post-session Metrics tier ──▶ SessionMetrics{ wpmNet, wpmRaw,
-                                                            accuracy, correctionRate,
-                                                            consistency, perKeyLatency,
-                                                            perDigraphLatency, slowestKeys[5] }
-                                    │
-                                    ▼
-                          Session Store.append(SessionRecord{ events[], metrics })   // later phase
-                                    │
-                    ┌───────────────┴───────────────┐
-                    ▼                               ▼
-          Dashboard UI (aggregate reads)   Drill Generator ──▶ synthetic Document ──▶ Chunker
+User switches to "History" or "Analytics" tab (new App.tsx view-switch state)
+    ↓
+HistoryView.tsx / AnalyticsDashboard.tsx (mount effect)
+    ↓ repository.listSessions()
+persistence/repository.ts → Dexie query → StoredSession[]
+    ↓
+HistoryView: render metricsSnapshot fields directly (or recompute via metrics.ts if schemaVersion stale)
+AnalyticsDashboard: analytics.computeDigraphLatency/computeKeyboardHeatmap/computeLanguageProfile(sessions)
+    ↓
+DigraphLatencyView.tsx / KeyboardHeatmap.tsx / LanguageProfileView.tsx (prop-driven, no direct persistence access)
 ```
 
-### The keystroke-event data model
+### Key Data Flows
 
-Design goal: one record shape that supports **every planned metric** — net/raw WPM, accuracy,
-per-key latency, per-digraph (bigram) latency, keyboard heatmap, per-language profile, correction
-rate, and consistency (variance over time).
-
-**`KeystrokeEvent`** — emitted by the Capture Engine, persisted verbatim:
-
-| Field | Type | Purpose / which metric needs it |
-|-------|------|--------------------------------|
-| `seq` | int (monotonic) | Stable ordering; tie-break when timestamps clamp to equal values |
-| `type` | `"keydown"` \| `"keyup"` | keyup optional (absent in legacy TUI). Enables dwell time |
-| `key` | string | Logical value (`"a"`, `"{"`, `"Shift"`, `"Backspace"`, `"Enter"`, `"Tab"`) — `KeyboardEvent.key` semantics. Drives correctness + per-character metrics |
-| `code` | string | Physical key (`"KeyA"`, `"BracketLeft"`, `"Digit2"`) — `KeyboardEvent.code` semantics. Drives the keyboard heatmap and layout-independent analysis |
-| `modifiers` | `{shift,ctrl,alt,meta: bool}` | State at event time. Needed to attribute shifted symbols (`{`, `_`, `|`, `~`) and to measure the shifted-number-row cost |
-| `tMonotonic` | float ms | High-resolution **monotonic** timestamp. The primary timing field. All latency = differences of this |
-| `isRepeat` | bool | OS auto-repeat (held key). Excluded from latency stats and error counts |
-| `eventTimeStamp` | float ms (browser only) | Raw `event.timeStamp` kept for cross-check against handler-side `performance.now()` |
-
-**Session-level** (stored once, not per event): `sessionId`, `kataId`, `sourceRef`, `language`,
-`keyboardLayout`, `startedAtEpoch` (wall clock, for display only), `targetText` (or hash + ref),
-`captureCapabilities` (`{hasKeyup, hasModifierEvents, protocol}`).
-
-**`AnnotatedKeystroke`** — produced by the State Machine, consumed by Metrics (derived, not
-necessarily persisted separately since it is a pure function of the event log + target):
-
-| Field | Purpose |
-|-------|---------|
-| `targetIndex` | Cursor position in `targetText` this event acts on |
-| `expected` / `actual` | Expected char at that index vs char produced |
-| `verdict` | `"correct"` \| `"incorrect"` \| `"correction"` (backspace) \| `"navigation"` \| `"ignored"` |
-| `flightMs` | `tMonotonic` − previous keydown `tMonotonic` — inter-key interval = **digraph latency** |
-| `dwellMs` | `keyup.t` − `keydown.t` for this key, when keyup is available |
-| `digraph` | `(prevChar, thisChar)` tuple — aggregation key for per-bigram latency |
-| `corrected` | Was an earlier error at this index later fixed — feeds correction rate |
-| `sinceStartMs` | Offset from first keystroke — time-series buckets for consistency / WPM-over-time graph |
-
-**Key decisions this model forces onto the roadmap:**
-1. **Persist raw `KeystrokeEvent[]`, not only `SessionMetrics`.** Non-negotiable given the
-   evolving metric set. The store schema is "one blob of events + one cache of metrics per
-   session."
-2. **`tMonotonic` is monotonic-clock only** (`performance.now()` / `Instant` / `perf_counter_ns`).
-   Never `Date.now()` / wall clock — it is non-monotonic (NTP corrections) and lower resolution.
-3. **Capture both `key` and `code`.** `key` for correctness, `code` for the heatmap. Retrofitting
-   `code` later means old sessions cannot produce a heatmap.
-
-## Suggested Build Order
-
-Dependency reality: **Capture → State Machine → Metrics → Trainer UI is a hard serial chain.**
-Ingestion + Chunker is an independent parallel track that only has to emit `Document` / `Kata`.
-Store slots in after Metrics. Dashboard needs Store + history. Drill Generator needs Store +
-accumulated metrics + weakness analytics.
-
-| Order | Component | Scope at this step | Depends on | Notes for roadmap |
-|-------|-----------|--------------------|-----------|-------------------|
-| **1** | Capture Engine | keydown/keyup, `performance.now()`, normalize to `KeystrokeEvent`, guard paste/IME/repeat/blur | — | Foundational. Everything waits on the event shape. Nail the data model here |
-| **1 (parallel)** | Ingestion: paste + upload | string / `File` → `Document` (+ language from extension) | — | Trivial. Can be built alongside capture |
-| **1 (parallel)** | Naive Chunker | whole `Document` as one `Kata`, or window by estimated typing time; define `ChunkStrategy` interface | Document | ~30 lines. The interface matters more than the impl |
-| **2** | Session State Machine | join events with target, backspace, per-char verdict, pick a correction policy (free-correction is the smaller build) | Capture, Chunker | The correction-policy decision (PROJECT.md open question) must be resolved here |
-| **3** | Metrics Engine v1 | net/raw WPM, accuracy, per-key flight time → five slowest keys; realtime tier = live WPM + progress | State Machine | Pure functions. Build digraph aggregation now even if not shown — cheap |
-| **4** | Trainer UI | render target, caret, per-char coloring, live stats, end-of-session results panel | State Machine, Metrics | **End of v1 MVP.** Session lives in memory; no persistence |
-| **5** | Session Store (SQLite) | append + list; persist raw `KeystrokeEvent[]` + cached `SessionMetrics` | Metrics | First post-MVP phase. Introduces a backend if the v1 was frontend-only |
-| **6** | Dashboard / Reporting UI | WPM trend, digraph latency table, keyboard heatmap, per-language profile | Store + accumulated sessions | Needs real history to be meaningful — sequence after a week of stored sessions |
-| **7** | tree-sitter Chunker | replace `NaiveChunker` with CST-boundary chunking behind the same interface | Chunker interface | Drop-in. Isolated risk |
-| **8** | Ingestion: git repo / docs / shell history | new `Source` adapters → `Document`; local-only file/subprocess access | Backend (from step 5), Chunker | Honor the privacy constraint: ingested third-party content never leaves the machine |
-| **9** | Drill Generator | weakness detection over store aggregates → synthetic `Document` → back into Chunker | Store, Metrics, weakness analytics | The only feedback loop. Offline batch, not hot path |
-
-## Browser vs TUI: how the Capture Engine differs
-
-This is the decision that "conditions the design of the capture engine" (PROJECT.md). The two
-targets are materially different in what raw signal they can even observe.
-
-| Aspect | Browser | TUI (terminal) |
-|--------|---------|----------------|
-| **Event source** | `keydown` / `keyup` DOM events on a focused element | `stdin` in raw mode (`termios`: clear `ICANON`+`ECHO`, `VMIN=1 VTIME=0`); a **byte stream** you parse into key events |
-| **Key release / dwell time** | Native `keyup` → real dwell time available for free | **No key-release events in legacy terminals.** A TTY is a data stream, not an event source — "byte available" is the only signal, equivalent to keydown. Dwell time is unobtainable *unless* the terminal supports the **Kitty keyboard protocol** (progressive-enhancement flag `0b10`, reports press/repeat/release), supported by kitty, ghostty, foot, WezTerm, Alacritty, iTerm2, rio — negotiated at startup, must fall back gracefully |
-| **Timestamp source & precision** | `event.timeStamp` (DOMHighResTimeStamp) or `performance.now()` read in the handler. Monotonic, but **precision is clamped for Spectre mitigation**: ~5µs cross-origin-isolated / ~100µs + jitter otherwise (Chrome), ~20µs (Firefox), ~1ms (Safari) | `Instant::now()` / `time.perf_counter_ns()` read the instant the byte is read — true monotonic nanosecond precision, no clamping. But the measurement point is *byte-read time*, which includes OS input latency + terminal line buffering, not the physical keypress |
-| **Precision verdict** | 100µs–1ms resolution vs a signal (digraph flight times) of **80–300 ms**. Three-plus orders of magnitude of headroom. Not a real constraint | Higher nominal precision, but noisier measurement point. Also fine for the signal |
-| **Key identity** | `event.key` (logical) **and** `event.code` (physical, layout-independent) both delivered cleanly | You decode byte / escape sequences yourself (or via crossterm/termion/Textual). Plain printable chars are easy; arrows, function keys, and modified keys are ambiguous escape sequences in legacy mode. Kitty protocol disambiguates and adds explicit modifier + event-type fields |
-| **Modifiers** | Modifier flags on every event; standalone Shift/Ctrl/Alt fire their own `keydown` | Legacy: modifiers only *inferred* — Shift from the resulting char, Ctrl from a control byte (`< 0x20`); pure modifier presses are **invisible**. Kitty protocol reports them explicitly |
-| **Auto-repeat** | `event.repeat === true` | Legacy: indistinguishable from fast retyping. Kitty protocol marks repeat as a distinct event type |
-| **Paste contamination** | Must handle `paste` event + IME (`isComposing` / `compositionstart`) so a paste does not register as inhumanly fast typing | Enable bracketed-paste mode (`ESC [ ? 2004 h`) to detect and reject pastes. IME is rare in terminals |
-| **Focus / blur** | `blur` while typing must pause the session timer | Terminal focus is implicit; focus reporting needs `ESC [ ? 1004 h` (xterm / Kitty) |
-| **Rendering coupling** | DOM renders independently of the input handler | Input read and screen redraw usually share one thread — the redraw must be kept off the timing-critical path |
-
-**Design implications, regardless of target:**
-- Model `type: "keyup"` and `dwellMs` as **optional**. `flightMs` (keydown→keydown) is the
-  primary latency metric and is always available. The Metrics Engine must not branch on target.
-- Record a `captureCapabilities` descriptor per session (`hasKeyup`, `hasModifierEvents`,
-  `protocol: "dom" | "kitty" | "legacy"`) so the Dashboard can explain why some metrics are
-  missing for some sessions.
-- Keep metric computation **out of the capture handler** on both targets — buffer events, analyze
-  after.
-
-**Recommendation for v1: target the browser.**
-- Native `keyup` (real dwell time), clean `key` + `code`, trivial to render code with syntax
-  coloring + a caret, and the later dashboard is trivial in the same stack.
-- Timing precision (100µs) is ~1000× below the signal — a non-issue.
-- The TUI is genuinely attractive for a developer's daily-driver ergonomics, but its capture
-  engine is materially harder and needs the Kitty protocol just to reach parity on dwell time
-  and modifiers. Revisit it as a later "hybrid" phase where a TUI client writes to the same
-  Session Store (via the step-5 backend). Do **not** build the hybrid two-client architecture
-  up front — see anti-patterns.
+1. **Write-once-per-completion:** exactly one new write call, added at the one place a session is already known to be "done" (`App.tsx`'s `handleComplete`). No other file gains write access to `persistence/`.
+2. **Read-is-separate-from-write:** `HistoryView`/`AnalyticsDashboard` never touch `capture.ts`, `CaptureSurface.tsx`, or the live trainer state — they are new, independent leaves fed only by `repository.listSessions()`. This keeps the hot path's zero-persistence-awareness property intact, matching the existing isolation of `capture/` from everything else.
+3. **Recompute-over-trust for derived values:** any consumer of a stored `metricsSnapshot` (or, later, an analytics cache) must check its schema version and recompute from the co-stored raw fields on mismatch — never assume a cached derived value is current.
 
 ## Scaling Considerations
 
-Single user, local machine. "Scale" here means input size and session history, not concurrency.
+This is a single-user, local-only, browser-storage system — there is no multi-user scale axis. The template's "0-1k / 1k-100k / 100k+ users" framing does not apply; the relevant axis is **sessions accumulated over the author's own daily use** (PROJECT.md's month-long, then indefinite, self-use).
 
-| Scale | Adjustments |
-|-------|-------------|
-| Normal daily use | In-memory session, SQLite append. No optimization needed |
-| Large pasted / uploaded file (10k+ lines) | Chunk lazily; virtualize the Trainer render (only draw the visible kata window). Do not hold the whole rendered DOM/screen for a 5000-line file |
-| Months of session history | Index SQLite by `startedAt` and `language`; maintain rollup/aggregate tables for the dashboard so it does not re-scan every raw event log on load. Keep raw logs for on-demand recompute only |
-| Re-analysis over all history (new metric added) | Precompute + cache `SessionMetrics`; recompute in a background pass, not on dashboard open |
+| Scale | Architecture Adjustments |
+|-------|--------------------------|
+| Dozens of sessions (first weeks) | No adjustment needed — `analytics.ts` recomputing over the full session list on every dashboard mount is effectively free. |
+| Hundreds of sessions (~1 year daily use) | Still fine for `HistoryView` (render `metricsSnapshot` directly, no recompute). `analytics.ts`'s full-history fold may start taking single-digit milliseconds to low tens of ms — acceptable for a dashboard mount, not for anything on the hot path (it never runs there). If it becomes noticeable, memoize the analytics result and only re-fold when `listSessions()`'s count/`id` set changes. |
+| Thousands of sessions (multi-year) | Add an incrementally-updated aggregate cache (a `analyticsCache` Dexie table keyed by a rolling "last processed session id") so `analytics.ts` folds only over *new* sessions since the last cache write, merging into the previous aggregate — the classic raw-events-plus-incrementally-refreshed-aggregate pattern. Not needed at this project's current or one-year-out scale; documented here so a future contributor doesn't have to rediscover the option. |
 
 ### Scaling Priorities
 
-1. **First thing that bites:** rendering a huge file in the Trainer. Fix with windowed rendering
-   from day one of the UI.
-2. **Second:** dashboard load time once there are hundreds of sessions. Fix with aggregate tables
-   when the dashboard is built (step 6), not before.
+1. **First and only realistic bottleneck:** `analytics.ts` re-folding the entire session history on every dashboard view, once history is large (see above). Fix: memoize + incremental-aggregate cache, only if/when it's actually felt.
+2. There is no second bottleneck at this project's scope — no server, no concurrent writers, no network.
 
 ## Anti-Patterns
 
-### Anti-Pattern 1: Computing metrics inside the keystroke handler
+### Anti-Pattern 1: Persisting only derived metrics and discarding the raw log
 
-**What people do:** Recompute WPM / latency / accuracy on every `keydown`.
-**Why it's wrong:** Puts heavy work on the timing-critical path; on the TUI it also blocks the
-read loop and corrupts the very timestamps you are trying to measure.
-**Do this instead:** The handler does one thing — append a normalized `KeystrokeEvent` to a
-buffer. The realtime metrics tier reads the buffer and updates a tiny accumulator; the full
-analysis runs once at session end.
+**What people do:** Store `{date, wpm, accuracy}` per session and throw away the keystroke log to "save space."
+**Why it's wrong:** Every analytics feature this milestone asks for (digraph/trigraph latency, heatmap, per-language profile, symbol-adjusted WPM) needs the raw per-keystroke log. Discarding it after computing today's metrics permanently forfeits the ability to compute tomorrow's metrics on today's sessions — directly undermining the "measure improvement over a month" success criterion, since early sessions would have no raw data to re-derive new metrics from.
+**Instead:** Persist the raw `Session` fields (`events`, `charLog`, `markers`, `exercise`) as the durable record; treat any computed `MetricsResult`/analytics snapshot as a disposable, recomputable cache.
 
-### Anti-Pattern 2: Persisting only computed metrics, discarding the raw event log
+### Anti-Pattern 2: Awaiting the persistence write inside `handleComplete` before revealing results
 
-**What people do:** Store `{wpm, accuracy, slowestKeys}` per session to "save space."
-**Why it's wrong:** This project's entire premise is a *growing* set of code-specific metrics
-(heatmap, per-language profile, new digraph analyses). Discarding raw events means every new
-metric starts from zero history, and metric bugs can never be fixed retroactively.
-**Do this instead:** Persist the full `KeystrokeEvent[]` (a few KB per session) plus a *cache* of
-current metrics. Treat metrics as a derived view.
+**What people do:** `await saveSession(...)` before calling `setMetrics(result)`, so the results panel only appears after the IndexedDB transaction commits.
+**Why it's wrong:** Violates the existing, explicitly-locked UX contract (D-05/D-07: results auto-reveal "the instant the exercise completes," no gating) and makes the UI's responsiveness depend on browser storage I/O, which can stall (large writes, other tabs holding a lock, private-browsing quirks).
+**Instead:** `setMetrics(result)` synchronously first; fire the persistence write after, unawaited, with its own error handling that degrades to a non-blocking notice.
 
-### Anti-Pattern 3: Wall-clock timestamps for latency
+### Anti-Pattern 3: Letting `analytics.ts` or `metrics.ts` import Dexie/IndexedDB directly
 
-**What people do:** `Date.now()` / `time.time()` for keystroke timing.
-**Why it's wrong:** Non-monotonic (jumps on NTP sync, DST, manual clock changes) and lower
-resolution. A single backward jump produces negative or absurd digraph latencies.
-**Do this instead:** `performance.now()` / `Instant::now()` / `time.perf_counter_ns()` for every
-event; store wall-clock time once, for the session start, for display only.
+**What people do:** For convenience, have the pure metrics/analytics module call `db.sessions.toArray()` itself instead of receiving data as a parameter.
+**Why it's wrong:** Breaks the exact purity contract `metrics.ts` already documents ("PURE — zero DOM access... re-runnable... safe to call repeatedly (no shared mutable module state)"). It also makes `analytics.test.ts`/`metrics.test.ts`-style golden-fixture unit tests impossible without mocking IndexedDB.
+**Instead:** `repository.ts` (the platform seam) fetches `StoredSession[]` and passes it as a plain argument into `analytics.ts`'s pure functions — identical shape to how `App.tsx` already passes `charLog`/`markers` into `computeSessionMetrics` today.
 
-### Anti-Pattern 4: Baking the tree-sitter dependency into v1
+### Anti-Pattern 4: Keying the keyboard heatmap by `CommittedChar.data` instead of `KeystrokeEvent.code`
 
-**What people do:** Pull in tree-sitter for the first chunker "so we don't redo it later."
-**Why it's wrong:** Adds a WASM/native build dependency and grammar management to the MVP for
-zero MVP value (whole-file typing works fine for validation).
-**Do this instead:** Define `ChunkStrategy` now, ship `NaiveChunker`, add `TreeSitterChunker`
-behind the same interface in its own phase.
-
-### Anti-Pattern 5: Correction policy living in the Metrics Engine
-
-**What people do:** `if (mandatoryCorrection) { ...different WPM calc... }` inside metrics.
-**Why it's wrong:** Mandatory-vs-free correction changes what states are *reachable* (can the
-cursor pass an error?), not how you count a given sequence of events. Spreading it into metrics
-makes both hard to reason about.
-**Do this instead:** The Session State Machine owns the policy — it decides whether a keystroke
-advances the cursor. The Metrics Engine just folds over whatever `AnnotatedKeystroke[]` results.
-
-### Anti-Pattern 6: Building the hybrid TUI+web two-client architecture up front
-
-**What people do:** Design a shared-database, two-frontend system before the core loop is proven.
-**Why it's wrong:** Doubles the capture-engine work (DOM *and* Kitty-protocol parsing) and forces
-a client/server split before there is anything to validate.
-**Do this instead:** One target for v1 (browser). If daily TUI use proves desirable, add a TUI
-client against the already-existing Session Store backend as a later phase.
-
-### Anti-Pattern 7: Coupling ingestion sources to the Trainer
-
-**What people do:** The Trainer knows how to walk a git repo / read `~/.zsh_history`.
-**Why it's wrong:** Every new source then touches the Trainer, and the privacy boundary (third-
-party content stays local) is scattered.
-**Do this instead:** Each source is an adapter that returns a normalized `Document`. The Trainer
-only ever sees `Document` / `Kata`.
+**What people do:** Reuse `metrics.ts`'s existing per-character latency grouping (keyed by the logical committed character) for the heatmap, since it's "already there."
+**Why it's wrong:** A physical-keyboard heatmap needs the physical key (`KeyboardEvent.code`, e.g. `"BracketLeft"`), not the logical character it produced (`"["` vs `"{"` are the same physical key with/without Shift; IME-composed characters have no 1:1 physical key at all). Keying by `data` would visually smear Shift-modified pairs onto the wrong physical key or drop IME-produced characters from the heatmap entirely.
+**Instead:** Aggregate heatmap samples from `events` (`KeystrokeEvent.code`), matching `metrics.ts`'s existing warning at the top of the file: "Do NOT group by `KeyboardEvent.code`" is scoped specifically to the *slowest-5 by logical character* feature — the heatmap is the inverse case where `code` grouping is exactly correct, and worth calling out explicitly so the two don't get confused.
 
 ## Integration Points
 
-### External Services / System Resources
+### External Services
 
-| Resource | Integration Pattern | Notes |
-|----------|---------------------|-------|
-| Local filesystem (file upload) | Browser File API for v1 | No backend needed for paste/upload |
-| Local filesystem (repo walk, shell history) | Backend (FastAPI / Node) reads files directly; read-only | Later phase. Introduced with the Session Store backend at step 5 |
-| `git` | Shell out to `git` or use libgit2 bindings; read-only, local clone only | **Privacy constraint:** ingested repo content must never leave the machine — state this in docs |
-| tree-sitter | `web-tree-sitter` (WASM) in browser, or native bindings in backend; bundle grammars per supported language | Later phase; grammar set grows with supported languages |
+| Service | Integration Pattern | Notes |
+|---------|---------------------|-------|
+| Dexie 4.x / IndexedDB | `persistence/db.ts` defines the schema via `Version.stores()`; `persistence/repository.ts` is the only consumer | No dependency currently in `package.json` — this milestone adds `dexie` as the project's first runtime dependency beyond `react`/`react-dom`. Confirmed via `package.json` read: today's `dependencies` are `react`+`react-dom` only. |
 
 ### Internal Boundaries
 
 | Boundary | Communication | Notes |
 |----------|---------------|-------|
-| Capture Engine → State Machine | Ordered `KeystrokeEvent[]` (push or polled buffer) | The one platform-coupled seam. Keep the event shape stable |
-| State Machine → Metrics Engine | `AnnotatedKeystroke[]` (pure value) | No shared mutable state; metrics is a pure fold |
-| Metrics Engine → Session Store | `SessionRecord` value on session completion | Store never calls back into metrics |
-| Ingestion → Chunker | `Document` value | All sources normalize to this shape |
-| Chunker → Trainer UI | `Kata[]` value | `ChunkStrategy` interface hides naive-vs-tree-sitter |
-| Drill Generator → Chunker | Synthetic `Document` | The only cycle; runs offline |
-| Session Store → Dashboard UI | Read-only aggregate queries | Dashboard never writes |
+| `CaptureSurface.tsx` ↔ `App.tsx` | `onComplete(completedAt)` callback — **contract unchanged** | Persistence must not add a new parameter or a new callback here; keep the hot-path component ignorant of persistence entirely. |
+| `App.tsx` ↔ `persistence/repository.ts` | Direct function call, fire-and-forget on write; awaited on read (mount effect) | Write path never blocks `setMetrics`; read path is only exercised by the new `HistoryView`/`AnalyticsDashboard` views, never by the practice flow. |
+| `metrics/metrics.ts` ↔ `analytics/analytics.ts` | Both may import a shared `metrics/latency-stats.ts` helper (median + gap-window filter) | Avoid `analytics.ts` importing `metrics.ts` wholesale or vice versa — keep the single-session/cross-session split clean; share only the small numeric helper, not the top-level fold functions. |
+| `persistence/repository.ts` ↔ `analytics.ts` / `metrics.ts` | Plain data in, plain data out (`StoredSession[]` / `MetricsResult`) | No pure module ever imports `persistence/db.ts` or Dexie directly (Anti-Pattern 3). |
+
+## Build Order (phased roadmap)
+
+Dependencies flow strictly downward — persistence must exist before anything cross-session can be built, and symbol-adjusted WPM (single-session) has no persistence dependency at all beyond what Phase 1 already stores.
+
+1. **Phase: Persistence foundation.**
+   Add `dexie` dependency. Build `persistence/db.ts` + `persistence/repository.ts` (schema v1: one `sessions` table storing the full `StoredSession` shape from the Data Model section). Wire the single write call into `App.tsx`'s `handleComplete`. Build `HistoryView.tsx` (date/wpm/accuracy list, read-only, rendering `metricsSnapshot` directly). This alone satisfies "persistir cada sesión localmente" and gives the first cross-session signal (a WPM-over-time list) without any new pure-analytics code.
+   *Blocks everything below — all cross-session analytics reads from this table.*
+
+2. **Phase: Symbol-adjusted WPM.**
+   `metrics/symbol-density.ts` (new pure classifier) + `metrics.ts` extension (`symbolAdjustedWpm`, `METRICS_SCHEMA_VERSION` → 2) + `ResultsView.tsx` display update. No new persistence needed — `exercise.text`/`charLog` are already stored from Phase 1. Confirms the recompute-on-schema-mismatch path works end-to-end on real historical data before building anything more complex on top of it.
+
+3. **Phase: Digraph/trigraph latency.**
+   `analytics/analytics.ts` (`computeDigraphLatency`, generalizing `metrics.ts`'s existing single-character gap/filter/median logic to 2-/3-character windows — extract the shared filter+median helper first). `DigraphLatencyView.tsx`. Depends on Phase 1's stored `charLog` per session.
+
+4. **Phase: Keyboard heatmap.**
+   `analytics/keyboard-geometry.ts` (static US-ANSI layout table) + `analytics.ts`'s `computeKeyboardHeatmap` (keyed by `events`' `code`, per Anti-Pattern 4) + `KeyboardHeatmap.tsx`. Depends on Phase 1's stored `events` per session (not `charLog` — a distinct raw field, worth confirming it was in fact persisted in Phase 1 and not trimmed for space).
+
+5. **Phase: Per-language profile.**
+   `analytics.ts`'s `computeLanguageProfile` (groups already-computed per-session metrics by `exercise.language`) + `LanguageProfileView.tsx`. The lightest of the four analytics features — pure grouping/averaging over data every prior phase already produces — reasonable to sequence last or to fold into the same phase as digraph/heatmap if time-boxing favors one bigger analytics phase over three small ones.
+
+**Suggested phase-merge note for the roadmap author:** phases 3–5 all read the exact same `StoredSession[]` and live in the same `analytics.ts` module; if the milestone favors fewer, larger phases over more, smaller ones, phases 3–5 can be combined into a single "Cross-session analytics" phase without changing any dependency — they only *must* come after Phase 1 (persistence) and are independent of each other and of Phase 2 (symbol-adjusted WPM).
 
 ## Sources
 
-- [MDN — High precision timing (`performance.now`, DOMHighResTimeStamp)](https://developer.mozilla.org/en-US/docs/Web/API/Performance_API/High_precision_timing) — HIGH
-- [Chrome Developers — When milliseconds are not enough: performance.now](https://developer.chrome.com/blog/when-milliseconds-are-not-enough-performance-now) — HIGH
-- [w3c/hr-time issue #56 — reducing DOMHighResTimeStamp resolution (Spectre clamping: 5µs isolated / 100µs non-isolated)](https://github.com/w3c/hr-time/issues/56) — HIGH
-- [Mozilla bug 1427870 — reduce precision of performance.now() to 20us](https://bugzilla.mozilla.org/show_bug.cgi?id=1427870) — HIGH
-- [Robert Elder — Why is it so hard to detect keyup events on the Linux terminal?](https://blog.robertelder.org/detect-keyup-event-linux-terminal/) — HIGH
-- [Fun With Linux — Receiving key press and key release events in Linux terminal applications](https://www.funwithlinux.net/blog/receiving-key-press-and-key-release-events-in-linux-terminal-applications/) — MEDIUM
-- [crossterm issue #950 — key release event not fired on Linux](https://github.com/crossterm-rs/crossterm/issues/950) — HIGH
-- [crossterm issue #642 — keyboard input on key down instead of key release](https://github.com/crossterm-rs/crossterm/issues/642) — MEDIUM
-- [kitty — Comprehensive keyboard handling in terminals (keyboard protocol, progressive enhancement, press/repeat/release)](https://sw.kovidgoyal.net/kitty/keyboard-protocol/) — HIGH
-- [kitty/docs/keyboard-protocol.rst](https://github.com/kovidgoyal/kitty/blob/master/docs/keyboard-protocol.rst) — HIGH
-- [Monkeytype — About (WPM / raw WPM / accuracy / consistency definitions)](https://monkeytype.com/about) — HIGH
-- [Practical Keystroke Timing Attacks in Sandboxed JavaScript (context on browser timer resolution history)](https://mlq.me/download/keystroke_js.pdf) — MEDIUM
+- Direct source read (HIGH confidence, first-party): `src/session.ts`, `src/metrics/metrics.ts`, `src/capture/types.ts`, `src/ui/App.tsx`, `src/ui/CaptureSurface.tsx`, `src/ui/ResultsView.tsx`, `src/ingestion/types.ts`, `src/ingestion/language-map.ts`, `src/platform/layout.ts`, `src/trainer/active-time.ts`, `package.json` — all read in full during this research pass.
+- [Version.stores() — Dexie.js Documentation](https://dexie.org/docs/Version/Version.stores()) — schema/versioning API shape — MEDIUM
+- [Schema and Versioning | dexie/dexie-website | DeepWiki](https://deepwiki.com/dexie/dexie-website/2.3-schema-and-versioning) — multi-version upgrade-function pattern — MEDIUM
+- [Optimizing database schema design — Mastering Dexie.js](https://app.studyraid.com/en/read/11356/355143/optimizing-database-schema-design) — avoid indexing large blobs, balance normalization — MEDIUM
+- [IndexedDB The Definitive Deep-Dive Guide for Modern Web Applications](https://spaceout.pl/indexeddb-the-definitive-deep-dive-guide-for-modern-web-applications/) — raw-event-log-for-audit + fast-query use cases — MEDIUM
+- General web synthesis on raw-events-vs-precomputed-aggregates / incremental-refresh pattern (search aggregation, no single authoritative source) — MEDIUM
 
 ---
-*Architecture research for: developer typing-trainer (keebdrill)*
-*Researched: 2026-09-03*
+*Architecture research for: keebdrill v1.1 (persistence + analytics milestone)*
+*Researched: 2026-09-05*

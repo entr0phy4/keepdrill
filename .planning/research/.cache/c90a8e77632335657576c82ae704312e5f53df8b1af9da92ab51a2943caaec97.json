@@ -1,0 +1,1 @@
+{"content":"Tab-in-textarea pattern: keydown listener checks e.key==='Tab', calls preventDefault(), then textarea.setRangeText('\\t', selectionStart, selectionEnd, 'end') splices the character and moves the caret past it.","source":"web","provider":"websearch","confidence":"MEDIUM","fetched_at":"2026-09-05T03:01:41.560Z","ttl":86400000,"kind":"web"}

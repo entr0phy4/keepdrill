@@ -1,195 +1,164 @@
 # Feature Research
 
-**Domain:** Developer-focused typing trainer (code / technical corpus), single-user self-hosted-style tool
-**Researched:** 2026-09-03
-**Confidence:** MEDIUM (competitor feature sets corroborated across multiple sources; specific latency numbers LOW; no primary user research beyond the author)
+**Domain:** Code-typing trainer analytics (session history, digraph/trigraph latency, keyboard heatmap, per-language profile, symbol-adjusted WPM)
+**Researched:** 2026-09-05
+**Confidence:** MEDIUM-HIGH (patterns cross-checked against Monkeytype, Keybr, and the existing keebdrill codebase; "symbol-density-adjusted WPM" has no established external standard, so that piece is a keebdrill-original design, flagged LOW-confidence-as-convention, HIGH-confidence-as-feasible)
 
 ## Feature Landscape
 
 ### Table Stakes (Users Expect These)
 
-Every credible typing trainer — code-focused or not — has these. Missing them makes keebdrill feel broken to its one user (a developer who has used Monkeytype / typing.io).
+Features users assume exist once a tool claims "session persistence + analytics." Missing these makes v1.1 feel unfinished relative to Keybr/Monkeytype, which already do the equivalents for prose.
 
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Paste text OR upload a file as exercise source | Core loop; SpeedCoder "Custom Code" and typing.io paid upload both have it | LOW | v1 requirement. Read file client-side or single upload endpoint. No parsing needed for v1 (whole content). |
-| Live typing view with per-character correctness feedback | Universal; Monkeytype/SpeedCoder/typing.io all highlight correct/incorrect inline as you go | MEDIUM | Caret position, colour past chars green/red, show current target char. State machine is the real work. |
-| WPM for the completed exercise | The headline number of every typing product | LOW | Standard = (correct chars / 5) / minutes. Decide gross vs net (see Differentiators — symbol-adjusted). |
-| Accuracy / error rate for the session | Second-most-expected number; every competitor shows it | LOW | `correct / (correct + incorrect + extra)`. Cheap once keystroke capture exists. |
-| Slowest keys / most-missed keys after a run | SpeedCoder "keys with most mistakes", typing.io typo heatmap, Keybr weak keys | MEDIUM | v1 = top 5 slowest keystrokes. Needs per-key aggregation of high-res timings. Requirement already in PROJECT.md. |
-| High-resolution keystroke capture (keydown/keyup, monotonic timestamps) | Invisible to user but everything above depends on it; `performance.now()` or equivalent | MEDIUM | The engine. Precision here is a hard constraint (per-digraph latency depends on it). Foundational — must be first. |
-| Restart / retry the same exercise | Every trainer lets you redo a test instantly (Monkeytype quick-restart) | LOW | Just reset state; keep the loaded corpus. |
-| Error-handling policy (free typing vs forced correction) | SpeedCoder ships both "Natural" and "Forced correction"; users expect one to exist and be sane | MEDIUM | PROJECT.md flags this as an undecided key decision. Pick ONE for v1 (recommend free/natural typing + track uncorrected errors); forced-correction changes the state engine substantially. |
+| Capability | Feature | Why Expected | Complexity | Notes |
+|---|---|---|---|---|
+| Session history | Every completed session is saved automatically, no explicit "save" action | Keybr/Monkeytype/every reviewed typing app persists silently after each run; a manual save step is friction users won't tolerate for daily use | LOW | `src/session.ts::buildSession` already assembles the full `Session` object (`exercise`, `events`, `charLog`, `markers`, timing metadata) at completion — persistence is "write this to Dexie," not "design a new shape." |
+| Session history | List view: date, WPM, accuracy, sorted newest-first | This is the universal minimum across every competitor and third-party app reviewed (Speed Typing app, TypingTest.me, keybr profile) | LOW | A plain table/list, not a chart — explicitly matches PROJECT.md's "basic session list" scope and its explicit deferral of trend charts. |
+| Digraph latency | A ranked table of slowest digraphs (pair-of-characters), analogous to the existing single-key slowest-5 | Keybr's whole value proposition is "per-key and per-pair statistics you can act on"; users who already see slowest-5 single keys will expect the natural pair-wise extension | MEDIUM | Same statistical discipline as `metrics.ts::slowestFive` — must gate on minimum sample count (keybr and similar tools implicitly do this by only surfacing pairs seen "enough" times) or the ranking is noise, especially with only 1 session's data. |
+| Keyboard heatmap | A static QWERTY-shaped diagram (not a raw list) with per-key color intensity | Every heatmap tool surveyed (Patrick Wied's keyboard heatmap, Keybr's profile heatmap, generic "keyboard heatmap" tools) renders an actual key-shaped layout, never a table — users pattern-match "heatmap" to "keyboard picture," not "spreadsheet" | MEDIUM-HIGH | Needs a real (even if simple, div-grid) US-ANSI key layout component. This is new UI, not a reuse of anything currently in `src/ui`. |
+| Per-language profile | Aggregate metrics (WPM, accuracy) grouped and filterable by tagged language | This is the direct extension of "per-language metrics" already promised in PROJECT.md's original vision and depends only on grouping already-collected sessions | MEDIUM (blocked — see Dependency Notes) | **Currently infeasible for most real usage**: `Exercise.language` is `'plaintext'` for every pasted exercise (`src/ingestion/types.ts` line 8, `language-map.ts` — extension mapping only fires on upload). Since paste is presumably the dominant ingestion path for daily self-use, "per-language profile" would show one bucket ("plaintext") without a companion fix. |
+| Symbol-adjusted WPM | A second WPM-like number shown alongside net WPM, not a silent replacement | Monkeytype's own precedent (raw WPM shown next to net WPM) establishes the UX pattern users already expect: a companion number, not a single "corrected" figure that hides the old one | MEDIUM | Formula is a keebdrill invention (no external standard scales WPM by symbol density — closest analogue, Keystrokes-Per-Hour, only rescales units, it does not weight for symbol difficulty). Must be designed, not looked up. |
 
 ### Differentiators (Competitive Advantage)
 
-Where keebdrill competes. These align with the Core Value: *measure code-specific typing effort that Monkeytype/Keybr ignore.* Do not try to ship all of them at once — most are post-v1.
+Features that set keebdrill apart from Monkeytype/Keybr/10FastFingers specifically because those tools are prose-first and don't group by programming language or code-specific character classes.
 
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Symbol-density-adjusted WPM | Standard WPM (chars/5) rewards prose and hides the real cost of `{}[]()<>`, `=>`, `::`, `!==`, `\|>`. A code-weighted score is the product's reason to exist. | MEDIUM | Needs a defensible weighting model (e.g. cost per char class, or normalise against measured per-key latency). Document the formula. Risk: arbitrary weights erode trust — tie to measured latency, not guesses. |
-| Per-digraph / bigram latency table | The actionable unit of typing improvement is key *transitions*, not keys. "Your `->` is 180ms vs your baseline 90ms" is advice no competitor gives. | MEDIUM | Aggregate inter-keystroke intervals per ordered char pair. Straightforward once capture exists. Surface top-N slowest digraphs of the user's stack. Directly serves the one-month success criterion. |
-| Keyboard heatmap (speed + error, per key) | Visceral, glanceable weak-spot map. typing.io (typo heatmap), SpeedCoder (mistake heatmap), TypingMaster (speed heatmap) all have versions — but not symbol-aware or code-corpus-driven. | MEDIUM | Render an ANSI layout (v1: US ANSI only per PROJECT.md), colour by mean latency or error rate. Needs per-key aggregation + a layout coordinate map. |
-| Per-language profiles | A dev's `rust` symbol mix differs from their `bash` or `python`. Separate baselines per language make progress legible and drills relevant. | MEDIUM | Requires tagging each exercise/session with a language and storing metrics partitioned by it. Depends on persistent storage. |
-| Correction rate / efficiency score | `net WPM / gross WPM` — how much typing effort is wasted on backspacing through symbol-dense code. Exposes a cost prose tests never show. | LOW | Cheap to compute from existing keystroke stream (count backspaces / corrections vs total). High signal. |
-| Adaptive drill generation from detected weaknesses | Keybr's core mechanic, but applied to code symbols/digraphs instead of English letters: synthesise drills that over-represent your slow transitions. | HIGH | Needs (a) enough history to rank weaknesses, (b) a generator that produces realistic-looking code fragments biased to target digraphs. Post-v1. Keybr uses a Markov chain; code equivalent is harder (must stay plausible). |
-| Repo kata mode (ingest local/remote Git repo, type real functions) | typing.io types open-source code but you can't point it at *your* codebase. Training on the exact code style you work in daily is unique. | HIGH | Git clone + file walk + language detection + chunking. Privacy constraint: third-party repo content must never leave the local environment — state explicitly in docs. |
-| Syntactic chunking (tree-sitter function/block boundaries) | Typing a whole file is fatiguing and unrealistic; typing one coherent function is a natural "rep". | MEDIUM-HIGH | tree-sitter has grammars for 36+ languages, AST chunking at function/class boundaries is a solved pattern. PROJECT.md defers this past v1 (v1 = whole pasted content). |
-| Docs mode (Markdown, reStructuredText, man pages, RFCs) | Technical prose with its own symbol profile (backticks, brackets, code spans) — between code and English. | MEDIUM | Mostly a corpus/source-adapter problem once the engine is generic over "text with a language tag". |
-| Shell mode (`~/.zsh_history` / `~/.bash_history`) | Command-line typing is a distinct, high-frequency dev skill: flags, pipes, `$()`, path separators. Nobody trains it. | MEDIUM | Parse history file format (strip timestamps), filter secrets/dedupe. Privacy-sensitive — local only, let user redact. |
-| Fixed 10-minute Daily session with adaptive progression | A single deliberate habit-forming ritual; removes decision fatigue ("what do I practise today?"). | MEDIUM | Composes existing modes + adaptive selection + a session timer. Needs history to progress. Post-v1. |
-| Historical progress dashboard (latency trend per digraph/stack) | The one-month success metric *is* "show a measurable latency reduction" — needs longitudinal storage + charts. | MEDIUM | Deferred in PROJECT.md to a later phase, but the v1 data model should record everything needed so history isn't lost. |
-| Local-first / single-user, no account | Privacy (third-party repo IP), zero friction, runs offline. A deliberate stance vs SaaS competitors. | LOW | Already the v1 design. Worth stating as a feature, not just an omission. |
+| Capability | Feature | Value Proposition | Complexity | Notes |
+|---|---|---|---|---|
+| Digraph/trigraph latency | Trigraph (3-character sequence) latency, not just digraphs | No competitor surveyed (Monkeytype, Keybr, 10FastFingers, TypeTracker) exposes trigraph stats — code has meaningful 3-char sequences (`===`, `->`, `!==`, `::`) that digraphs alone can't isolate; this is a genuine differentiator matching the PROJECT.md compound-operator pain point | HIGH | Trigraphs are sparser per session than digraphs (fewer occurrences of any specific 3-gram) — needs *more* accumulated sessions before the `MIN_SAMPLES` gate is satisfiable. Ship digraphs first; trigraphs become meaningful once persistence has been running a while. This is a reason to sequence trigraphs as a fast-follow, not day-one. |
+| Keyboard heatmap | Color driven by median latency (or error rate) per physical key, not raw frequency | Every generic "keyboard heatmap" tool found in research (Patrick Wied's, alllintools, calculkorea) colors by usage *frequency* — that answers "what do I type most," not "what is slow." A speed/error-driven heatmap is the actual differentiator matching keebdrill's stated value prop (latency, not frequency) | MEDIUM-HIGH | Requires a **new** aggregation keyed by `KeyboardEvent.code` (physical key), because `metrics.ts::slowestFive` deliberately groups by committed *character* (`D-03`: "Do NOT group by `KeyboardEvent.code`") — that decision was correct for the single-key ranking (a Shift+`,`→`<` should score against `<`, not against the physical comma key) but is the *wrong* dimension for a physical-keyboard heatmap, which must be keyed by the physical key that took the time. These are two different, both-legitimate aggregation axes over the same `charLog`, not one reused function. |
+| Per-language profile | Cross-session comparison view — "you're 15% slower in Python than TypeScript" — grouped digraph latency per language, not just aggregate WPM | No competitor groups by programming language at all (they don't ingest code); this directly operationalizes PROJECT.md's stated differentiator | MEDIUM (once tagging gap is closed) | Depends entirely on fixing the paste-language gap (see Table Stakes row and Dependency Notes). Without that fix, this differentiator has no data to work with. |
+| Symbol-adjusted WPM | Weight the WPM formula by the proportion of non-alphanumeric ("symbol") characters in the exercise text, so two sessions with equal net WPM but different symbol density produce different adjusted scores | Directly addresses PROJECT.md's stated pain point ("existing platforms barely penalize symbols") — this is the single most-differentiating number in the whole milestone and the one competitors structurally cannot offer, since none tag symbol density at all | MEDIUM | Needs an explicit, documented symbol classifier (which characters/code-points count as "symbol" — likely: everything that is not `[A-Za-z0-9]` and not whitespace) applied over `Exercise.text`, mirrored against the code-point-safe iteration pattern (`Array.from`) already established in `metrics.ts` for Unicode correctness. Keep the classifier and the weighting formula as two separately testable pure functions, same golden-file testing discipline as `computeWpm`/`computeAccuracy`. |
+| Session history | Per-session detail drill-down (re-open a past session's slowest-5 / full capture, not just the summary row) | Nice progression from "list of numbers" toward "actually diagnose what happened in that run" | LOW-MEDIUM | Cheap once the full `Session`/charLog is persisted (not just the derived metrics) — the detail view is just `computeSessionMetrics` re-run against stored data. Persist the raw log, not only the summary, to keep this option open. |
 
 ### Anti-Features (Commonly Requested, Often Problematic)
 
-| Feature | Why Requested | Why Problematic | Alternative |
-|---------|---------------|-----------------|-------------|
-| User accounts / auth / cloud sync | "So I can use it on multiple machines" | Single-user tool; auth is weeks of work + attack surface + privacy risk for ingested repo content. Kills the local-first stance. | Local DB file; if multi-device ever matters, sync the file via the user's own means (git, Syncing). |
-| Gamification: streaks, XP, badges, leaderboards | Feels motivating; every consumer typing app has it | Optimises for engagement metrics, not skill. Author is the only user — vanity streaks add code and DB churn for no learning value. PROJECT.md explicitly defers. | The 10-min Daily ritual + visible latency-trend charts are the honest motivator. Revisit only if the core loop proves dull. |
-| Multiplayer / races (TypeRacer-style) | Fun, social | Not core to training value; needs realtime infra, matchmaking, an opponent pool that doesn't exist for a personal tool. | Race against your *own* past runs (ghost/PB overlay) — same dopamine, zero infra. |
-| Forced correction of every error in v1 | "More realistic / disciplined" | Fundamentally different state machine (must handle backtrack, re-sync, locked cursor). Doubles v1 engine scope. PROJECT.md flags as undecided. | v1: free typing, track uncorrected + corrected errors. Add forced-correction as a mode later once the engine is proven. |
-| Full in-app code editor semantics (autocomplete, bracket auto-pair, multi-cursor) | "Match my real editor" | You'd be reimplementing VS Code. Auto-pairing brackets removes the very symbol training that is the point. | Optional VS Code-style auto-indent only (newline → matching indent), configurable. Leave every visible character for the user to type. |
-| Support every keyboard layout at launch (es-LA, US-Intl, Dvorak, Colemak) | Author may not use US ANSI; "be inclusive" | Each layout is a different symbol/shift map → multiplies heatmap, digraph, and adjusted-WPM logic before the core idea is validated. PROJECT.md scopes v1 to US ANSI. | v1 hard-codes US ANSI. Abstract the layout behind one module so a second layout is additive later. |
-| Real-time streaming of keystrokes to a backend | "Live dashboard", "analytics" | Latency-sensitive capture belongs client-side; network jitter corrupts the timing data that is the whole product. Also a privacy leak for repo content. | Capture and compute metrics locally; persist the finished session. Backend (if any) only stores aggregates. |
-| Auto-ingesting the user's whole filesystem / all repos | "Zero setup, just train on everything" | Huge corpus of mixed licenses + secrets in configs/history; indexing cost; irrelevant generated code (node_modules, migrations). | Explicit per-source opt-in: user points at one repo / pastes one snippet / selects one history file. Respect `.gitignore`, skip vendored dirs. |
-| Tab-to-indent training removed via full auto-indent | "IDEs do this for me" | Removes Tab/space/indentation from training entirely — a real part of code typing effort. PROJECT.md flags as undecided. | Make auto-indent a toggle (default on for realism, off for indentation drills). Symbols drill mode always manual. |
+| Capability | Feature | Why Requested | Why Problematic | Alternative |
+|---|---|---|---|---|
+| Session history | Trend / evolution line charts over time | Feels like the "obvious" next step after a history list, and every competitor eventually adds this | Already explicitly out of scope in PROJECT.md for this milestone; charting is real design + library surface (Recharts/uPlot per STACK.md) that competes with getting digraph/heatmap/per-language analytics shipped first | Ship the flat history table now; charts are a clearly separable v1.2+ feature once the table/list has real weeks of data to chart |
+| Keyboard heatmap | Live/real-time heatmap that updates key-by-key while typing | Feels flashy, matches some tools' "watch it light up" demos | Any computation inside or triggered from the hot keydown/keyup path risks exactly the jitter the project's own capture discipline explicitly guards against (`event.timeStamp`, trivial handler, no React re-render per keystroke — documented in STACK.md and enforced by the existing capture code) | Compute the heatmap post-hoc from the persisted log, same as all other metrics (`computeSessionMetrics` pattern) — recolor once per completed session, not per keystroke |
+| Digraph/trigraph latency | Surfacing every observed pair/triple, unfiltered | More data feels more thorough | With only 1–3 sessions of history, most pairs/triples have 1–2 occurrences — a "ranked" list built on n=1 samples is indistinguishable from noise and will mislead the user about what's actually slow | Reuse the existing `MIN_SAMPLES`/gap-window gating pattern from `metrics.ts::slowestFive` (currently `>=3` post-filter samples, 25–1000ms window) for digraphs/trigraphs too, and grey out or omit pairs below threshold rather than force-ranking them |
+| Per-language profile | Auto-detecting language from pasted content via heuristics or parsing (regex sniffing, tree-sitter) | Seems like the "real" fix for the plaintext-paste gap, and feels smarter than asking the user | Tree-sitter/syntactic analysis is an explicitly deferred later phase (PROJECT.md "Out of Scope: Syntactic chunking with tree-sitter"); heuristic sniffing (regex-guessing a language from snippet content) is a rabbit hole of false positives for short/ambiguous snippets and is disproportionate effort for a solo-user tool | A simple manual language picker/override on the paste form (a dropdown defaulting to "plaintext," user can set it) — trivial UI, zero parsing risk, and the user always knows what they just pasted |
+| Symbol-adjusted WPM | Replacing net WPM entirely with the symbol-adjusted number | Simplifies the results screen to one headline number | Loses comparability with every external typing-speed reference point (Monkeytype, "good WPM" benchmarks) the user already has intuition for; also makes the metric's own history non-comparable if the formula/weighting is later tuned | Show both, side-by-side, exactly like Monkeytype shows raw next to net — symbol-adjusted WPM is a *companion* lens, not a replacement |
+| Keyboard heatmap / per-language profile | Gamified overlays on either (streaks, "beat your heatmap," badges per language mastered) | Common in consumer typing apps, feels motivating | Explicitly out of scope for the whole project (PROJECT.md: "Gamification... deferred until the core loop proves useful") and orthogonal to the actual differentiator (data-driven diagnosis, not engagement mechanics) | Keep both views purely diagnostic/analytical, no scoring/badges layer |
 
 ## Feature Dependencies
 
 ```
-High-resolution keystroke capture engine
-    ├──requires──> error-handling policy decision (free vs forced)
-    ├──requires──> keyboard layout map (US ANSI v1)
-    └──enables──> WPM
-                  ├──enables──> symbol-density-adjusted WPM
-                  └──enables──> correction rate / efficiency score
-    └──enables──> accuracy
-    └──enables──> per-key latency aggregation
-                  ├──enables──> slowest-keys (top 5)   [v1]
-                  ├──enables──> keyboard heatmap
-                  └──enables──> per-digraph latency table
+Session Persistence (Dexie/IndexedDB)
+    └──requires──> existing Session shape (src/session.ts::buildSession) — already assembled at completion, just needs a storage layer
+    └──enables──>  History View (list)
+    └──enables──>  Digraph/Trigraph Latency (accumulated across sessions, per milestone goal)
+    └──enables──>  Keyboard Heatmap (accumulated across sessions, or per-session)
+    └──enables──>  Per-Language Profile (grouping stored sessions by exercise.language)
 
-Persistent storage (session records + keystroke aggregates)
-    ├──requires──> language tagging of exercises
-    ├──enables──> per-language profiles
-    ├──enables──> historical progress dashboard
-    └──enables──> adaptive drill generation
-                      └──requires──> per-digraph latency table (weakness ranking)
-                      └──requires──> drill generator (code-plausible fragments)
+Per-Language Profile
+    └──requires──> Language tagging present on ALL sessions, not just uploads
+                       └──BLOCKED BY──> paste always tags 'plaintext' (src/ingestion/types.ts, language-map.ts:
+                                         extToLang only reachable via the upload path; paste has no extension to map)
+                       └──requires (new, small feature)──> manual language picker/override on the paste form
 
-Corpus source adapters (generic "text + language tag")
-    ├── paste / upload            [v1]
-    ├── repo kata ──requires──> Git ingest + tree-sitter chunking + local-only privacy guarantee
-    ├── docs mode ──requires──> Markdown/rST/man parsers
-    └── shell mode ──requires──> history-file parser + secret redaction
+Keyboard Heatmap
+    └──requires──> a NEW per-physical-key (KeyboardEvent.code) latency aggregation
+                       └──distinct axis from──> metrics.ts::slowestFive, which aggregates by committed CHARACTER (D-03)
+                                                 — cannot be reused as-is; both aggregations read the same charLog
+                                                 but group by a different key
 
-Syntactic chunking (tree-sitter)
-    └──enhances──> repo kata, docs mode  (natural per-function "reps")
+Digraph/Trigraph Latency
+    └──requires──> Session Persistence (to accumulate "across sessions" per PROJECT.md milestone goal — a single
+                    session rarely has enough repeats of any given pair, and never enough for triples)
+    └──trigraph tier requires──> materially more accumulated data than digraphs (sparser per-session occurrence)
+                       └──enhances (but not required)──> Per-Language Profile (digraph/trigraph latency CAN be
+                                                          further sliced by language once both exist)
 
-Daily 10-min session
-    ├──requires──> at least 2 practice modes
-    ├──requires──> adaptive selection (history-driven)
-    └──requires──> persistent storage
+Symbol-Density-Adjusted WPM
+    └──requires──> a symbol classifier over Exercise.text (pure function, new — not present in metrics.ts today)
+    └──enhances──> WPM display (parallel/companion metric, does not replace net WPM)
+    └──independent of──> Session Persistence (can compute per-session immediately; benefits from persistence only
+                          for showing adjusted-WPM history)
+
+Session History (detail drill-down) ──enhances──> Session Persistence
+    (requires persisting the raw charLog/markers, not just the derived summary numbers, to remain re-computable)
 ```
 
 ### Dependency Notes
 
-- **Everything depends on the capture engine.** It must be phase 1 and its timestamp precision is non-negotiable — every differentiator (adjusted WPM, digraph latency, heatmap) is only as trustworthy as the raw timings.
-- **Error-handling policy must be decided before the engine is built**, not after — free vs forced correction is a different state machine, not a setting bolted on later.
-- **v1 slowest-keys is a strict subset of the heatmap and digraph features** — same aggregation pipeline, less presentation. Build the aggregation once, generalise the view later.
-- **Adaptive drills require both history and a generator.** History needs the storage layer running for weeks first; the generator (plausible code biased to target digraphs) is genuinely hard and should be its own phase.
-- **Per-language profiles require language tagging from day one** even if profiles ship later — record the tag on every v1 session so history is retroactively partitionable.
-- **Repo / docs / shell modes are parallel source adapters** over one generic exercise abstraction; if v1's "exercise" is modelled as `{text, language, source_type}`, adding modes is additive and non-breaking.
-- **Local-only privacy guarantee conflicts with any cloud sync / streaming feature** — picking local-first now forecloses a hosted multi-user product later without a rethink. That is the right trade for this project.
+- **Per-Language Profile requires fixing the paste-language gap first.** This is the single most consequential dependency in the milestone. `src/ingestion/types.ts` documents the current behavior directly: `Exercise.language` is `'plaintext'` for paste by design (D-11, A11), and `language-map.ts`'s `extToLang` is only invoked where a filename/extension exists — i.e., the upload path. If daily self-use leans on paste (the lower-friction path), a per-language profile view built today would show a single "plaintext" bucket and deliver zero value. **Recommendation:** add a minimal manual language selector to the paste form (reuse the same language vocabulary as `EXT_TO_LANG`'s values) as a prerequisite task within this milestone, not a separate future phase — it's small, and per-language profile is otherwise dead on arrival.
+- **Keyboard Heatmap needs a new aggregation dimension, not a reuse of `slowestFive`.** The existing single-key slowest-5 logic intentionally groups by the committed *character* (a Shift+comma's `<` is scored as `<`, never as the physical comma key — `D-03`). A physical keyboard heatmap must instead answer "how slow was *this key on the diagram*", which means grouping by `KeyboardEvent.code` (physical position) regardless of what character/shift-state produced it. Plan for two parallel aggregation functions over the same `charLog`/`events`, not one shared one.
+- **Digraph/Trigraph Latency depends on Session Persistence explicitly because the milestone goal is *accumulated* stats** ("Latencia por dígrafo/trígrafo acumulada entre sesiones" — PROJECT.md). A single session's digraph counts are usually too sparse to rank meaningfully; the existing `MIN_SAMPLES = 3` / `(25ms, 1000ms)` gating pattern in `metrics.ts` should be reused conceptually (not necessarily the same constants) for pairs and triples, and will bind harder for trigraphs, which occur least often.
+- **Symbol-Density-Adjusted WPM is the only capability with zero direct dependency on persistence** — it can be computed and shown on the very next completed session, same call site as today's `computeSessionMetrics`. Treat it as the easiest, most self-contained slice of the milestone to ship first, and it doubles as a good instance to validate the "companion metric, not replacement" display pattern before applying the same pattern to raw-vs-adjusted history rows.
+- **Session History (detail drill-down) is a low-cost differentiator *if and only if* the raw charLog/markers are persisted**, not just the derived summary numbers. Storing only `{date, wpm, accuracy}` per session is cheaper on IndexedDB but forecloses re-computation (detail view, later heatmap-by-session, later digraph re-analysis with an improved formula). Persist the full `Session` shape `buildSession` already assembles; derive summaries on read, the same way `computeSessionMetrics` is pure and re-runnable today.
 
 ## MVP Definition
 
-### Launch With (v1) — matches PROJECT.md Active requirements
+### Launch With (v1.1)
 
-- [ ] Paste text or upload a file as the exercise source — the input to the whole loop
-- [ ] Type the exercise with keydown/keyup capture at high-resolution timestamps — the engine; nothing else is possible without it
-- [ ] Live per-character correctness feedback while typing — without it the typing view is unusable
-- [ ] WPM for the completed exercise — the expected headline metric
-- [ ] Accuracy / error rate for the completed exercise — the expected second metric
-- [ ] Top 5 slowest keys/keystrokes from the session — the first taste of the code-specific angle
-- [ ] One decided error-handling mode (recommend: free typing, track corrected + uncorrected errors) — required to build the engine at all
-- [ ] Restart current exercise — trivial, expected
+Minimum to satisfy the milestone goal stated in PROJECT.md ("persist locally + expose the four analytics + measure real improvement over time").
 
-### Add After Validation (v1.x) — trigger: the daily loop is useful for a week
+- [ ] Session persistence to Dexie/IndexedDB, storing the full `Session` shape (not just summary numbers) — everything downstream depends on this
+- [ ] History view: flat list, date + WPM + accuracy, newest first — no charts (explicitly deferred)
+- [ ] Digraph latency: ranked table, accumulated across sessions, same sample-count/gap-window gating discipline as the existing slowest-5
+- [ ] Keyboard heatmap: static QWERTY US-ANSI diagram, colored by median per-physical-key latency (new `KeyboardEvent.code`-keyed aggregation)
+- [ ] Manual language picker/override on the paste form — **prerequisite fix**, without which per-language profile has no real data
+- [ ] Per-language profile: WPM/accuracy grouped by tagged language, once the paste-tagging gap above is closed
+- [ ] Symbol-density-adjusted WPM: shown as a companion number next to net WPM on the results screen, and stored per session for history
 
-- [ ] Persist sessions to a local DB with `{text, language, source_type, timestamp}` + keystroke aggregates — trigger: you want to see yesterday vs today
-- [ ] Per-digraph latency table (top slow transitions) — trigger: "slowest keys" isn't actionable enough
-- [ ] Keyboard heatmap (speed + error) — trigger: you want a glanceable weak-spot map
-- [ ] Symbol-density-adjusted WPM + correction/efficiency score — trigger: raw WPM feels misleading on code
-- [ ] Historical progress charts (latency trend per digraph / language) — trigger: approaching the one-month success-criterion check
-- [ ] Symbols drill mode (targeted `{}[]()<>`, `=>`, `::`, `!==`, `|>`, shifted number row) — trigger: you know your weak symbols and want to grind them
+### Add After Validation (v1.x)
 
-### Future Consideration (v2+) — defer until core loop has months of data
+- [ ] Trigraph latency — add once digraph latency is shipped and a few weeks of real sessions have accumulated enough per-triple samples to clear a meaningful gate
+- [ ] Session detail drill-down (re-view a past session's own slowest-5/digraph breakdown) — trivial once raw logs are persisted, but not required for the milestone's core "measure improvement" goal
+- [ ] Heatmap filtered by language (e.g., "show me my Python-only heatmap") — natural cross of two v1.1 features, but a distinct filter UI, defer until both exist independently
 
-- [ ] Per-language profiles with separate baselines — defer: needs sustained multi-language history to be meaningful
-- [ ] Repo kata mode (local/remote Git ingest) — defer: Git plumbing + tree-sitter chunking + privacy guarantees are a milestone of their own
-- [ ] tree-sitter syntactic chunking (function/block reps) — defer: v1 whole-content typing is good enough to validate
-- [ ] Docs mode / Shell-history mode — defer: parallel source adapters, only worth it once the abstraction is proven
-- [ ] Adaptive drill generation from detected weaknesses — defer: hardest feature; needs history + a code-plausible generator
-- [ ] Fixed 10-minute Daily session with adaptive progression — defer: composes multiple modes + adaptive selection
-- [ ] Ghost / personal-best replay overlay — defer: nice motivator, not core
-- [ ] Non-US-ANSI keyboard layouts — defer: multiplies symbol-map logic; v1 is US ANSI only
+### Future Consideration (v2+)
+
+- [ ] Trend/evolution charts over session history — explicitly out of scope per PROJECT.md; revisit once there's enough history to chart meaningfully
+- [ ] Auto language detection (heuristic or tree-sitter-based) instead of the manual picker — explicitly deferred (tree-sitter is its own later phase); the manual picker is the correct-for-now answer
+- [ ] Cross-device sync of history — no backend in scope; would require the Tauri/native evolution path discussed in STACK.md, not a browser-only feature
 
 ## Feature Prioritization Matrix
 
 | Feature | User Value | Implementation Cost | Priority |
-|---------|------------|---------------------|----------|
-| Keystroke capture engine (hi-res, keydown/keyup) | HIGH | MEDIUM | P1 |
-| Paste / upload exercise source | HIGH | LOW | P1 |
-| Live per-character feedback | HIGH | MEDIUM | P1 |
-| WPM + accuracy | HIGH | LOW | P1 |
-| Top 5 slowest keys | HIGH | MEDIUM | P1 |
-| Error-handling policy decision (free vs forced) | HIGH | LOW (decision) / MEDIUM (build) | P1 |
-| Restart exercise | MEDIUM | LOW | P1 |
-| Local session persistence + language tag | HIGH | MEDIUM | P2 |
-| Per-digraph latency table | HIGH | MEDIUM | P2 |
-| Keyboard heatmap | MEDIUM | MEDIUM | P2 |
-| Symbol-adjusted WPM + efficiency score | HIGH | MEDIUM | P2 |
-| Historical progress charts | HIGH | MEDIUM | P2 |
-| Symbols drill mode | MEDIUM | MEDIUM | P2 |
-| Per-language profiles | MEDIUM | MEDIUM | P3 |
-| Repo kata mode | HIGH | HIGH | P3 |
-| tree-sitter chunking | MEDIUM | MEDIUM-HIGH | P3 |
-| Docs mode / Shell mode | MEDIUM | MEDIUM | P3 |
-| Adaptive drill generation | HIGH | HIGH | P3 |
-| Daily 10-min session | MEDIUM | MEDIUM | P3 |
-| Accounts / gamification / multiplayer | LOW | HIGH | Anti-feature |
+|---|---|---|---|
+| Session persistence (Dexie) | HIGH | LOW | P1 |
+| History list view | HIGH | LOW | P1 |
+| Paste language picker (prerequisite fix) | HIGH (unblocks per-language profile) | LOW | P1 |
+| Symbol-density-adjusted WPM | HIGH | MEDIUM | P1 |
+| Digraph latency table | HIGH | MEDIUM | P1 |
+| Keyboard heatmap | MEDIUM-HIGH | MEDIUM-HIGH | P1 |
+| Per-language profile | MEDIUM-HIGH | MEDIUM (post-fix) | P1 |
+| Trigraph latency | MEDIUM | HIGH | P2 |
+| Session detail drill-down | MEDIUM | LOW-MEDIUM | P2 |
+| Heatmap-by-language filter | LOW-MEDIUM | LOW (once both exist) | P2 |
+| Trend/evolution charts | MEDIUM | MEDIUM-HIGH | P3 |
+| Auto language detection | LOW (manual picker already solves it) | HIGH | P3 |
+
+**Priority key:**
+- P1: Must have for this milestone (v1.1)
+- P2: Should have, add once v1.1 core has real usage data
+- P3: Future consideration, not this milestone
 
 ## Competitor Feature Analysis
 
-| Feature | typing.io | SpeedCoder | Monkeytype / Keybr | keebdrill approach |
-|---------|-----------|------------|--------------------|--------------------|
-| Corpus | Curated open-source code, 16 langs; upload own (paid) | Curated code, 12 langs; paste own (free) | Generated words / English quotes | Your own code, docs, shell history — real personal corpus, local |
-| WPM model | "Realistic engine" counts symbols + backspace | Standard WPM | Standard chars/5; barely penalises symbols | Symbol-density-adjusted WPM + efficiency score |
-| Weak-spot feedback | Typo heatmap, typo-cost analysis, unproductive-keystroke graph | Most-missed keys on color keyboard | Keybr: per-key speed → adaptive focus key | Per-digraph latency table + speed/error heatmap + per-language |
-| Adaptivity | None (fixed lessons) | None | Keybr: progressive letter unlock, focus key, Markov pseudo-words | Adaptive drills biased to your slow *digraphs/symbols* (post-v1) |
-| Error handling | Realistic key processing | Natural + Forced-correction modes | Freedom / confidence / strict modes | v1: one mode (free typing); forced-correction later |
-| Indentation | Handles code whitespace | Types code as-is | N/A | Optional VS Code-style auto-indent toggle |
-| Progress history | Yes (paid): WPM trend, unproductive keys | Per-lesson only | Yes: account charts, PBs | Local longitudinal store; latency-trend-per-digraph charts |
-| Account required | Yes for progress/upload | No | Yes for history | No — local-first, single-user |
-| Price / model | Freemium, $9.99/mo | Free, web | Free / open source | Personal tool, local, no billing |
+| Feature | Monkeytype | Keybr | 10FastFingers | Our Approach |
+|---|---|---|---|---|
+| Session history | Personal-best tracking, minimal list; full history mostly behind account/login | Profile page with progress graphs, tied to account | Basic score history, leaderboard-focused | Local-first flat list (date/WPM/accuracy), no account, full session detail recoverable from persisted raw log |
+| Per-key/pair latency | Not exposed to the user (internal only, if computed at all) | Per-key stats + a "weakest keys" adaptive lesson generator; digraph-level detail limited | Not exposed | Digraph AND trigraph latency tables, explicitly code-oriented (compound operators, bracket pairs), with sample-gating to avoid noise |
+| Keyboard heatmap | Not offered | Yes — heatmap on profile, colored by usage/performance (frequency-leaning per community reports) | Not offered | Heatmap colored by median **latency** (speed), not frequency — directly matches the "where am I slow" diagnostic goal, the clearer differentiator |
+| Per-language grouping | N/A (prose only) | N/A (prose/letters only) | N/A (prose only) | Genuinely unique: group stats by tagged programming language — but only as good as the language tag, hence the paste-picker prerequisite |
+| Raw/adjusted WPM pairing | Raw WPM shown next to Net WPM (error-based adjustment) | Net WPM only, no raw variant surfaced prominently | WPM only | Net WPM next to a NEW symbol-density-adjusted WPM — same "companion metric" UX pattern as Monkeytype, applied to a dimension (symbol density) no competitor measures |
 
 ## Sources
 
-- [typing.io — Typing Practice for Programmers](https://typing.io/) and [Plans & Pricing](https://typing.io/pricing) — MEDIUM
-- [Typing.io Reviews 2026 (G2)](https://www.g2.com/products/typing-io/reviews), [SourceForge](https://sourceforge.net/software/product/Typing.io/) — MEDIUM
-- [SpeedCoder — Typing Practice for Programmers](https://www.speedcoder.net/) — MEDIUM
-- [monkeytypegame/monkeytype (GitHub README + docs)](https://github.com/monkeytypegame/monkeytype), [Monkeytype customization guide](https://monkeytypegame-monkeytype.mintlify.app/guides/customization) — MEDIUM
-- [Keybr review / algorithm explanations](https://www.typequicker.com/compare/keybr), [keybr-tui write-up](https://y0sif.github.io/keybr-tui/) — MEDIUM
-- [Observations on Typing from 136 Million Keystrokes (CHI 2018, Aalto)](https://userinterfaces.aalto.fi/136Mkeystrokes/resources/chi-18-analysis.pdf) — LOW (used only for digraph-latency ranges)
-- [TypingTest bigram blitz](https://www.typingtest.com/bigram-blitz/), [TypingMaster typing meter (per-key heatmap)](https://www.typingmaster.com/typing-meter/) — LOW/MEDIUM
-- [How to Calculate Typing Speed (WPM) and Accuracy — SpeedTypingOnline](https://www.speedtypingonline.com/typing-equations), [typetest.io WPM normalization](https://typetest.io/blog/posts/2026-03-29-typing-test-wpm-normalization.html) — MEDIUM
-- [Code Typing Speed Actually Matters — TiltStack](https://www.tiltstack.com/blog/code-typing-trainer-for-developers/) — LOW (single-vendor blog; used for the prose-vs-code character-distribution and efficiency-score framing)
-- [treesitter-chunker](https://github.com/Consiliency/treesitter-chunker), [AST-Aware Code Chunking — Supermemory](https://supermemory.ai/blog/building-code-chunk-ast-aware-code-chunking/) — MEDIUM (tree-sitter chunking feasibility)
-- [Tabs vs spaces / auto-indent in code typing practice discussions](https://lobste.rs/s/fbtgeg/nobody_talks_about_real_reason_use_tabs) — LOW
-- `.planning/PROJECT.md` — project scope, constraints, undecided key decisions
+- [Raw WPM vs Net WPM - what's the difference? · Free typing test](https://typetera.com/wpm/raw-wpm-vs-net-wpm) — MEDIUM confidence (single third-party explainer, but consistent with Wikipedia's WPM definition and matches keebdrill's own existing `computeWpm`/`computeAccuracy` formulas)
+- [Words per minute — Wikipedia](https://en.wikipedia.org/wiki/Words_per_minute) — HIGH confidence (standard reference for the 5-char "word" convention underlying both net and raw WPM)
+- [Keyboard Heatmap | Realtime heatmap visualization (Patrick Wied)](https://www.patrick-wied.at/projects/heatmap-keyboard/) — MEDIUM confidence (representative example of frequency-driven heatmap convention, used here to contrast against the latency-driven approach recommended for keebdrill)
+- [Keybr.com GitHub (aradzie/keybr.com)](https://github.com/aradzie/keybr.com) — MEDIUM confidence (project exists and is the reference implementation for per-key stats + adaptive lessons + heatmap; specific internal heatmap color-metric not independently verified beyond community reports)
+- [Divide-By-0/keybr-with-stats — per-character and per-pair statistics fork](https://github.com/Divide-By-0/keybr-with-stats) — MEDIUM confidence (corroborates the digraph/pair statistics pattern as a natural, previously-built extension of keybr's single-key stats)
+- [linguini1/typeTracker — graphing/analyzing keybr export data](https://github.com/linguini1/typeTracker) — MEDIUM confidence (corroborates that history/trend analysis is commonly a separate, add-on layer over the base session data, supporting the "defer charts" decision already made in PROJECT.md)
+- [TypingFastest — average coder typing speed / code vs prose WPM](https://typingfastest.com/blog/average-coder-typing-speed-how-fast-should-developers-type-2026) — MEDIUM confidence (aggregated blog analysis, directionally consistent with the general "code is 20–30% slower than prose" claim used only as color, not as a hard target)
+- [TypeQuicker — Keystrokes Per Hour (KPH) as an alternative to WPM for symbol-heavy contexts](https://www.typequicker.com/typing-speed-test/keystrokes-per-hour) — MEDIUM confidence (establishes that KPH is the closest existing "symbol-aware-ish" alternative metric in the industry, but confirms it only rescales units — WPM × 300 — rather than weighting for symbol *difficulty/density*, which is why symbol-density-adjusted WPM must be designed fresh for keebdrill)
+- Direct codebase inspection (`src/session.ts`, `src/ingestion/types.ts`, `src/ingestion/language-map.ts`, `src/metrics/metrics.ts`) — HIGH confidence (primary source, ground truth for existing shapes, the D-03 char-vs-code aggregation decision, and the paste-plaintext gap)
 
 ---
-*Feature research for: developer code-typing trainer (keebdrill)*
-*Researched: 2026-09-03*
+*Feature research for: keebdrill v1.1 (session persistence + analytics milestone)*
+*Researched: 2026-09-05*

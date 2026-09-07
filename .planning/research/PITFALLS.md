@@ -1,359 +1,237 @@
 # Pitfalls Research
 
-**Domain:** Developer typing trainer with high-resolution keystroke telemetry (keebdrill)
-**Researched:** 2026-09-03
-**Confidence:** MEDIUM-HIGH (timing/browser behavior HIGH from MDN/Chrome/W3C; statistical-validity and corpus-licensing MEDIUM; UX pitfalls MEDIUM from competitor analysis)
-
----
+**Domain:** Adding local IndexedDB persistence + cross-session analytics (digraph/trigraph latency, keyboard heatmap, per-language profile, symbol-adjusted WPM) to an existing, working, well-tested single-session code-typing trainer (keebdrill v1.0 → v1.1)
+**Researched:** 2026-09-05
+**Confidence:** MEDIUM-HIGH (codebase-grounded findings HIGH; general IndexedDB/Recharts/statistics claims MEDIUM, cross-checked against MDN/Dexie official docs and GitHub issues)
 
 ## Critical Pitfalls
 
-### Pitfall 1: Trusting `KeyboardEvent.timeStamp` / `performance.now()` sub-millisecond precision that the browser does not actually give you
+### Pitfall 1: Silently mixing metrics computed by different formula versions across sessions
 
 **What goes wrong:**
-The whole differentiator ("per-digraph/trigraph latency") depends on timestamp precision, but browsers deliberately clamp high-resolution timers to defend against Spectre and keystroke-timing side channels. In a normal (non cross-origin isolated) page: Chrome/Chromium clamps `performance.now()` and event timestamps to **100 microseconds**; Firefox rounds to **1 millisecond**. Only a cross-origin-isolated context (COOP + COEP headers) unlocks 5µs (Chrome) / 20µs (Firefox). If you build assuming microsecond fidelity, your Firefox data is quantized to 1ms buckets and cross-browser comparisons are invalid.
+`metrics.ts` already exports `METRICS_SCHEMA_VERSION = 1` and stamps every `MetricsResult` with it — this exists precisely because the formulas are expected to change (the WPM/accuracy/slowest-5 gap-filter constants are tunable, and the code review history shows the codepoint-indexing bug was fixed mid-project). Once sessions are persisted, a later formula tweak (e.g. changing `MIN_GAP_MS`/`MAX_GAP_MS`/`MIN_SAMPLES`, or the WPM active-time basis) will silently produce a mix of old-formula and new-formula results in the same history table. If cross-session digraph/heatmap aggregation reads raw `charLog`/`markers` and re-derives metrics with the *current* code, that's fine — but if it reads persisted `MetricsResult.wpm`/`.slowest5` values computed at session time, a formula change corrupts every trend line and per-digraph aggregate retroactively without anyone noticing, because the numbers still "look like" WPM/ms.
 
-**Why it happens:**
-`performance.now()` docs historically showed microsecond examples; developers assume `DOMHighResTimeStamp` means "high enough." The clamping is invisible — values still look like floats, they are just rounded.
+**Why it happens:** The natural (cheap) implementation persists the already-computed `MetricsResult` alongside the session, then the history/analytics views just read that column. It works perfectly until the metrics formula changes — which the codebase's own version constant telegraphs as a "when," not an "if."
 
 **How to avoid:**
-- Decide the platform first (Constraint already flags this). A **TUI/native capture engine** (Rust/Python reading raw terminal or evdev/OS events) sidesteps browser clamping entirely and is the stronger choice for a timing-first product. If web is chosen, serve the app **cross-origin isolated** (`Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Embedder-Policy: require-corp`) from day one and verify `crossOriginIsolated === true` and `performance.timeOrigin` behavior.
-- Record which clock/resolution produced each session; store a `timing_resolution_us` field per session so later analysis can filter or down-weight coarse data.
-- For digraph latencies (typically 60–300 ms) even 1ms rounding is tolerable *in aggregate*, but not for the "5 slowest keys" on a short exercise where 3–4 samples per key is common — see Pitfall 5.
+- Persist the raw inputs to `computeSessionMetrics` (`charLog`, `markers`, `exercise.text`, `now`/`completedAt`) as the source of truth, not just the derived `MetricsResult`. Recompute on read for anything that participates in cross-session aggregation (digraph latency, heatmap, symbol-adjusted WPM).
+- If you do cache the derived `MetricsResult` for fast list rendering (session history table), store `schemaVersion` alongside it and gate all aggregation/comparison logic on schema equality — either recompute lazily when a stale-version row is read, or run a one-time migration pass on schema bump.
+- Never silently average/rank a mix of schema versions together. Filter or recompute before combining.
 
-**Warning signs:**
-Latency histograms show suspiciously discrete spikes at 1ms multiples; Firefox and Chrome produce systematically different WPM/latency for the same user; `performance.now()` returns integers.
+**Warning signs:** A digraph or "slowest 5" trend that shows a step-change on a specific date with no corresponding real practice change — that date is a code deploy. Heatmap or symbol-WPM regressions that can't be explained by typing behavior.
 
-**Phase to address:** Phase 0/1 (platform + capture-engine decision); verified again in the metrics phase.
+**Phase to address:** Persistence phase (schema design) — store raw `charLog`/`markers`/`exercise`, not just derived metrics, and thread `schemaVersion` through any cached derived value from day one. Do not defer this to the analytics phase; retrofitting it after sessions exist requires a backfill migration.
 
 ---
 
-### Pitfall 2: Using the wrong timestamp source — reading `performance.now()` inside the handler instead of `event.timeStamp`
+### Pitfall 2: Persisted `Session.startedAt` (`Date.now()`) leaking into cross-session latency math instead of the `event.timeStamp` clock domain
 
-**What goes wrong:**
-`event.timeStamp` records when the input event was *created by the browser*. Calling `performance.now()` at the top of your listener records when your JS *got scheduled to run*, which includes main-thread contention, layout, GC, and React re-render time. Under load these differ by tens of milliseconds — exactly the magnitude of a digraph latency — so your "slowest keys" become "keys I happened to type while React was busy."
+**What goes wrong:** `capture/types.ts` explicitly documents `Session.startedAt` as "`Date.now()` wall clock, display only," while every latency computation (`computeSessionMetrics`'s `now` parameter, `computeActiveElapsedMs`'s `t0`/`now`) lives in the `event.timeStamp`-based `tMs` domain — a *different*, monotonic, DOMHighResTimeStamp clock that is NOT epoch-aligned and NOT comparable across page loads/reloads. `metrics.ts`'s own header comment calls this out as "Pitfall 1" for the *current* single-session code (never pass `Session.startedAt` as `now`). Once sessions are persisted and analytics code loads *multiple* sessions to build a cross-session digraph table or trend line, this exact mistake becomes far easier to reintroduce: a new engineer (or future-you) writing the cross-session aggregator naturally reaches for "the session's timestamp" to sort/bucket sessions by date, and it is dangerously easy to also reuse that same field, or a value derived from it, inside a per-session latency recomputation — especially if the persisted record's field naming doesn't scream "wall-clock, not tMs-domain."
 
-**Why it happens:**
-Tutorials show `Date.now()` / `performance.now()` in handlers; `event.timeStamp` is less discussed and historically had cross-browser epoch inconsistencies (relative to `timeOrigin` vs Unix epoch) that scared people off. Modern browsers standardized it to `DOMHighResTimeStamp` comparable to `performance.now()`.
+**Why it happens:** Two clock domains coexist by design (tMs for measurement precision, `Date.now()`/`startedAt` for human-readable dates), and cross-session code needs the *second* one (to sort/filter/display session history) while per-session metrics need the *first* one. It's an easy field mix-up once the two are sitting side by side in one persisted record read by unfamiliar analytics code.
 
-**How to avoid:**
-- Use `event.timeStamp` as the authoritative time for every keydown/keyup. Capture `performance.now()` too, only as a diagnostic of handler lag (`handlerLag = performance.now() - event.timeStamp`).
-- Keep the keystroke listener dead simple: push `{code, key, type, timeStamp}` into a plain array (or ring buffer) and return. Do all rendering/metrics off the hot path (rAF or after test end).
-- Never do React state updates per keystroke that re-render the full text area.
+**How to avoid:** Keep the persisted schema's field names and types unambiguous — e.g. `startedAtWallClock: number` / `completedAtWallClock: number` for history/date display vs. keep `charLog`/`markers` tMs fields untouched and never surface a bare `now`/`completedAt` field that could be confused with wall-clock time. Add a lint-able or test-enforced invariant: any function that recomputes metrics from a persisted session must derive its `now` from `charLog`/`markers` (e.g. last event's `tMs`), never from a wall-clock field on the record.
+Add a golden/regression test asserting cross-session recomputation produces identical `wpm`/`slowest5` to the original in-session computation for a fixed fixture, to catch clock-domain regressions immediately.
 
-**Warning signs:**
-`handlerLag` p95 > 5ms; latency correlates with text length (longer exercise = slower "typing" because the DOM got heavier); janky caret.
+**Warning signs:** WPM values for old sessions that are astronomically high or `Infinity`/`NaN` after being reloaded from storage (a `Date.now()`-vs-`tMs` domain mismatch typically produces a near-zero or negative `elapsedMs`, guarded to 0 by `computeWpm`'s existing guard — so watch instead for suspicious near-zero elapsed times / suspiciously infinite-looking WPM on historical reads).
 
-**Phase to address:** Capture-engine phase (Phase 1/2).
+**Phase to address:** Persistence phase — define the storage schema with unambiguous field names; write the recomputation-from-storage path as a NEW pure function (`computeSessionMetrics(session.exercise.text, session.charLog, session.markers, /* derived from charLog/markers */)`) with its own test fixture, not an ad hoc call site duplicated in the analytics phase.
 
 ---
 
-### Pitfall 3: Counting OS key-repeat events as real keystrokes
+### Pitfall 3: Aggregating digraph/trigraph latency across sessions without the existing per-session sample-size gate — small-N "slowest" rankings become noise
 
-**What goes wrong:**
-Holding a key (common on `-`, `=`, space, arrow keys, or just a sticky finger) makes the OS emit a stream of `keydown` events with no matching `keyup` until release. Naively these inflate keystroke count, destroy accuracy stats, and create fake 30–50ms "digraphs" (the OS repeat rate) that dominate the slowest/fastest tails and poison per-digraph medians.
+**What goes wrong:** `metrics.ts` already encodes hard-won statistical discipline for *within-session* slowest-5 (median not mean, `MIN_SAMPLES = 3` gate applied POST-filter, exclusive `(25ms, 1000ms)` outlier window, grouped by logical committed character not raw key code). A cross-session digraph/trigraph aggregation feature is tempting to build as a naive re-implementation (new code, new file) that groups digraph latencies globally and ranks by mean or by max — silently dropping the outlier filter, the post-filter minimum-sample gate, or both. With trigraphs specifically, the combinatorial explosion of possible 2-3 character sequences in code (operators like `->`, `=>`, `::`, `!==`) means most trigraphs will have very few (1-2) observations even after several sessions, so an un-gated ranking will surface single-occurrence "300ms trigraph" flukes as the headline "your slowest sequence," undermining the entire value proposition (the project's stated success criterion is measuring *real* improvement on *frequent* symbol digraphs).
+Industry latency-metrics guidance independently confirms this: percentile/extremal statistics computed on small sample counts are dominated by single-outlier noise, and the standard mitigation is exactly what `metrics.ts` already does — median with an explicit minimum-sample gate, not raw max or naive percentile.
 
-**Why it happens:**
-`keydown` fires repeatedly on auto-repeat; the `event.repeat` flag exists but is easy to forget, and terminal apps see raw repeat at the configured `xset r rate` / macOS `KeyRepeat` cadence with no flag at all.
+**Why it happens:** The existing gate logic lives inside `slowestFive`/`replayAttempts`, scoped to a single session's `Map<char, number[]>`. A cross-session feature naturally needs a *different* aggregation shape (accumulate across many sessions, key by digraph/trigraph not single char), and it's easy to write that as fresh code that "looks similar" but forgets to port the gate constants, the outlier window, or the requirement to filter before gating.
 
 **How to avoid:**
-- Web: ignore any `keydown` where `event.repeat === true` for character insertion AND for timing. Track a per-`code` "is currently down" set; a `keydown` for a code already in the set is a repeat even if the flag is missing (WebView/older-browser bug).
-- TUI: debounce identical keycodes arriving faster than a human floor (~25–30 ms) unless the design explicitly wants to train key-repeat; more robustly, read keyup/keydown separately (evdev) rather than cooked terminal input.
-- Decide product-level: repeated characters in the *corpus* (e.g. `====`, `---`, `//`) must be typed as distinct presses — so you cannot just "allow holding the key." Make held-key a detected error or a no-op.
+- Factor the gate/filter/median logic (`MIN_GAP_MS`, `MAX_GAP_MS`, `MIN_SAMPLES`, filter-then-gate-then-median ordering) out of `slowestFive` into a shared, exported, unit-tested utility that both the existing single-session path and the new cross-session digraph/trigraph aggregator call — do not duplicate the constants or the ordering logic.
+- For digraphs/trigraphs specifically, expect to need a *higher* minimum-sample threshold than the single-char `MIN_SAMPLES = 3`, since two- and three-character sequences are rarer than single characters per session; pick the threshold empirically against real accumulated data before shipping the feature, and gate the UI (e.g. "not enough data yet" state) rather than showing sparse/noisy rankings.
+- Group by the same "logical committed character(s)" semantics already established (D-03: group by `CommittedChar.data` codepoint, not `KeyboardEvent.code`) — extend this to sequences of codepoints, keeping the multi-codepoint IME attribution rule (attribute to the last codepoint of a multi-codepoint insert) consistent.
 
-**Warning signs:**
-Digraph latency distribution has a sharp secondary mode at ~30–60ms; accuracy occasionally >100% or keystroke count exceeds corpus length on a clean run; the same character repeats faster than any human bigram.
+**Warning signs:** The "slowest digraph" leaderboard is dominated by rare/unusual sequences the user typed once, changes wildly between sessions, or highlights sequences with only 1-2 total observations.
 
-**Phase to address:** Capture-engine phase (Phase 1/2).
+**Phase to address:** Analytics phase (digraph/trigraph latency) — before building the aggregation UI, refactor the sample-gate/filter/median logic into a shared module and write it test-first against synthetic small-N fixtures.
 
 ---
 
-### Pitfall 4: Ambiguous / non-standard WPM and accuracy definitions
+### Pitfall 4: Pasted-text sessions (always tagged `'plaintext'`) polluting per-language profiling as if `'plaintext'` were a real, meaningful language bucket
 
-**What goes wrong:**
-There is no single WPM. If you invent your own, your numbers are not comparable to Monkeytype/Keybr/typing.io and — worse — not comparable to *your own past self* after you tweak the formula. Common mistakes: counting actual space-delimited words instead of the standard 5-character "word"; mixing gross and net WPM; letting backspaces/corrections count as negative or as extra characters; timing from page load instead of first keystroke; including the trailing think-pause before the last char.
+**What goes wrong:** `Exercise.language` is `'plaintext'` for every pasted session (paste never attempts language detection — `language-map.ts`'s `extToLang` is only invoked for uploads) AND `'plaintext'` is also the *legitimate* fallback for uploads with an unrecognized/absent extension. A per-language profile feature that naively groups sessions by `exercise.language` will conflate three semantically different things into one `'plaintext'` bucket: (1) genuinely untagged/unknown content, (2) real prose/markdown-adjacent text the user intentionally typed as plain text, and (3) — worst case — actual code pasted by the user that never got a language tag simply because paste has no detection. Because pasting is almost certainly the *lower-friction, more-used* ingestion path day to day (vs. deliberately uploading a file), `'plaintext'` will likely become the largest bucket by session count, making the "per-language profile" feature's headline number a meaningless aggregate dominated by unlabeled data — directly undermining the feature's purpose.
 
-**Why it happens:**
-"Words per minute" sounds self-evident. Code has few spaces, so real-word counting produces wild numbers and symbol-dense lines look artificially slow/fast.
+**Why it happens:** `Exercise.language` was designed in Phase 1 as "best-effort, not a parser" for a single-session UI need (tagging), long before cross-session aggregation was a requirement; nothing in the existing type system distinguishes "we don't know" from "this really is plaintext."
 
 **How to avoid:**
-- Adopt the industry standard explicitly and write it in the spec:
-  - **Gross/Raw WPM** = (all characters typed / 5) / minutes elapsed.
-  - **Net WPM** = (correct characters / 5) / minutes, OR gross minus (uncorrected errors / 5) / minutes — pick one, document it.
-  - **Accuracy** = correct keystrokes / total keystrokes (include corrections in the denominator; this is "real accuracy," the harsher and more honest number).
-  - Clock starts on **first keystroke**, stops on **last required keystroke**.
-- Because the corpus is code, also report **adjusted WPM** as a *separate, clearly-labeled* metric (the actual differentiator) — never silently redefine the headline WPM.
-- Freeze the formulas before storing any historical data; version the metric schema so a later formula change is a new column, not a silent rewrite.
+- Before building per-language profiling, close the paste-tagging gap: either (a) let the user pick/confirm a language when pasting (cheap, honest, no false precision), or (b) run lightweight heuristic/content-sniffing language detection on paste (e.g. shebang lines, braces density, keyword signatures) — but if you do this, do NOT silently relabel historical sessions; only apply to new pastes, and treat detection confidence explicitly.
+- In the per-language profile UI, treat `'plaintext'` as its own explicit, clearly-labeled bucket ("untagged / plain text") — do not let it masquerade as a language on equal footing with `'typescript'`/`'python'`/etc., and consider excluding it from "your fastest/slowest language" superlative claims entirely.
+- Add a persisted `languageSource: 'extension' | 'user-selected' | 'untagged'` (or similar) field distinct from `language` itself, so the analytics layer can filter/weight by confidence without re-deriving it from `sourceType`.
 
-**Warning signs:**
-WPM changes when you refactor the metrics code; your WPM is 3x or 1/3 of Monkeytype for the same text; short exercises give absurd WPM (dividing by a near-zero minute count).
+**Warning signs:** The per-language profile's top bucket by session count is `'plaintext'` and its WPM/accuracy numbers don't match any single real language's expected shape (e.g. suspiciously high WPM because prose has fewer symbol digraphs than code).
 
-**Phase to address:** Metrics phase (v1). This is a spec decision, cheap now, expensive after data accrues.
+**Phase to address:** Requirements/scoping should resolve paste-language-tagging *before* or *within* the per-language-profile phase — this is a data-quality prerequisite, not a nice-to-have. Flag explicitly in phase planning: "per-language profile phase blocked on deciding paste language-tagging strategy."
 
 ---
 
-### Pitfall 5: Reporting "5 slowest keys" / per-digraph latency from statistically meaningless sample sizes
+### Pitfall 5: Symbol-density-adjusted WPM computed with a fixed/global symbol weighting that double-counts or misclassifies the corrected-over attempt stream
 
-**What goes wrong:**
-A pasted 40-line snippet might contain the digraph `->` twice and `{}` once. Reporting "your slowest digraph is `{}` at 480ms" from n=1 is noise — one hesitation while reading ahead dominates. Users will chase phantom weaknesses, and the future "adaptive drill generator" will amplify noise into a training program. Keystroke-dynamics research generally wants **hundreds to thousands** of digraph samples before per-digraph timing stabilizes; a v1 session gives single digits per key.
+**What goes wrong:** The existing `wpm`/`accuracy` formulas are carefully defined over `correctAttempts`/`incorrectAttempts` from `replayAttempts`, which replays *every* insert attempt including ones later overwritten by backspace-and-retype (explicitly NOT collapsed to final per-position status — this is D-02, locked in because collapsing loses correction history). A symbol-adjusted WPM feature needs a per-character "symbol weight" (e.g. `{` weighted higher than `a`) multiplied into the WPM numerator. If this weighting is naively applied to the *raw committed-char attempt stream* (including corrected-over attempts) rather than to the *target* text's canonical characters, you get double- or triple-counting: every backspace-retype of a symbol re-applies its (higher) weight, inflating symbol-adjusted WPM specifically for whichever characters the user fumbled most — the opposite of the intended signal (fumbled symbols should show *lower* effective throughput, not higher weighted-WPM).
 
-**Why it happens:**
-The feature reads as trivial ("sort keys by mean latency, take top 5"). The small-sample problem is invisible on the happy path — it always returns 5 keys.
+**Why it happens:** `computeWpm(correctChars, elapsedMs)` currently takes a plain count; the natural extension is `computeWeightedWpm(weightedCorrectChars, elapsedMs)` where `weightedCorrectChars` sums a per-char weight over the same `correctAttempts` accounting used today. But "correct attempts" already legitimately counts every eventually-correct keystroke including ones after a fumble+retry (this is intentional and correct for *accuracy*, not necessarily for *symbol-density-adjusted WPM*, which is a throughput metric that should probably be normalized on the *target* text's symbol density, not the attempt stream's).
 
 **How to avoid:**
-- Require a minimum sample count (e.g. n >= 5, ideally >= 10) before a key/digraph is eligible for the "slowest" list; show "not enough data" otherwise rather than a fabricated ranking.
-- Use **median or trimmed mean**, not mean — one 2-second read-ahead pause otherwise defines the key.
-- Filter outliers first: drop inter-key gaps above a ceiling (e.g. > 1000ms = the user paused/read, not a motor delay) and below a floor (< 25ms = repeat/rollover artifact).
-- Show a confidence signal (sample count, IQR) next to each slow key.
-- Aggregate **across sessions** for the real profile; a single session is a sample, not a verdict. This pushes the meaningful version of the feature to the "historical profile" phase and keeps v1 honest.
-- Separate **dwell** (key hold) from **flight/latency** (gap between keys); conflating them mislabels the problem.
+- Decide explicitly (and document as a decision, not an implicit default) whether symbol-density adjustment is: (a) a multiplier on the *target exercise's* overall symbol density (one scalar per session, applied to the whole-session WPM) — simplest, avoids the double-counting trap entirely; or (b) a per-character weighting applied to the attempt stream — if chosen, it MUST be applied consistently with the existing correct/incorrect attempt semantics and explicitly tested against a fixture with backspace-corrected symbols to confirm it doesn't inflate the corrected-fumble case.
+- Prefer (a) for v1.1 given the "nothing is persisted/committed yet" stage of this feature — it's the option least likely to interact badly with the existing replay/correction semantics, and it's the interpretation implied by "symbol-density-adjusted WPM" (adjusting the *exercise's* difficulty, not re-weighting individual keystrokes).
+- Whichever is chosen, add a golden test analogous to the existing `metrics.test.ts` cases, specifically covering a session with backspace-corrected symbol characters, to lock the formula the same way D-01/D-02 are locked today.
 
-**Warning signs:**
-Slowest-key list reshuffles completely between two runs of the same file; slowest keys are always rare characters; latencies over ~800ms in the dataset (those are cognitive pauses, not typing).
+**Warning signs:** Symbol-adjusted WPM is *higher* than plain WPM for a session with many corrections on symbol characters — that's the double-counting signature.
 
-**Phase to address:** Metrics phase (v1) for the guardrails; adaptive-drill / profile phase for real aggregation.
+**Phase to address:** Analytics phase (symbol-adjusted WPM) — resolve the design decision during phase discussion/spec, before implementation; do not leave it as an implementation-time judgment call given how easily it interacts with D-02's replay semantics.
 
 ---
 
-### Pitfall 6: Mishandling newlines, indentation, and Tab in code corpus
+### Pitfall 6: IndexedDB/Dexie schema versioning mistakes on the very first migration
 
-**What goes wrong:**
-Code is mostly whitespace structure. Get it wrong and the trainer is either unusable or trains the wrong skill:
-- Expecting the user to type leading indentation manually when their muscle memory (and every editor) auto-indents → constant "errors" and rage-quit.
-- Auto-inserting indentation for them → removes all Tab/space training, which the PROJECT explicitly calls a core value ("the shifted number row, underscores… Tab/space training").
-- Tab vs spaces mismatch: corpus uses tabs, you render/expect 4 spaces (or vice versa) → invisible, maddening mismatch.
-- Trailing whitespace on lines, final newline / no final newline, CRLF vs LF from pasted Windows content → phantom errors at line ends.
-- Counting the newline keystroke inconsistently in WPM (is `Enter` a character? typing.io-style tools skip it).
+**What goes wrong:** Dexie requires an explicit version bump plus an `upgrade()` function for any schema change; skipping the version bump (e.g. just editing the `stores()` call in place during development and forgetting to increment `db.version(N)`) silently no-ops the migration for any user who already has a v1.1-era database on disk — Dexie only runs upgrade logic when it detects `oldVersion < newVersion`. Because this is a solo-developer, single-machine, local-first app, this class of bug is easy to miss in dev (you just wipe your IndexedDB and it "works") but will bite the moment the schema needs a second change — the exact point this project is at, going from "no persistence" (v1.0) to "first persisted schema" (v1.1) to (later) "digraph/trigraph aggregate tables, per-language indices" which will very likely require additional stores or indices in a subsequent milestone.
 
-**Why it happens:**
-Prose typing tests never face this. Whitespace is invisible in the UI, so bugs are hard to see. Different OSes/editors paste different line endings.
+**Why it happens:** Dexie's `Version.upgrade()` API is easy to use correctly for the *first* version but the discipline (increment number, add upgrade fn, never mutate an already-shipped version's schema in place) is easy to forget under solo/rapid iteration, especially with no other developers to catch it in review.
 
 **How to avoid:**
-- Make an explicit, documented decision (PROJECT flags it as pending under Key Decisions): recommend **v1 = normalize and require explicit whitespace typing** — strip trailing whitespace per line, normalize CRLF→LF, normalize tabs→spaces (configurable width, default from PROJECT's stack), collapse/guarantee a single trailing newline. Then the user types every space and every newline.
-- Render whitespace visibly during typing (dot for space, arrow for tab, ⏎ for newline) so mismatches are seen, not felt.
-- Treat `Enter` at end-of-line as the expected next character; auto-skip *only* the next line's leading indentation IF you choose the editor-like model — but then say so and exclude it from accuracy.
-- Decide once whether whitespace keystrokes count toward WPM (recommend: yes, they are real work in code) and document it.
-- Unit-test the corpus normalizer with tabs, CRLF, trailing spaces, no-final-newline, mixed indentation, BOM.
+- Establish the schema-versioning discipline explicitly in this persistence phase, even though it's the first version: `db.version(1).stores({...})`, and document in-code (a comment analogous to the existing D-xx decision comments) that any future schema change requires a NEW `db.version(N+1).stores({...}).upgrade(tx => ...)` block, never editing version 1's `stores()` definition.
+- Write a migration test harness now (even trivial for v1) so the pattern exists before it's needed under pressure: seed a fake "old" IndexedDB shape, run the upgrade, assert the new shape/data.
+- To delete a store in a future version, Dexie requires an explicit `null` entry for that store's schema in the new version — omitting it silently keeps the old store around as dead weight, not deleted.
 
-**Warning signs:**
-Users report "it says I made an error but the line looks identical"; accuracy tanks specifically at line starts/ends; pasted code from Windows behaves differently.
+**Warning signs:** A schema change "works" in dev (fresh DB) but a returning user's browser silently keeps stale data/shape, or a runtime error appears only for users with pre-existing data.
 
-**Phase to address:** Corpus ingest / normalization phase (v1 — even paste needs a normalizer).
+**Phase to address:** Persistence phase — bake the versioning discipline and a migration test into the initial Dexie setup, not deferred to "when we actually need version 2."
 
 ---
 
-### Pitfall 7: Dead keys, IME, and `AltGr` breaking capture on non-US layouts (and even for US users who switch layouts)
+### Pitfall 7: Storing the full raw keystroke log (`events`) unbounded, per session, forever
 
-**What goes wrong:**
-Even though v1 is scoped to US ANSI, the author's context mentions es-LA / US-International layouts, and a US-International layout makes `'`, `"`, `` ` ``, `~`, `^` **dead keys**: pressing `'` emits nothing until the next key, then emits `'` or `á`. A trainer that `preventDefault()`s keydown to control input will *break composition entirely* and make the app unusable for those layouts. IME (CJK) fires `keydown` with `keyCode 229` and routes text through `compositionstart/update/end`, not through `key`. `AltGr` (right Alt) on Latin-American/EU layouts is where `{ } [ ] \ @ ~` live — the exact symbols this product trains — and it surfaces as `ctrlKey+altKey` which is easy to misclassify as a shortcut.
+**What goes wrong:** `Session` includes `events: readonly KeystrokeEvent[]` — a keydown+keyup pair per physical keystroke, at minimum, for the entire session — in addition to `charLog` and `markers`. For a typing trainer used daily, this is many thousands of small objects accumulating indefinitely with no eviction policy. Individually this is small, but IndexedDB storage quota is finite and browser-dependent (desktop: hundreds of MB typically available; mobile: as little as 50MB), and eviction under quota pressure is LRU-by-origin — meaning the browser could evict the ENTIRE keebdrill database (not just old rows) if the origin isn't recently used and disk fills from other apps, silently destroying the user's practice history with no in-app warning. Persisting `events` as raw arrays via IndexedDB's structured-clone-based storage (rather than as `Uint8Array`/typed-array-backed compact encodings) also multiplies per-object overhead needlessly.
 
-**Why it happens:**
-US-ANSI development and testing. `preventDefault` on keydown is the standard way to build a controlled typing surface. Composition events are unfamiliar.
+**Why it happens:** `events` already exists as an in-memory shape from Phase 1/2 (needed then for capture debugging/composition); it's tempting to persist the whole `Session` object verbatim since that's the path of least resistance and requires no new decision-making about what's "needed."
 
 **How to avoid:**
-- v1: detect and explicitly declare "US ANSI only." On load, sniff `navigator.keyboard.getLayoutMap()` (Chromium) and/or watch for dead-key/`compositionstart` events; show a clear "your layout isn't supported yet" banner instead of silently producing garbage data.
-- Do NOT `preventDefault()` blindly on keydown. Prefer reading committed text from `input`/`beforeinput` on a real editable element for the *character* stream, and use keydown/keyup purely for *timing*, reconciling the two. This survives dead keys and IME.
-- Handle `compositionstart` → pause per-keystroke scoring until `compositionend`, then attribute the composed string.
-- Key the symbol map / heatmap on `event.code` (physical key) plus produced character, not on `event.key` alone.
-- Log layout, `AltGr` usage, and composition events per session so the later multi-layout phase has real data.
+- Decide explicitly what's actually needed for v1.1's stated analytics (digraph/trigraph latency, heatmap, per-language profile, symbol WPM) — all of these can very likely be derived from `charLog` + `markers` alone; raw `events` (keydown/keyup pairs) may not need long-term persistence at all, or only need short-term persistence for debugging (e.g. keep only the most recent N sessions' raw events, or don't persist `events` past the results screen).
+- If `events` is persisted, cap/prune it: e.g. persist derived per-session aggregates (digraph latency samples) permanently but raw `events`/`charLog` on a rolling window (last N sessions), or make raw-log retention a user-configurable/opt-in setting.
+- Wrap all Dexie writes in try/catch for `QuotaExceededError` per browser storage-eviction guidance, and provide user-visible feedback rather than silently swallowing/losing a session on write failure.
+- Consider `navigator.storage.estimate()` to surface a "storage used" indicator, and `navigator.storage.persist()` to request persistent (non-evictable) storage — the closest available mitigation against LRU origin eviction, though not a guarantee.
 
-**Warning signs:**
-Apostrophes/quotes/backticks/carets "don't register" or double-register; CJK/accented users see 0 WPM or massive error counts; `{}[]` never appear in captured input for some users.
+**Warning signs:** IndexedDB usage growing unbounded across daily use with no way to inspect/prune it; a user story where a returning user's history is unexpectedly empty (evicted) with no error shown.
 
-**Phase to address:** Capture-engine phase (v1 detection + non-preventDefault design); dedicated non-US-layout phase later (PROJECT: deferred).
+**Phase to address:** Persistence phase — decide and implement the retention policy (what's stored forever vs. pruned vs. never persisted) as part of the initial schema design, not as a later cleanup task.
 
 ---
 
-### Pitfall 8: Corpus licensing — redistributing / shipping third-party code without rights
+### Pitfall 8: Race conditions / partial writes when persisting a session on completion, blur, or rapid navigation
 
-**What goes wrong:**
-The long-term vision ingests Git repos, docs, RFCs, man pages, shell history. The moment ingested third-party code is stored on a server, bundled into the app, synced to a "web dashboard," included in telemetry/error reports, or committed to the project repo as a fixture, you are redistributing someone else's copyrighted work — GPL, proprietary, "all rights reserved" (the GitHub default for repos with no license), or NDA'd work code. The Copilot litigation shows this area is legally live even for permissively-licensed public code (attribution/license-notice stripping under MIT/BSD/Apache §4).
+**What goes wrong:** The existing `buildSession` function is explicitly documented as producing a "LIVE snapshot, not a one-time event" — calling it once and caching forever is called out as a known trap (CR-01). Adding persistence introduces a new failure mode on top of this: if the write to Dexie is triggered on the "session complete" event but the user navigates away, closes the tab, or the tab loses focus mid-write (async IndexedDB transactions are not synchronous), the write can be lost or partially committed. Because free-correction and restart are core mechanics (a session can be restarted mid-flight per D-04), a persistence trigger tied to the wrong lifecycle event (e.g. firing on every keystroke, or firing on unmount without awaiting the transaction) risks either duplicate/partial session rows or silently dropped completions.
 
-**Why it happens:**
-"It's public on GitHub" is mistaken for "it's freely reusable." Most devs don't realize no-license = maximally restricted. Test fixtures and cached corpora quietly accumulate in the repo.
+**Why it happens:** Persistence is naturally wired to "whenever it seems convenient" (component unmount, a `useEffect` cleanup, a button's `onClick`) rather than to a single, well-defined completion event with awaited confirmation, especially when retrofitting persistence onto an existing state machine (`trainer/state.ts`) that wasn't designed with a persistence hook in mind.
 
 **How to avoid:**
-- Architect for **local-only ingested content from day one** (PROJECT already states this as a constraint). Ingested repos/docs/shell-history never leave the machine: no server upload, no analytics payloads containing corpus text, no crash reports with snippet text, `.gitignore` the corpus cache directory.
-- Store only **derived, non-reconstructive** data centrally if a dashboard is ever built: per-digraph latencies, counts, WPM — never the source text or reconstructable n-grams.
-- For any bundled/shipped sample corpus, use only content you have explicit rights to (public-domain, CC0, or your own code) and **preserve license/attribution files**.
-- Shell history is especially sensitive: it contains secrets (tokens, passwords in URLs, hostnames). Scrub or never persist.
-- Document the licensing/privacy posture in the README (PROJECT: "must be stated explicitly in documentation").
+- Persist exactly once, on the trainer state machine's explicit "completed" transition (not on unmount, not on blur, not per-keystroke), and treat the write as awaited/confirmed before allowing navigation away from the results view (e.g. disable/guard navigation until the Dexie promise resolves, or show a save-pending indicator).
+- Use a single Dexie transaction for the full session write (not several sequential `.add()` calls across stores) so a failure rolls back atomically rather than leaving partial per-store data.
+- Guard against double-submission: if "Restart" can be triggered from the results view, ensure a fresh restart doesn't create a second incomplete row for the same logical session, and ensure the (session-complete) trigger can't double-fire (e.g. React StrictMode double-invoking effects in dev).
 
-**Warning signs:**
-Corpus text appears in git history, in Sentry/analytics, in server logs, or in a database that syncs; test fixtures contain files copied from other repos; shell-history mode stores raw lines.
+**Warning signs:** Duplicate session rows in history for a single practice run; a session that was clearly completed (results were shown) missing from history after reload.
 
-**Phase to address:** Repo-ingest phase and any phase that adds a server/dashboard/telemetry. Guardrail (no corpus in git, no corpus in telemetry) should be set in v1 even though ingest is later.
-
----
-
-### Pitfall 9: Scope creep away from the one-week v1 loop
-
-**What goes wrong:**
-The vision is rich (tree-sitter chunking, adaptive drills, repo kata, heatmaps, per-language profiles, 10-minute daily sessions, TUI+web hybrid). Each is individually reasonable and individually fatal to shipping v1 in a useful timeframe. The classic failure: building the "capture engine" as a general telemetry platform, or the metrics module as a full stats pipeline, before a single real session has been typed. PROJECT's own success criterion is "one week of daily self-use."
-
-**Why it happens:**
-The interesting engineering is in the deferred features. The v1 loop (paste → type → 3 numbers) feels too small to be worth architecting for, so people architect for v3 instead.
-
-**How to avoid:**
-- Hard gate: v1 ships exactly the 5 Active requirements — paste/upload, capture, WPM, accuracy, 5 slowest keys. Nothing else merges until a week of real self-use is logged.
-- Build the capture data model to be *append-only and complete* (every keydown/keyup + timestamp + code + key) so later features are pure post-processing — but do NOT build the post-processing.
-- Explicitly defer in the roadmap (already in PROJECT Out of Scope): tree-sitter, adaptive drills, repo/docs/shell ingest, non-US layouts, accounts, dashboards, Docker.
-- Resist the hybrid architecture for v1 — pick ONE platform. Two clients + shared DB is a v2+ decision.
-- Timebox v1. If it is not self-usable in ~2 weeks of build, the loop is too big.
-
-**Warning signs:**
-PRs touching "future" modules; "while I'm here" refactors of the capture layer; a database schema with tables for features not in v1; debating tree-sitter grammars before typing a real session; the hybrid TUI+web question blocking Phase 1.
-
-**Phase to address:** Roadmap structure itself — v1 milestone scope lock.
-
----
-
-### Pitfall 10: Losing keystroke data on the boundary — start, end, blur, paste, and mid-session reload
-
-**What goes wrong:**
-Timing-critical app, but: the first keystroke is dropped because the listener attached after focus; the clock started on render not on first key; the user alt-tabs (window blur) mid-exercise and the 8-second gap counts as typing time, wrecking WPM; the browser tab is backgrounded and `setTimeout`/rAF throttle to 1/sec, mangling any time-based sampling; the user pastes the answer; a refresh loses the whole session because nothing was persisted until "done."
-
-**Why it happens:**
-Happy-path testing types straight through. Blur/visibility/paste are edge cases that only show up in real daily use — which is exactly the validation scenario.
-
-**How to avoid:**
-- Start the timer on first `keydown`, not on mount.
-- Listen for `blur` / `visibilitychange`; either pause the exercise (freeze the clock, show "paused") or mark the session `interrupted` and exclude its WPM from the profile. Record pause durations.
-- Detect and block/flag `paste` events into the typing surface.
-- Persist the raw event log incrementally (IndexedDB / local file), not just on completion, so a crash mid-session is recoverable and analyzable.
-- Compute elapsed time as sum of active intervals, not `end - start`.
-
-**Warning signs:**
-Occasional impossibly-high WPM sessions; WPM lower on days you got interrupted; first character of every exercise has no/short latency; sessions vanish on reload.
-
-**Phase to address:** Capture-engine + session-lifecycle phase (v1).
+**Phase to address:** Persistence phase — define and test the single persistence trigger point against `trainer/state.ts`'s state machine before building the history UI on top of it.
 
 ---
 
 ## Technical Debt Patterns
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
-|----------|-------------------|----------------|-----------------|
-| Store only aggregated metrics per session, not the raw keydown/keyup log | Simpler schema, less storage | Every future feature (heatmap, digraph profile, adaptive drills, re-computed metrics) is impossible without a data re-collection; can't fix a metric bug retroactively | **Never** — the raw event log is the product's core asset. Store it from session 1. |
-| `preventDefault()` on keydown to build a controlled typing box | Easy caret/input control | Breaks dead keys, IME, AltGr; blocks the whole non-US-layout roadmap | Only if a US-ANSI-only banner is shown and composition events are still detected |
-| Mean latency for slowest-key ranking | One line of code | Noise-dominated, misleads user, poisons future adaptive drills | Never — use median/trimmed mean + min sample count from the start |
-| Invent a custom WPM formula tuned to "feel right" | Nice-looking numbers | Not comparable to anything, including past-self after tweaks | Never for the headline metric; fine as an explicitly-labeled secondary "adjusted" metric |
-| Hybrid TUI + web for v1 | "Do it once" | Doubles the capture-engine surface, blocks Phase 1 on an unresolved architecture debate | Never for v1 — pick one platform |
-| Skip cross-origin isolation on the web build | No header/deploy config | Firefox timing quantized to 1ms, Chrome to 100µs; cross-browser data incomparable | Acceptable only if TUI is the real capture path and web is display-only |
-| Ship a bundled sample corpus copied from public repos | Instant content | License/attribution violation, corpus in git history | Only with CC0/public-domain/own code + preserved license files |
-| Normalize tabs→spaces silently | Fewer whitespace bugs | Removes a stated core training target (Tab/space) if done without a config toggle | Acceptable for v1 with documented decision + width config |
+|----------|-------------------|-----------------|------------------|
+| Persist only the computed `MetricsResult` per session, not raw `charLog`/`markers` | Simpler schema, faster history-list reads | Cannot recompute after a formula change; cannot build new cross-session analytics (digraph/heatmap) retroactively over old sessions | Never for v1.1 — the milestone's own scope requires cross-session digraph/heatmap derived from raw data |
+| Group per-language stats by `exercise.language` string directly with no `'plaintext'` handling | Zero extra schema/UI work | Per-language profile's biggest bucket is meaningless untagged data | Only as an explicitly-labeled interim state, never as the shipped v1.1 UX |
+| Symbol-density weighting applied per-attempt (including corrected-over attempts) | Reuses existing `replayAttempts` accounting unchanged | Silently rewards users who fumble symbols with inflated weighted-WPM | Never — resolve the target-vs-attempt-stream design question up front |
+| Skip a migration test harness for the first Dexie schema version | Faster to ship v1.1 | No safety net when schema v2 is needed (very likely, given trigraph/heatmap tables may need their own stores later) | Only if the team is willing to hand-verify every future migration manually — not recommended given solo-dev context |
+| Persist raw `events` (keydown/keyup) indefinitely alongside `charLog` | No decision-making needed, reuses existing shape verbatim | Unbounded IndexedDB growth, higher LRU-eviction exposure, wasted storage since analytics likely only need `charLog`/`markers` | Acceptable short-term with an explicit pruning/rolling-window TODO, not acceptable as permanent policy |
 
 ## Integration Gotchas
 
 | Integration | Common Mistake | Correct Approach |
-|-------------|----------------|------------------|
-| Browser high-res clock | Assuming µs precision; reading `performance.now()` in handler as the keystroke time | Use `event.timeStamp`; enable COOP/COEP; record actual resolution per session |
-| OS keyboard (terminal/TUI) | Reading cooked line-buffered input; taking OS auto-repeat as keystrokes | Raw/unbuffered mode; evdev keydown+keyup where possible; debounce/repeat-filter |
-| Git repo ingestion (later) | Cloning and storing repo content server-side or in telemetry | Local-only processing; store derived metrics only; `.gitignore` corpus cache |
-| Shell history ingestion (later) | Persisting raw history lines | Scrub secrets; treat as maximally sensitive; local-only; opt-in per file |
-| Clipboard | Allowing paste into the typing surface | Block/flag `paste`; mark session invalid |
-| Analytics / crash reporting (if added) | Payloads include corpus text or reconstructable n-grams | Strip all corpus text; send counts/latencies only |
-| tree-sitter (later) | Adding it in v1 "to do chunking properly" | Defer entirely; v1 uses whole pasted content |
-| React state | `setState` per keystroke re-rendering the corpus view | Keystrokes → plain array off the render path; render caret via rAF or uncontrolled DOM |
+|--------------|------------------|-------------------|
+| Dexie / IndexedDB | Editing an already-shipped version's `stores()` definition in place instead of adding a new `db.version(N+1)` block | Always add a new version block with an `upgrade()` function for any schema change post-ship; never mutate a shipped version definition |
+| Dexie / IndexedDB | Omitting a store from a new version's schema, assuming that "deletes" it | Explicit `null` schema entry is required to actually delete a store; omission just leaves it untouched |
+| IndexedDB writes | Fire-and-forget `db.sessions.add(...)` with no error handling | Wrap every write in try/catch for `QuotaExceededError`; surface a user-visible save-failed state rather than swallowing the error |
+| IndexedDB storage | Assuming data persists indefinitely once written | LRU-based origin eviction under disk pressure is real, especially on mobile/Safari; consider `navigator.storage.persist()` and surface storage usage to the user |
+| Recharts (heatmap) | Shipping the default color-only heatmap with no `accessibilityLayer` and no non-color cue | Enable `accessibilityLayer` explicitly (defaults to false pre-3.0), verify 3:1 contrast between adjacent color-scale steps in both light and dark themes, add numeric labels or shape/pattern redundancy so the heatmap isn't color-only |
 
 ## Performance Traps
 
 | Trap | Symptoms | Prevention | When It Breaks |
-|------|----------|------------|----------------|
-| Per-keystroke React re-render of the full exercise text | Rising `handlerLag`; latency grows with corpus length | Virtualize / render only the active line; keep hot path allocation-free | Noticeable by ~300–500 line pastes; severe on low-end laptops |
-| Recomputing all metrics on every keystroke for a live WPM display | Main-thread jank, inflated latencies | Compute live metrics in rAF at ~10Hz, or in a worker; full metrics at end | Medium-length exercises on any machine under other load |
-| Keeping the entire raw event log in React state | GC pauses appear as fake slow digraphs | Store events in a ref / ring buffer; flush to IndexedDB in batches | Long daily sessions (10-min drill) — thousands of events |
-| Backgrounded-tab timer throttling | Time-based sampling breaks when user tabs away | Use `event.timeStamp` deltas, not wall-clock sampling; pause on `visibilitychange` | Any real daily use with alt-tabbing |
-| Storing raw logs forever with no rollup | DB/file growth; slow profile queries | Nightly rollup to per-digraph aggregates; keep raw for N days | After weeks of daily use (still small, but plan the rollup) |
+|------|-----------|-------------|-----------------|
+| Recomputing full cross-session digraph/trigraph aggregation on every history-view render by scanning every persisted session's raw `charLog` | Noticeably slower history/analytics page load as session count grows | Maintain incrementally-updated aggregate tables (e.g. a `digraphStats` store keyed by digraph, updated once per new session write) rather than full re-scans on read | Roughly dozens to low hundreds of sessions of daily code-typing history (each session's `charLog` can be hundreds to low-thousands of entries) |
+| Persisting full raw `events` array per session with no cap | Slow IndexedDB writes/reads over time, quota pressure sooner | Prune/cap raw event retention (see Pitfall 7); persist only derived aggregates long-term | After weeks of daily use at multiple sessions/day |
+| Recharts re-rendering the full heatmap/digraph chart on every keystroke of a live session (if analytics views are ever mounted during active typing) | Jank/jitter that could even leak back into keystroke timing measurement (the codebase's own architecture explicitly isolates the capture handler from render work — do not let analytics rendering share a render cycle with active capture) | Keep analytics views strictly post-session (results/history screens), never mounted during active capture, consistent with the existing "handler does only a buffer push, metrics computed post-hoc" design | Any co-mounting of live capture and chart rendering |
 
 ## Security Mistakes
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| Persisting/transmitting ingested third-party code | Copyright/license violation; leaking proprietary/NDA work code | Local-only architecture; derived metrics only; corpus dir gitignored and excluded from backups/telemetry |
-| Storing raw shell history | Exfiltrating secrets (API tokens, passwords in URLs, internal hostnames) | Secret-scrub on ingest; local-only; explicit opt-in per file; never in logs |
-| Keystroke log = plaintext of everything the user typed | If synced/backed-up, it reconstructs source code and possibly typed secrets | Treat raw keystroke logs as sensitive; local storage only in v1; encrypt-at-rest if a sync feature is ever added |
-| Cross-origin isolation headers enable `SharedArrayBuffer` | Larger attack surface if third-party scripts are loaded | Keep the web build dependency-light; audit embedded resources; self-host fonts/assets |
-| Error reports / stack traces containing corpus or keystroke text | Passive leak of protected content | Scrub telemetry; disable verbose logging in production |
+| Persisting third-party repo/pasted content verbatim in IndexedDB with no consideration of what "stays local" actually guarantees | If a future phase adds any sync/export/telemetry feature without revisiting this, licensed third-party code could leave the machine, violating the project's own stated privacy constraint | Document explicitly (as the project's PROJECT.md already does) that IndexedDB persistence satisfies "stays local" only as long as no export/sync/telemetry code path exists; flag this constraint again whenever a later phase touches persistence or networking |
+| No consideration of shared/multi-user machines | On a shared computer, another OS user profile typically has separate browser storage, but the same OS user's *other browser profiles* or *the same profile* can read the same IndexedDB origin — pasted proprietary code becomes visible to anyone with access to that browser profile | Out of scope for a single-user personal tool, but worth one line in docs/README if the tool is ever shared/open-sourced |
 
 ## UX Pitfalls
 
 | Pitfall | User Impact | Better Approach |
-|---------|-------------|-----------------|
-| Invisible whitespace in the exercise | User can't tell why a line is "wrong"; rage-quit | Render space/tab/newline glyphs; show expected vs typed diff |
-| Forcing correction of every error (mandatory backspace) vs free-run — chosen implicitly | Completely different training feel; PROJECT flags this as an unresolved Key Decision | Decide explicitly; v1 recommend free-run with accuracy absorbing the hit (Monkeytype default), simpler state machine |
-| Auto-indent like an editor without telling the user | User double-types indentation → errors, or never learns Tab/space | Pick a model, show it, exclude auto-inserted chars from accuracy |
-| "5 slowest keys" from n=1–2 samples presented as fact | User trains phantom weaknesses | Min sample count; "not enough data yet"; show sample size |
-| Headline WPM not matching Monkeytype for the same text | User distrusts the whole tool | Use standard 5-char-word net WPM for the headline; label the code-adjusted metric separately |
-| Counting read-ahead pauses as typing latency | Slowest-key list = "keys after which I paused to read", not motor difficulty | Cap inter-key gaps (>~1s = pause); trimmed statistics |
-| No feedback on layout mismatch | Non-US user gets silent garbage data | Detect dead keys / layout map; show "US ANSI only" banner |
-| Exercise too long for a "quick session" | Abandonment; incomplete sessions pollute stats | Support partial completion; mark and handle incomplete sessions |
+|---------|-------------|-------------------|
+| Showing a "per-language profile" or "slowest digraph" panel with sparse/noisy data as if it were a confident result | User draws false conclusions ("I'm slow at Rust") from 1-2 sessions of data | Gate analytics displays behind a minimum-session/minimum-sample threshold; show an explicit "not enough data yet" state below threshold, consistent with the existing `MIN_SAMPLES` philosophy already in `metrics.ts` |
+| Heatmap that only differentiates via color hue/saturation | Colorblind/low-vision users (and anyone in bright sunlight / poor monitors) can't read it, and dark-mode heatmaps often fail contrast for mid-range values specifically | Pair color with numeric value display and/or shape/pattern; validate 3:1 contrast between adjacent scale steps against both light and dark backgrounds explicitly, not just against the darkest/lightest ends |
+| Session history list that silently loses a session (quota eviction, failed write) with no acknowledgment | User believes their practice history is more complete/accurate than it is, undermining the "measure real improvement over time" success criterion | Surface write failures; consider a lightweight periodic export/backup affordance (e.g. "export history as JSON") given IndexedDB's non-durability guarantees |
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Keystroke capture:** Often missing `event.repeat` filtering and a "key already down" guard — verify held-key produces one press, not a stream.
-- [ ] **Keystroke capture:** Often missing first-keystroke timing (listener/clock race) — verify the first char has a real, plausible latency and the clock starts on key 1.
-- [ ] **WPM/accuracy:** Often missing a written formula spec and a version field — verify the definition is documented and stored data records which formula version produced it.
-- [ ] **WPM:** Often missing active-time computation — verify alt-tabbing mid-exercise doesn't inflate elapsed time.
-- [ ] **Slowest keys:** Often missing min-sample gating and outlier filtering — verify it says "not enough data" on a tiny snippet and that a deliberate 3s pause doesn't create a "slow key."
-- [ ] **Corpus normalizer:** Often missing CRLF, no-final-newline, trailing-whitespace, tab/space, BOM handling — verify with a Windows-pasted, tab-indented file.
-- [ ] **Whitespace UX:** Often missing visible glyphs — verify the user can see spaces/tabs/newlines they must type.
-- [ ] **Layout handling:** Often missing dead-key/IME detection — verify a US-International layout typing `'` + `e` is either handled or clearly rejected, not silently wrong.
-- [ ] **Timing precision:** Often missing COOP/COEP (web) — verify `crossOriginIsolated === true` and check resolution on Firefox and Chrome.
-- [ ] **Data model:** Often missing raw event persistence — verify a full keydown/keyup log with timestamps is saved per session, not just aggregates.
-- [ ] **Session lifecycle:** Often missing incremental persistence — verify a mid-session refresh doesn't lose data.
-- [ ] **Privacy:** Often missing gitignore/telemetry exclusion for corpus — verify pasted text never lands in git, logs, or any network request.
+- [ ] **Session persistence:** Often missing schema-version discipline — verify a second Dexie `version()` block with `upgrade()` exists as a documented pattern/test, not just version 1 hard-coded once.
+- [ ] **Digraph/trigraph latency:** Often missing the minimum-sample gate ported from `slowestFive` — verify the shared filter/gate/median utility is actually reused, not reimplemented ad hoc, and that trigraphs use an appropriately higher threshold than single-char `MIN_SAMPLES`.
+- [ ] **Per-language profile:** Often missing explicit `'plaintext'`/untagged handling — verify paste-language tagging is resolved (user-selected or heuristic) before the profile view ships, and that `'plaintext'` is visually distinguished from real languages.
+- [ ] **Symbol-adjusted WPM:** Often missing a decision record for target-density vs. per-attempt weighting — verify a test fixture with backspace-corrected symbol characters confirms no double-counting inflation.
+- [ ] **Keyboard heatmap:** Often missing dark-mode contrast validation and non-color redundancy — verify contrast ratios were actually checked in both themes, not just visually eyeballed in one.
+- [ ] **Cross-session metrics:** Often missing schema-version filtering — verify aggregation code excludes or recomputes stale-schema-version sessions rather than blending them in raw.
 
 ## Recovery Strategies
 
 | Pitfall | Recovery Cost | Recovery Steps |
-|---------|---------------|----------------|
-| Only aggregates stored, raw log never captured | HIGH | Add raw logging now; all historical sessions are lost for new features; communicate the reset to yourself as the user |
-| Custom/changed WPM formula, no versioning | MEDIUM | Add a formula-version column; recompute where raw data exists; annotate the discontinuity in any progress chart |
-| `preventDefault` design blocks non-US layouts | MEDIUM | Refactor to input/beforeinput for character stream + keydown for timing; keydown-only rewrite is the expensive part |
-| Timing captured at 1ms (Firefox, no COOP/COEP) | LOW-MEDIUM | Add headers, redeploy; past coarse sessions stay coarse but aggregate trends survive; tag old sessions |
-| Slowest-key noise already drove adaptive drills | MEDIUM | Add sample-count gating + cross-session aggregation; regenerate drill weights from pooled data |
-| Corpus text committed to git / sent to telemetry | HIGH | Rewrite git history (BFG/filter-repo), rotate anything leaked, purge telemetry store, add guardrails; reputational if public |
-| OS key-repeat polluted historical latency data | LOW-MEDIUM | Re-filter raw logs (repeat flag / sub-25ms same-key gaps); recompute aggregates |
+|---------|---------------|-----------------|
+| Mixed formula versions already persisted and blended into analytics | MEDIUM | Backfill: recompute every persisted session's derived metrics from its raw `charLog`/`markers` using the current formula, bump a stored `schemaVersion`, re-render aggregates |
+| Un-gated small-N digraph/trigraph rankings already shipped and shown to the user | LOW | Add the missing minimum-sample gate and outlier filter to the shared utility; existing raw data doesn't need to change, only the read-time aggregation logic |
+| `'plaintext'` bucket already polluting per-language profile | LOW-MEDIUM | Add `languageSource` field going forward (doesn't require rewriting old rows); in the UI, retroactively bucket old `'plaintext'` rows as "untagged" and exclude from superlative claims; optionally prompt the user to retag old sessions if feasible |
+| IndexedDB schema versioning mistake shipped (a version was edited in place) | HIGH if users already have divergent on-disk shapes | Requires a careful "detect old malformed shape, coerce or discard" migration; for a solo-dev single-machine app this is more tractable (inspect your own DB directly) than for a multi-user product — still budget real time for it |
+| Session data lost to quota eviction | LOW (data is simply gone, no corruption) | No recovery of lost data; mitigate going forward with `navigator.storage.persist()` and/or a periodic export/backup feature |
 
 ## Pitfall-to-Phase Mapping
 
 | Pitfall | Prevention Phase | Verification |
-|---------|------------------|--------------|
-| 1. Timer precision clamping | Phase 0/1 — platform & capture-engine decision | `crossOriginIsolated===true` (web) or native clock in use; resolution logged per session; Firefox vs Chrome WPM within noise |
-| 2. Wrong timestamp source | Phase 1/2 — capture engine | Code uses `event.timeStamp`; `handlerLag` p95 < 5ms; latency independent of corpus length |
-| 3. OS key-repeat counted | Phase 1/2 — capture engine | Held-key test yields one press; no secondary latency mode at ~30–60ms |
-| 4. WPM/accuracy definitions | Phase (v1) — metrics | Written formula spec in repo; matches Monkeytype on a prose sample within ~2%; metric-version field stored |
-| 5. Small-sample slowest keys | Phase (v1) — metrics; later — profile/adaptive | "Not enough data" on short snippet; median-based; stable ranking across repeats of a large file |
-| 6. Newline/indent/Tab handling | Phase (v1) — corpus normalization | Normalizer unit tests pass for CRLF/tabs/trailing-ws/no-final-newline/BOM; whitespace glyphs visible |
-| 7. Dead keys / IME / AltGr | Phase 1/2 — capture engine (detection); later — non-US layout phase | US-International `'`+letter handled or cleanly rejected; no blind `preventDefault` on keydown |
-| 8. Corpus licensing | Repo-ingest phase; any server/telemetry phase (guardrail in v1) | No corpus text in git, logs, or network; only derived metrics persisted centrally; README states posture |
-| 9. Scope creep | Roadmap structure — v1 milestone scope lock | v1 PRs touch only the 5 Active requirements; no tables/modules for deferred features; one platform chosen |
-| 10. Data loss on lifecycle boundaries | Phase (v1) — session lifecycle | Clock starts on first key; blur pauses/flags session; paste blocked; mid-session reload recoverable |
+|---------|-------------------|----------------|
+| Mixed formula versions across sessions | Persistence phase | Schema stores raw `charLog`/`markers` + `schemaVersion`; aggregation code demonstrably filters/recomputes by version in a test |
+| `startedAt` wall-clock leaking into tMs-domain math | Persistence phase | New "recompute from storage" function has its own golden test proving identical output to in-session computation |
+| Un-gated small-N digraph/trigraph rankings | Analytics phase (digraph/trigraph) | Shared gate/filter/median utility extracted and unit-tested; UI shows "not enough data" below threshold |
+| `'plaintext'` polluting per-language profile | Requirements/scoping, then Analytics phase (per-language profile) | Paste language-tagging strategy decided and implemented before profile view ships; UI visibly separates untagged bucket |
+| Symbol-WPM double-counting via corrected attempts | Analytics phase (symbol-adjusted WPM) | Design decision documented (target-density vs per-attempt); test fixture with corrected symbols passes |
+| Dexie schema versioning mistakes | Persistence phase | A second version-bump/migration test exists in the test suite before the phase is marked done, even if trivial |
+| Unbounded raw `events` storage | Persistence phase | Explicit retention policy documented and implemented (pruned/rolling-window/opt-in), not "store everything forever" by default |
+| Race conditions on session-complete write | Persistence phase | Single, awaited persistence trigger tied to the state machine's completion transition, tested for double-fire and interrupted-navigation cases |
+| Recharts heatmap accessibility/dark-mode contrast | Analytics phase (keyboard heatmap) | `accessibilityLayer` enabled; contrast ratios checked in both themes; non-color redundancy present |
 
 ## Sources
 
-- [MDN — High precision timing (Performance API): timer clamping 100µs non-isolated / 5µs isolated, Firefox 1ms](https://developer.mozilla.org/en-US/docs/Web/API/Performance_API/High_precision_timing) — HIGH
-- [Chrome for Developers — High resolution timestamps for events (`Event.timeStamp` as DOMHighResTimeStamp, comparable to `performance.now()`, monotonic)](https://developer.chrome.com/blog/high-res-timestamps) — HIGH
-- [Chrome for Developers — Aligning input events (discrete events like keydown/keyup dispatched immediately, NOT coalesced to rAF; continuous events are)](https://developer.chrome.com/blog/aligning-input-events) — HIGH
-- [Chrome for Developers — Aligning timers with cross-origin isolation restrictions (100µs default since Chrome 91, 5µs when COOP+COEP)](https://developer.chrome.com/blog/cross-origin-isolated-hr-timers) — HIGH
-- [MDN — KeyboardEvent (`repeat` property; keydown auto-repeat sequence; keyCode 229 for IME)](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent) — HIGH
-- [MDN — Element: keydown event (fired during IME composition since Firefox 65; composition event interaction)](https://developer.mozilla.org/en-US/docs/Web/API/Element/keydown_event) — HIGH
-- [W3C UI Events — Keyboard Events / key values ("Dead" key value; composition events for dead-key sequences)](https://w3c.github.io/uievents/split/keyboard-events.html) — HIGH
-- [Bugzilla 1511752 — German dead-key layout sends odd key events](https://bugzilla.mozilla.org/show_bug.cgi?id=1511752) — MEDIUM
-- [Handling IME events in JavaScript (stum.de) — compositionstart/update/end, keyCode 229](https://www.stum.de/2016/06/24/handling-ime-events-in-javascript/) — MEDIUM
-- [Monkeytype — About (WPM = correct chars / 5 normalized to 60s; Raw WPM includes incorrect; accuracy = % correct keypresses)](https://monkeytype.com/about) — HIGH
-- [Typetera — Raw WPM vs Net WPM](https://typetera.com/wpm/raw-wpm-vs-net-wpm) — MEDIUM
-- [Nolan Lawson — High-performance input handling on the web](https://nolanlawson.com/2019/08/11/high-performance-input-handling-on-the-web/) — MEDIUM
-- [Nolan Lawson — Browsers, input events, and frame throttling](https://nolanlawson.com/2019/08/14/browsers-input-events-and-frame-throttling/) — MEDIUM
-- [arXiv 2303.04605 — Keystroke Dynamics: Concepts, Techniques, and Applications (DD/UD/UU/dwell primitives; profile-size vs performance, diminishing returns, ~1000+ digraphs for usable profile)](https://arxiv.org/html/2303.04605v2) — MEDIUM
-- [Frontiers in Human Neuroscience — keystroke timing reliability / sample-size effects](https://www.frontiersin.org/journals/human-neuroscience/articles/10.3389/fnhum.2013.00835/full) — MEDIUM
-- [InfoWorld — Judge dismisses most of the GitHub Copilot lawsuit](https://www.infoworld.com/article/2515112/judge-dismisses-lawsuit-over-github-copilot-ai-coding-assistant.html) — MEDIUM
-- [Joseph Saveri Law Firm — GitHub Copilot IP litigation overview](https://www.saverilawfirm.com/our-cases/github-copilot-intellectual-property-litigation) — MEDIUM
-- [zephyrtronium — GitHub Copilot and License Restrictions (no-license = all rights reserved; MIT/BSD attribution obligations)](https://zephyrtronium.github.io/articles/copilot.html) — MEDIUM
-- [typing.io — Typing practice for programmers (auto-indent model, open-source-based lessons)](https://typing.io/) — MEDIUM
-- Personal-domain reasoning: symbol-density WPM, session-lifecycle data loss, scope-lock against PROJECT.md Out-of-Scope list — MEDIUM
+- https://dexie.org/docs/Version/Version.upgrade().html — Dexie versioning/upgrade semantics — MEDIUM (cross-checked, official docs)
+- https://dexie.org/docs/Tutorial/Understanding-the-basics — Dexie schema basics — MEDIUM
+- https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria — IndexedDB quota/eviction (LRU, QuotaExceededError) — MEDIUM (official MDN)
+- https://rxdb.info/articles/indexeddb-max-storage-limit.html — IndexedDB storage limits by browser/device — MEDIUM
+- https://github.com/recharts/recharts/wiki/Recharts-and-accessibility — Recharts accessibilityLayer defaults — MEDIUM
+- https://www.deque.com/blog/how-to-make-interactive-charts-accessible/ — chart accessibility contrast guidance — MEDIUM
+- https://www.a11y-collective.com/blog/accessible-charts/ — heatmap contrast pitfalls — MEDIUM
+- https://www.ibm.com/support/pages/why-p99-latency-metrics-are-unreliable-low-traffic-workloads — small-sample percentile unreliability — MEDIUM
+- https://clickhouse.com/resources/engineering/percentiles-vs-averages — percentile vs average / median guidance under low N — MEDIUM
+- In-repo, HIGH confidence (direct source read): `src/metrics/metrics.ts`, `src/capture/types.ts`, `src/session.ts`, `src/trainer/active-time.ts`, `src/ingestion/language-map.ts`, `src/ingestion/types.ts`, `.planning/PROJECT.md`
 
 ---
-*Pitfalls research for: developer typing trainer with keystroke telemetry (keebdrill)*
-*Researched: 2026-09-03*
+*Pitfalls research for: keebdrill v1.1 (session persistence + cross-session analytics)*
+*Researched: 2026-09-05*

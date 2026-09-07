@@ -1,265 +1,116 @@
 # Stack Research
 
-**Domain:** Developer typing trainer — high-resolution keystroke capture + typing analytics (keebdrill)
-**Researched:** 2026-09-03
-**Confidence:** MEDIUM-HIGH (versions verified against official release pages Sept 2026; keystroke-timing behavior verified against MDN/Chrome/crossterm docs; architecture recommendation is opinionated synthesis)
+**Domain:** Local persistence + code-typing analytics (digraph/trigraph latency, keyboard heatmap, per-language profile, symbol-adjusted WPM) for a zero-backend Vite+React+TS SPA
+**Researched:** 2026-09-05
+**Confidence:** MEDIUM-HIGH
 
----
+## Context: what v1.0 already has (do not re-add)
 
-## TL;DR Recommendation
+keebdrill v1.0 is a Vite 8.2 / React 19.2 / TypeScript 5.9-strict SPA with **zero
+runtime dependencies beyond `react`/`react-dom`**. It already has a pure, tested
+metrics engine (`src/metrics/metrics.ts`) computing net WPM, accuracy, and
+five-slowest-keystrokes from a `KeystrokeEvent[]` log, plus an established
+project convention (from prior-phase research, cached) of **discard-outlier
+then take the median** for per-key latency aggregation — matching keybr.com's
+approach. v1.1 only adds: (1) durable storage of sessions, and (2) four new
+*read* analytics computed from data that already exists in the log/session
+shape. This materially narrows what needs new dependencies.
 
-**Build v1 as Architecture (A), stripped down: a local-first browser SPA with no backend.**
-
-- **Vite 8 + React 19.2 + TypeScript** SPA, run locally (`vite dev` / static `dist/`).
-- **Keystroke capture in the browser** using `KeyboardEvent.timeStamp` (both `keydown` and `keyup`). This is the single most important reason to pick web: the browser is the only one of the three options that reliably delivers **key-release events and sub-millisecond timestamps on every platform without special terminal configuration**.
-- **No FastAPI, no PostgreSQL, no SQLite server for v1.** Persist to the browser with **Dexie 4 (IndexedDB)**. A server buys you nothing when the only user is the author on one machine.
-- **Deferred evolution path:** when later phases need real filesystem / Git-repo / shell-history access, wrap the *same* React frontend in **Tauri v2** (Rust host) rather than standing up a separate FastAPI+Postgres+React stack. This is the "hybrid" you actually want, and it reuses 100% of the UI code.
-
-**Reject Architecture (B) pure TUI for v1.** Terminals do not send key-release events by default; getting them requires the Kitty keyboard protocol *and* a compatible terminal (kitty, Ghostty, WezTerm, foot, recent Windows Terminal). PTY/tmux/SSH buffering also adds timing jitter you can't characterize. Per-digraph and dwell-time latency is the core differentiator of this product — do not build it on the weakest capture layer.
-
-**Reject Architecture (C) hybrid for v1** as premature: two codebases + a shared-DB contract is a lot of surface area for a one-week validation spike. It becomes the right answer later, delivered as Tauri (one codebase).
-
----
-
-## Recommended Stack — Architecture A (Web SPA, local-first) — CHOSEN
+## Recommended Stack
 
 ### Core Technologies
 
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|-----------------|
-| Vite | 8.2.x | Dev server + build | Current major (Vite 8, Sept 2026). Instant HMR, zero-config TS, tiny static output. No SSR machinery to fight. |
-| React | 19.2.x | UI runtime | Current stable (19.2.7, Jun 2026; no successor announced). Ecosystem default; the author almost certainly knows it. `useSyncExternalStore` + refs make imperative keystroke handling clean. |
-| TypeScript | 5.7+ | Language | Type-safety on the metrics engine (WPM, digraph tables, quantiles) is where bugs would otherwise hide. Non-negotiable for this domain. |
-| `@vitejs/plugin-react` | latest for Vite 8 | React fast-refresh | Standard. (SWC variant `@vitejs/plugin-react-swc` if build speed matters; either is fine.) |
-| Dexie | 4.x | IndexedDB wrapper — session + keystroke-log persistence | Smallest path to durable local storage. Typed tables, good query API, handles schema migrations. No server, no daemon, survives reload. |
-| pnpm | 10.x | Package manager | Fast, disk-efficient, strict node_modules. |
-
-### Keystroke capture (the load-bearing part)
-
-| Choice | Detail | Why |
-|--------|--------|-----|
-| Event source | `keydown` + `keyup` listeners on a focused container (or `window`) | Browser is the only candidate that gives **keyup on every OS/terminal for free** → enables dwell time (hold duration) and flight time (release-to-press), not just press-to-press. |
-| Timestamp | Read **`event.timeStamp`**, not `performance.now()` inside the handler, not `Date.now()` | `event.timeStamp` is a `DOMHighResTimeStamp` stamped at event *creation* (closer to the hardware event), immune to handler-scheduling delay. |
-| Handler discipline | In the listener do **only**: `log.push({code, key, kind, t: event.timeStamp, repeat: event.repeat, isComposing: event.isComposing})`. Nothing else. | Keeps the handler off the critical path. Any React re-render, layout, or metric math in the handler adds jitter to the *next* keystroke's measurement. |
-| Rendering | Update the visible "typed so far" view via a `ref` + direct DOM write, or throttle React state to `requestAnimationFrame`. Compute all metrics **after** the exercise completes (or on a rAF tick), from the log. | Decouples measurement from paint. |
-| Autorepeat / IME | Discard events where `event.repeat === true`; discard/segment where `event.isComposing === true` or `key === 'Process'`. | OS key-repeat and IME composition are not real keystrokes and will pollute digraph stats. |
-| Cross-origin isolation | Serve dev + prod with `Cross-Origin-Opener-Policy: same-origin` + `Cross-Origin-Embedder-Policy: require-corp` | Unlocks Chromium's 5µs timer resolution instead of the default ~100µs. Cheap to add in `vite.config.ts` `server.headers` and your static host. Not required for correctness (see precision section) but free accuracy. |
-
-### Metrics engine
-
-| Choice | Version | Purpose | Why |
-|--------|---------|---------|-----|
-| Hand-written TS module | — | WPM (net + raw), accuracy, per-key / per-digraph / per-trigraph latency, "5 slowest" ranking | This is your product's IP. ~150 lines. Keep it pure (`(KeystrokeLog) => Metrics`), no I/O, 100% unit-tested. Don't outsource it to a library. |
-| `d3-array` | 3.x | Optional: `quantile`, `mean`, `deviation`, `rollup` for the latency stats | Only if you don't want to hand-roll median/p95/coefficient-of-variation. Tree-shakes to a few KB. Otherwise skip. |
-
-WPM convention to adopt (matches Monkeytype, the de-facto benchmark): **net WPM = (correct characters incl. spaces / 5) normalized to 60s**; **raw WPM** includes errors; **accuracy = correct keypresses / total keypresses**; **consistency = coefficient of variation of per-interval raw WPM, mapped to 0–100**.
+| Dexie | 4.4.5 (verified via npm registry direct fetch, 2026-09-05) | IndexedDB wrapper — session + keystroke-log persistence, schema versioning | Raw `indexedDB` is a low-level, callback/event-based API with painful cursor/transaction/upgrade-path boilerplate and well-documented cross-browser quirks. Dexie is the de-facto standard wrapper (1000+ npm dependents, actively maintained, used by 100k+ sites per its own docs), gives a typed, Promise-based query API, and — critically for this milestone — a clean `db.version(n).stores({...})` migration path for when the session schema changes in v1.2+. This is the one deliberate exception to the zero-runtime-deps posture; hand-rolling schema migrations on raw IndexedDB is a real source of bugs this project doesn't need to accept. |
+| dexie-react-hooks | 4.4.0 (verified via npm registry) | `useLiveQuery()` — reactive binding of IndexedDB queries to React components | Small (a few KB), official Dexie sub-package, single hook. Without it you'd hand-roll `useEffect` + manual re-fetch-on-write for the session-history view, which is exactly the kind of "component re-renders when the DB changes" wiring a maintained hook exists to eliminate. Optional but recommended — the history-list view genuinely benefits from live updates when a new session is saved mid-navigation. |
 
 ### Supporting Libraries
 
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
-| Zustand | 5.x | Global UI state (current exercise, phase: idle/typing/done) | v1. Tiny, no boilerplate, no context-provider tree. |
-| Tailwind CSS | 4.x | Styling | v1, if the author likes utility CSS. Otherwise plain CSS Modules — this UI is small. |
-| Recharts | 3.x | Bar chart for "5 slowest keys"; later the progress dashboard | Defer if v1 shows slowest keys as a table. Add when you want visuals. Alternative: `uPlot` for dense time-series in the later dashboard. |
-| `web-tree-sitter` | 0.25.x–0.26.x (matches `tree-sitter` core) | LATER PHASE: syntactic chunking of code corpus, in-browser (WASM) | Keeps parsing client-side → satisfies the "third-party repo content never leaves the machine" constraint. Load grammar `.wasm` files on demand. |
-| `@zip.js/zip.js` or browser `File`/`FileSystemAccess` API | — | LATER: multi-file / repo upload | File System Access API (Chromium) lets you point at a local folder without a server. |
+| *(none — hand-rolled)* Digraph/trigraph latency module | — | Extend `src/metrics/metrics.ts` (or a sibling `src/metrics/digraphs.ts`) with pure functions: group consecutive keydown pairs/triples by `(codeA, codeB[, codeC])`, apply the existing outlier-discard-then-median convention, aggregate across sessions from persisted logs | Always for this milestone. This is ~80-120 lines of pure TS reusing the exact pattern already validated in `metrics.ts`. No library computes "median latency per ordered key-pair, aggregated across N typing sessions" — it's domain-specific enough that a stats library would only save you the median calculation itself, which is a 5-line function. |
+| *(none — hand-rolled)* Keyboard heatmap layout + color scale | — | A static US-ANSI key-position table (`KeyboardEvent.code` → `{row, col, width}`, ~90 entries, authored once as a constant) rendered as a CSS grid or inline SVG, with a small hand-written linear color interpolation (2–3 color stops, e.g. cool→warm) driven by per-key median latency | Always for this milestone. See "Alternatives Considered" below — every heatmap library found targets continuous x/y density (mouse/gaze tracking), not a fixed discrete key set, and the existing project constraint is US ANSI only (no layout-switching requirement to justify a layout-abstraction library). |
+| *(none — hand-rolled)* Per-language profile | — | `groupBy(session.language)` over persisted sessions, reuse `metrics.ts` aggregation per group | Always. Trivial `reduce`/`Map` grouping; the language tag already exists from `src/ingestion/language-map.ts`. No library need. |
+| *(none — hand-rolled)* Symbol-density-adjusted WPM | — | A pure classifier function (`isSymbolChar(char): boolean` via a small fixed regex/set of non-alphanumeric, non-whitespace code points) plus a weighted variant of the existing WPM formula | Always. This is the project's core differentiator and its exact weighting is a product decision (e.g. "symbol chars count as 1.5 words" or similar), not something an npm package defines for you — keep it in-house and unit-test it like the rest of `metrics.ts`. |
 
 ### Development Tools
 
 | Tool | Purpose | Notes |
 |------|---------|-------|
-| Vitest | 3.x | Unit tests for the metrics engine | Shares Vite config; fast. Put the digraph-latency math under a golden-file test with a recorded keystroke log. |
-| Playwright | 1.4x | E2E: simulate a real typing run, assert WPM/accuracy | `page.keyboard.press()` with delays; also the only sane way to regression-test capture. |
-| ESLint 9 (flat config) + Prettier | Lint/format | Standard. |
-| TypeScript strict mode | Correctness | `"strict": true`, `"noUncheckedIndexedAccess": true` — the metrics code indexes arrays constantly. |
+| `navigator.storage.persist()` + `navigator.storage.estimate()` (browser built-ins, no package) | Request durable (non-evictable) storage for the IndexedDB origin; report usage vs. quota | Not a library — call these from a small `src/platform/storage.ts` seam (matches the existing platform-seam pattern). Relevant because keebdrill is the *sole* copy of the user's session history (no server to resync from); Safari in particular evicts best-effort storage after ~7 days without user interaction. Call `persist()` once, lazily, e.g. after the first completed session is saved, and surface `estimate()` in a settings/debug view later if quota ever becomes visible to the user. |
+| Vitest (existing) + `fake-indexeddb` | Unit-test the Dexie persistence layer without a real browser | `fake-indexeddb` (npm, MIT, actively maintained, the standard IndexedDB shim for Node-based test runners) is the one new **dev**-dependency this milestone needs. Without it, Vitest's Node environment has no `indexedDB` global at all and the persistence layer is untestable in CI; with it, Dexie runs against an in-memory shim transparently. Install as `-D`, import once in a Vitest setup file (`import "fake-indexeddb/auto"`). |
 
-### Installation (Architecture A)
+## Installation
 
 ```bash
-pnpm create vite@latest keebdrill -- --template react-ts
-cd keebdrill
-pnpm add dexie zustand
-pnpm add -D vitest @vitest/ui playwright @playwright/test eslint prettier
-# optional
-pnpm add d3-array recharts
-pnpm add -D tailwindcss @tailwindcss/vite
-# later phase
-pnpm add web-tree-sitter
+# Core — persistence
+pnpm add dexie dexie-react-hooks
+
+# Dev dependencies — testing the persistence layer
+pnpm add -D fake-indexeddb
 ```
 
----
+No other packages are needed. Digraph/trigraph computation, the keyboard
+heatmap, per-language grouping, and symbol-adjusted WPM are all pure TypeScript
+extensions of the existing `src/metrics/` module — zero new runtime deps for
+any of them.
 
-## Alternative Stack — Architecture B (TUI) — for reference / if the author insists on terminal
+## Alternatives Considered
 
-Viable **only** if the author commits to running inside a Kitty-keyboard-protocol terminal (kitty, Ghostty, WezTerm, foot, or Windows Terminal ≥ Preview 1.25) and accepts no key-release data elsewhere.
-
-### Rust variant (recommended over Python for a TUI)
-
-| Technology | Version | Purpose | Why |
-|------------|---------|---------|-----|
-| Rust | 1.88+ | Language | Required by current ratatui. |
-| ratatui | 0.30.2 | TUI rendering | The maintained standard (successor to `tui-rs`). 0.30 split into a modular workspace. |
-| crossterm | 0.29 | Terminal backend + input events | Exposes `PushKeyboardEnhancementFlags` / `supports_keyboard_enhancement()` and yields `KeyEventKind::{Press, Repeat, Release}` on Kitty-capable terminals. Without those flags you get **Press only**. |
-| `std::time::Instant` | — | Monotonic timestamps | Nanosecond monotonic clock; the timestamp itself is not the bottleneck — PTY delivery is. |
-| rusqlite (bundled) | 0.3x | Local SQLite | `features = ["bundled"]` so no system SQLite dependency. |
-| clap | 4.x | CLI args | Standard. |
-
-```bash
-cargo add ratatui crossterm
-cargo add rusqlite --features bundled
-cargo add clap --features derive
-```
-
-### Python variant (only if the author is Python-only and wants speed of authoring)
-
-| Technology | Version | Purpose | Why / Caveat |
-|------------|---------|---------|--------------|
-| Textual | 6.5.x | TUI framework | Fastest to build a polished TUI in Python. **Caveat:** its asyncio input pipeline adds latency between the terminal byte and your handler; harder to characterize than crossterm's synchronous poll loop. |
-| `time.perf_counter_ns()` | stdlib | Monotonic ns timestamps | Fine precision; same PTY-latency caveat as Rust. |
-| `sqlite3` | stdlib | Local storage | No dependency. |
-| uv | latest | Env + packaging | Current Python packaging standard. |
-
-**Why Rust over Python for the TUI:** tighter, more predictable input path (synchronous `event::poll`/`event::read` vs. an async framework's queue), single static binary, and crossterm's Kitty-protocol handling is first-class. Neither can beat the browser on capture guarantees.
-
----
-
-## Alternative Stack — Architecture C (Hybrid) — deferred, and when it returns, do it as Tauri
-
-The intent behind "TUI for practice + web dashboard sharing one DB" is real, but building it as *two separate apps* now is wrong for a one-dev MVP. When you get there:
-
-| Technology | Version | Purpose | Why |
-|------------|---------|---------|-----|
-| Tauri | v2 | Native host wrapping the existing React SPA | Reuse the entire Architecture-A frontend and its browser-grade keystroke capture (the WebView still gives you `keyup` + `timeStamp`). Adds Rust-side filesystem, Git, and shell-history access via commands. ~3–10 MB bundle, ~40 MB RAM, ~0.12 ms IPC. |
-| SQLite via `tauri-plugin-sql` or `rusqlite` | — | One local DB, queryable from both the practice view and the dashboard | Single file, no server. This *is* the "shared DB" from option C, minus the ops. |
-| tree-sitter (native Rust `tree-sitter` crate + grammar crates) | 0.25.x | Repo chunking on the Rust side if WASM proves too slow | Optional; `web-tree-sitter` in the WebView is usually enough. |
-
-**Platform note for Tauri:** it uses the OS-native WebView, so `performance.now()` / `timeStamp` resolution follows the platform — WebView2 on Windows behaves like Chrome (~0.1 ms, 5 µs isolated), WKWebView on macOS clamps to ~1 ms, WebKitGTK on Linux is coarser. Still sufficient for digraph latency (see below). If you ever need *identical* timing across OSes, use Electron (bundled Chromium) instead — at the cost of 80–200 MB and ~168 MB RAM.
-
----
-
-## Keystroke-Timing Precision — per platform
-
-**The human signal you're measuring:** digraph flight times are ~60–300 ms; dwell (hold) times ~50–150 ms. A timer resolution of 1 ms is <2% error on the fastest digraph. **Every option below clears that bar.** The real enemies are *jitter* (main-thread contention, PTY buffering) and *missing data* (no keyup in terminals), not clock resolution.
-
-### Browser / WebView
-
-| Engine | `performance.now()` / `event.timeStamp` resolution | Notes |
-|--------|---------------------------------------------------|-------|
-| Chromium (Chrome, Edge, Electron, Windows WebView2) | ~100 µs default; **5 µs** with `COOP: same-origin` + `COEP: require-corp` (cross-origin isolation) | Best case. Recommended target. |
-| Firefox | **1 ms** (rounded; `privacy.reduceTimerPrecision`, Spectre mitigation) | Do not rely on sub-ms in Firefox. Still fine for this app. |
-| Safari / WebKit / macOS WKWebView | ~1 ms clamp | Fine for this app. |
-| Linux WebKitGTK (Tauri on Linux) | coarser / less documented | Acceptable; validate empirically if it becomes the primary platform. |
-
-Browser capture pitfalls to code around:
-- **Use `event.timeStamp`**, not `performance.now()` read inside the handler (handler scheduling can be delayed by other main-thread work) and never `Date.now()` (wall clock, low-res, can jump).
-- **`event.repeat`** — OS autorepeat fires synthetic keydowns; exclude them.
-- **`event.isComposing` / `keyCode 229`** — IME composition; segment or exclude.
-- **Keep the handler trivial**; move rendering to rAF; compute metrics post-hoc. React re-render per keystroke is the most common source of self-inflicted jitter.
-- **Modifier combos** (`Shift`+`[` → `{`): you get separate `Shift` and `BracketLeft` events plus `event.key === '{'`. Decide whether to score the shift press as part of the digraph or fold it in. Browser gives you the raw material; a terminal does not.
-- **Keyboard hardware polling** (125 Hz–1000 Hz = 1–8 ms) is the true physical floor and no software fixes it. Irrelevant at this app's scale.
-
-### Terminal (TUI)
-
-- **Default terminal input = key *press* only.** No `keyup`, no press/repeat/release distinction. Dwell time is **impossible** without the Kitty keyboard protocol.
-- **Kitty keyboard protocol** (opt-in via `PushKeyboardEnhancementFlags`) adds `Release` and `Repeat` kinds. Supported: kitty, Ghostty, WezTerm, foot, Alacritty, iTerm2, Rio, and Windows Terminal (≥ Preview 1.25, ~early 2026). **Not** the macOS default Terminal.app, not older Windows consoles, not many SSH/CI environments.
-- **PTY / tmux / SSH buffering** introduces variable latency between keypress and byte delivery — tens of ms under load, and it's not something you can subtract out. tmux in particular can batch input.
-- **Multi-byte keys** (arrows, function keys, some symbols) arrive as escape-sequence bursts; the parser sees the whole sequence at once, so intra-sequence timing is meaningless.
-- Timestamp source (`Instant` / `perf_counter_ns`) is sub-µs and not the limiting factor.
-- **Net:** a TUI can measure press-to-press latency on a good terminal, but cannot guarantee dwell time or consistent jitter across environments. Wrong foundation for a product whose headline feature is per-digraph/dwell latency.
-
-### Native desktop (Tauri/Electron) vs raw OS key hooks
-
-Not recommended to go below the WebView (e.g. global OS keyboard hooks): more precise in theory, but platform-specific, permission-gated (macOS Accessibility, Windows low-level hooks), and reads keystrokes system-wide (privacy/AV red flags). The in-WebView `keydown`/`keyup` path is more than good enough and stays sandboxed.
-
----
+| Recommended | Alternative | When to Use Alternative |
+|-------------|-------------|--------------------------|
+| Dexie 4.x | `idb` (Jake Archibald's minimal Promise wrapper) | If you truly want the thinnest possible wrapper and are willing to hand-roll your own schema-versioning helper and query sugar. `idb` is smaller but Dexie's `useLiveQuery` + typed-table + migration ergonomics are worth the extra ~25 KB for a project that will keep adding session-shaped data over several milestones. |
+| Dexie 4.x | `localForage` | If you only ever need a flat key-value store (no compound queries, no indexes, no schema versioning). keebdrill needs to query sessions by date range and aggregate keystroke logs by digraph — that's relational-ish querying Dexie is built for and `localForage` is not. |
+| Hand-rolled static keyboard layout + CSS grid | `react-simple-keyboard` (3.8.x) | Only if the product later needs an *interactive* on-screen keyboard (e.g. clicking a key to drill it, or supporting multiple physical layouts via `simple-keyboard-layouts`). Today it's a read-only heatmap over a fixed US-ANSI layout — pulling in a full virtual-keyboard-with-its-own-input-handling library for a static color overlay is the wrong shape of tool and adds real bundle weight for functionality (keyboard-in-keyboard event handling) you'd immediately disable. |
+| Hand-rolled linear color interpolation | `d3-scale` + `d3-interpolate` + `d3-scale-chromatic` | Only if the heatmap grows a legend, multiple palettes, or non-linear (log/quantile) color scales the product wants to expose as a setting. For "map median-ms-latency-per-key onto a 3-stop gradient," that's a ~10-line function; importing three d3 sub-packages for it is disproportionate. Revisit if analytics visualization expands to line/trend charts later (out of scope for v1.1 per PROJECT.md). |
+| `fake-indexeddb` for tests | Playwright-based E2E for persistence | E2E (already used for capture regression per v1.0's stack notes) is still valuable to *smoke-test* real-browser IndexedDB behavior, but is too slow/heavy to be the primary test loop for schema-migration and query-logic unit tests. Use `fake-indexeddb` + Vitest for the fast inner loop, keep Playwright for one end-to-end "save session, reload, see it in history" smoke test. |
 
 ## What NOT to Use
 
 | Avoid | Why | Use Instead |
-|-------|-----|-------------|
-| **FastAPI + PostgreSQL for v1** | Single user, single machine, one-week validation goal. A server and a client-server DB add deployment, migration, and CORS surface for zero benefit. Postgres is never needed unless keebdrill becomes multi-user hosted (explicitly out of scope). | No backend. Dexie/IndexedDB now; local SQLite (via Tauri) if/when you need SQL analytics. |
-| **Next.js / Remix / any SSR/RSC framework** | It's a local, offline, single-page tool. SSR, routing, server components, and the build complexity are pure overhead. | Vite SPA. |
-| **Redux / Redux Toolkit** | Boilerplate-heavy for an app with ~3 pieces of global state. | Zustand, or just React state + a ref for the keystroke log. |
-| **Reading `performance.now()` inside the keydown handler for the timestamp** | Handler can be scheduled late; you measure "time until my JS ran," not "time the key was pressed." | `event.timeStamp`. |
-| **`Date.now()` / `new Date()` for timing** | Millisecond wall clock, non-monotonic, can jump on NTP sync. | `event.timeStamp` (web) / `Instant` (Rust) / `time.perf_counter_ns()` (Python). |
-| **Pure TUI (option B) as the v1 foundation** | No guaranteed keyup; terminal-dependent; PTY jitter. Undermines the core differentiator. | Browser capture (option A). |
-| **Full two-app hybrid (option C) now** | Two codebases + shared-DB contract for a validation spike. | Ship A; evolve to Tauri (one codebase) later. |
-| **`tui-rs`** (original crate) | Unmaintained since 2023. | `ratatui`. |
-| **`py-tree-sitter-languages`** (grantjenks) | Unmaintained. | `tree-sitter-language-pack` (Python) or `web-tree-sitter` + grammar `.wasm` (web). |
-| **Electron for v1** | 80–200 MB, ~168 MB RAM, slow start — you don't need a native shell yet. | Plain browser now; Tauri v2 later if native access is required. |
-| **CodeMirror / Monaco as the typing surface** | They're full editors; their own key handling, IME, and DOM churn fight your measurement and add jitter. | A custom controlled render of the target text with a hidden input or `window` key listeners. |
-| **Firefox as the reference/dev browser** | 1 ms timer clamp with extra randomization; you'll see noisier stats while developing. | Develop and benchmark on Chromium; treat Firefox as "also works." |
-
----
+|-------|-----|--------------|
+| Raw `indexedDB` API by hand for this milestone | Callback/event-based, verbose transaction/cursor boilerplate, easy to get upgrade-path (`onupgradeneeded`) subtly wrong, no TypeScript ergonomics | Dexie 4.x |
+| `localStorage` for session logs | 5-10 MB origin quota (varies by browser), synchronous API blocks the main thread, string-only values force manual JSON (de)serialization of potentially thousands of keystroke events per session | IndexedDB via Dexie — async, structured-clone storage, much larger practical quota (percentage of free disk) |
+| `heatmap.js` (patrick-wied) or similar continuous-density heatmap libraries | Built for x/y point-cloud density (mouse tracking, gaze tracking) with Gaussian-blur radius rendering; a physical keyboard is a small *fixed, discrete* set of ~90 keys, not a continuous field — you'd be faking point coordinates and blur radii to simulate discrete cells the library isn't designed for | A static authored key-position table + CSS grid/SVG with direct per-key color assignment |
+| `react-simple-keyboard` for a *read-only* heatmap | It's an interactive virtual keyboard component (its own click/press handling, layout-switching state); using it purely to display colors fights its actual purpose and adds an unused input-handling surface + extra bundle weight | Hand-rolled static SVG/CSS grid (see above) |
+| Adding `d3-array` (or any part of d3) for the median/quantile calculation | The project already has a working, tested outlier-discard-then-median convention in the codebase; d3-array's `median`/`quantile` would only replace a 5-line function you already trust and test | Keep the existing hand-rolled median helper; extend it to the digraph/trigraph grouping case |
+| Redux / any global state library for the new analytics views | Session history + analytics are fundamentally "query IndexedDB, render result" — `useLiveQuery` + local component state covers it; there is still no more than a handful of pieces of cross-cutting UI state | React state/refs (existing pattern) + `useLiveQuery` where a view needs to react to DB writes |
+| Skipping `navigator.storage.persist()` entirely | Silent data loss risk: Safari's best-effort eviction after ~7 days of no interaction with the origin would delete a user's entire typing history with no warning, directly undermining the "measure improvement over a month" success criterion in PROJECT.md | Call `persist()` (fire-and-forget, ignore rejection — it's a best-effort permission request, not a guarantee even when granted) after first session save |
 
 ## Stack Patterns by Variant
 
-**If v1 (paste/upload → type → WPM + accuracy + 5 slowest keys), single dev, author-only use:**
-- **Architecture A**, no server. Vite 8 + React 19 + TS, Dexie 4, Zustand 5, Vitest 3.
-- Keystroke log = `Array<{code, key, kind: 'down'|'up', t: number, repeat: boolean}>` in a ref; flush to Dexie on completion.
-- Metrics = one pure TS module, golden-tested.
-- "5 slowest keys" = group down-events by `code`, compute median inter-key latency into each key, sort desc, take 5.
-- Ship it as `vite build` + open `dist/index.html`, or run `vite preview`. Done.
+**If the digraph/trigraph table needs to show trends over many sessions (later milestone, currently out of scope):**
+- Only then consider a lightweight charting library (e.g. a minimal `uPlot` for dense time series) — PROJECT.md explicitly defers "rich evolution charts" to a later phase, so do not add charting now.
+- Because adding a charting dependency for a feature explicitly out of scope this milestone violates the "only add what's needed now" posture that has kept this project at zero runtime deps through v1.0.
 
-**If the author fundamentally wants a terminal tool and will standardize on kitty/Ghostty/WezTerm:**
-- **Architecture B, Rust:** ratatui 0.30 + crossterm 0.29 (enable keyboard enhancement flags, detect with `supports_keyboard_enhancement()` and degrade gracefully to press-only), rusqlite bundled.
-- Document the terminal requirement prominently; detect and warn on unsupported terminals.
-
-**If/when later phases need Git-repo ingestion, shell-history parsing, or a persistent dashboard alongside daily practice:**
-- **Wrap Architecture A's frontend in Tauri v2.** Add Rust commands for filesystem/Git/`~/.zsh_history` access. Move persistence to a single local SQLite file via `tauri-plugin-sql`. This delivers option C's "shared DB, two surfaces" as one codebase.
-- Keep tree-sitter in-WebView (`web-tree-sitter`) unless profiling says otherwise — it keeps third-party repo content in-process and satisfies the privacy constraint.
-
-**If keebdrill ever becomes a hosted multi-user product (currently out of scope):**
-- *Then* introduce FastAPI (0.141.x) + SQLModel (0.0.4x) / SQLAlchemy 2.0 + PostgreSQL, and the SPA stays as-is, pointed at the API. Not before.
-
----
+**If session volume grows large enough that IndexedDB read/aggregate latency becomes visible (unlikely at single-user daily-use scale):**
+- Consider storing pre-aggregated per-digraph running statistics (count, sum, sum-of-squares or a running median sketch) incrementally on session save, rather than re-scanning all raw keystroke logs on every analytics view render.
+- Because re-computing digraph medians over months of raw per-keystroke logs on every page view is the kind of thing that's fine at 100 sessions and sluggish at 5,000 — but do not build this pre-aggregation until profiling shows it's needed; premature for v1.1.
 
 ## Version Compatibility
 
-| Package | Compatible with | Notes |
-|---------|-----------------|-------|
-| Vite 8.2.x | React 19.2.x via `@vitejs/plugin-react` (Vite-8 line) | Use the plugin release that targets Vite 8; older 4.x plugin is for Vite ≤7. |
-| React 19.2.x | TypeScript 5.7+ with `@types/react@19` / `@types/react-dom@19` | React 19 types dropped the implicit `children` prop; expect minor type churn if porting old code. |
-| ratatui 0.30.2 | crossterm 0.29, Rust ≥ 1.88 | 0.30 is a workspace reorg; import paths changed vs 0.29. |
-| crossterm 0.29 | Kitty protocol needs a supporting terminal at runtime | `supports_keyboard_enhancement()` is a runtime check, not compile-time. |
-| `web-tree-sitter` 0.25–0.26 | grammar `.wasm` built against the matching tree-sitter CLI major | Version-match the runtime and the compiled grammars or parsing fails. |
-| Dexie 4.x | All evergreen browsers; IndexedDB | v4 changed some TypeScript generics vs v3. |
-| Tailwind 4.x | Vite via `@tailwindcss/vite` plugin | v4 config is CSS-first (`@theme`), not `tailwind.config.js`. |
-| Textual 6.5.x | Python ≥ 3.9, < 4.0 | — |
-| FastAPI 0.141.x (only if hosted, later) | SQLModel 0.0.4x, SQLAlchemy 2.0.x, Pydantic v2, Python ≥ 3.10 (3.12/3.13 recommended) | Not part of v1. |
-
----
-
-## Confidence Assessment
-
-| Claim | Confidence | Basis |
-|-------|------------|-------|
-| React 19.2.x / Vite 8.2.x are current (Sept 2026) | HIGH | react.dev/versions and vite.dev/releases fetched directly |
-| Browser is the only option with guaranteed cross-platform keyup + hi-res timestamps | HIGH | MDN KeyboardEvent, crossterm docs, Kitty protocol status |
-| Terminals need Kitty protocol for release events; support list | HIGH | crossterm release notes, Alacritty/Windows Terminal issue threads |
-| performance.now/timeStamp clamps: Chromium ~100µs/5µs, FF/Safari 1ms | HIGH | MDN High-precision-timing, Chrome developer blog |
-| ratatui 0.30.2 / crossterm 0.29 / Textual 6.5.x versions | MEDIUM-HIGH | ratatui.rs/installation, search of crates.io/PyPI (not fetched from each canonical page) |
-| Tauri v2 perf numbers (bundle/RAM/IPC) | MEDIUM | Multiple 2026 comparison articles, not first-party benchmarks; directional not exact |
-| FastAPI 0.141.x / SQLModel 0.0.4x | MEDIUM | search aggregation; irrelevant to v1 so not deep-verified |
-| Recommendation to pick Architecture A for the MVP | HIGH | Follows directly from the capture-quality analysis + single-dev/one-week constraint in PROJECT.md |
-| Minor lib majors (Zustand 5, Tailwind 4, Vitest 3, Recharts 3, Dexie 4) | MEDIUM | Known-stable majors from training + ecosystem; pin exact latest at install time |
+| Package A | Compatible With | Notes |
+|-----------|------------------|-------|
+| dexie@4.4.5 | dexie-react-hooks@4.4.0 | Both are published from the same Dexie.js monorepo and kept in lockstep on the 4.4.x line; install both at the same minor version. |
+| dexie@4.x | TypeScript 5.9 strict, `noUncheckedIndexedAccess` | Dexie 4's typed-table generics work under strict mode; define an explicit `interface StoredSession { id?: number; ... }` per table rather than relying on inference, matching this project's existing preference for explicit types in `metrics.ts`. |
+| dexie@4.x | Vite 8.2.x | Dexie ships ESM + CJS builds and needs no special Vite config; no polyfills required in evergreen-browser targets. |
+| `fake-indexeddb@6.x` (current major as of this research) | Vitest 3/4 | Import `fake-indexeddb/auto` in a Vitest `setupFiles` entry so `indexedDB` exists as a global before Dexie modules load; no plugin needed. |
+| React 19.2.x | `dexie-react-hooks`'s `useLiveQuery` | Built on `useSyncExternalStore` internally (per Dexie's own docs on the hook's implementation approach), which is exactly the primitive this project already leans on per its own stack notes for imperative/external-store patterns — no friction with React 19's concurrent rendering. |
 
 ## Sources
 
-- https://react.dev/versions — React stable = 19.2 (19.2.7) — HIGH
-- https://vite.dev/releases — Vite current = 8.2.x; 7.3/8.1 in fix support — HIGH
-- https://developer.mozilla.org/en-US/docs/Web/API/Performance_API/High_precision_timing — timer clamping, cross-origin isolation → 5µs — HIGH
-- https://developer.chrome.com/blog/when-milliseconds-are-not-enough-performance-now — Chromium precision tiers — HIGH
-- https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/timeStamp (and /Event/timeStamp) — event timestamp is DOMHighResTimeStamp at creation — HIGH
-- https://docs.rs/crossterm/latest/crossterm/event/index.html + https://github.com/crossterm-rs/crossterm/releases — KeyEventKind Press/Repeat/Release, keyboard enhancement flags — HIGH
-- https://github.com/alacritty/alacritty/issues/6378 + Windows Terminal notes — Kitty protocol terminal support status 2026 — MEDIUM-HIGH
-- https://ratatui.rs/installation/ — ratatui 0.30.2, crossterm 0.29, Rust 1.88 — MEDIUM-HIGH
-- https://textual.textualize.io/ + PyPI — Textual 6.5.x, Python 3.9–3.x — MEDIUM
-- https://tech-insider.org/tauri-vs-electron-2026/ + rustify.rs/buildmvpfast 2026 comparisons — Tauri v2 vs Electron footprint/latency — MEDIUM
-- https://sqlmodel.tiangolo.com/release-notes/ + https://fastapi.tiangolo.com/release-notes/ — FastAPI 0.141.x, SQLModel 0.0.4x (not needed for v1) — MEDIUM
-- Monkeytype WPM/accuracy/consistency definitions — typingtest/community docs — MEDIUM
-- https://pypi.org/project/tree-sitter-language-pack/ + https://tree-sitter.github.io/py-tree-sitter/ — tree-sitter 0.25–0.26, language-pack maintained; py-tree-sitter-languages dead — MEDIUM-HIGH
+- https://www.npmjs.com/package/dexie — version 4.4.5 confirmed via direct `registry.npmjs.org/dexie/latest` fetch, 2026-09-05 — HIGH (first-party registry, cross-checked with websearch summary)
+- https://www.npmjs.com/package/dexie-react-hooks — version 4.4.0 confirmed via direct registry fetch — HIGH
+- https://dexie.org/docs/dexie-react-hooks/useLiveQuery() — hook behavior/usage — MEDIUM (official docs, not independently re-verified line-by-line)
+- https://dexie.org/docs/StorageManager — Dexie's own guidance on `navigator.storage.persist()`/`estimate()` — MEDIUM
+- https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria — eviction policy, best-effort vs. persistent storage — MEDIUM (MDN, cross-checked against WebKit blog)
+- https://webkit.org/blog/14403/updates-to-storage-policy/ — Safari's ~7-day no-interaction eviction policy — MEDIUM
+- https://www.npmjs.com/package/react-simple-keyboard — confirms this is an interactive virtual-keyboard input widget, not a heatmap renderer — MEDIUM
+- https://www.patrick-wied.at/projects/heatmap-keyboard/ + related GitHub repos (`werifu/keyboard-heatmap`, `gutohertzog/keyboard-heatmap`, `pa7/Keyboard-Heatmap`) — confirms existing keyboard-heatmap prior art is built on `heatmap.js` (continuous x/y density), not discrete per-key coloring — LOW-MEDIUM (multiple independent small projects agree on the same underlying approach, but none is an authoritative/canonical source)
+- Keystroke-dynamics literature (ResearchGate: "A Long-Term Trial of Keystroke Profiling Using Digraph, Trigraph and Keyword Latencies"; arXiv keystroke-dynamics survey) — digraph/trigraph latency definitions (key-up-to-key-down interval) — MEDIUM (academic sources, definitions cross-checked across multiple papers)
+- Prior-phase cached research (`.planning/research/.cache/5915bb51...json`, this repo, fetched 2026-09-05) — established project convention of outlier-discard-then-median matching keybr.com's per-key latency approach — MEDIUM (already vetted for this codebase in an earlier milestone)
 
 ---
-*Stack research for: developer typing trainer with high-resolution keystroke analytics*
-*Researched: 2026-09-03*
+*Stack research for: keebdrill v1.1 — local persistence + code-typing analytics*
+*Researched: 2026-09-05*
