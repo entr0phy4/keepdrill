@@ -1,10 +1,11 @@
 ---
 phase: 4
 slug: session-persistence-history
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-09-06
+reviewed_at: 2026-09-06
 ---
 
 # Phase 4 — UI Design Contract
