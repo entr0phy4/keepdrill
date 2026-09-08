@@ -4,17 +4,17 @@ milestone: v1.1
 milestone_name: Persistencia y Analíticas
 current_phase: 04
 current_phase_name: session-persistence-history
-status: executing
-stopped_at: Completado 04-01-PLAN.md (tracer de persistencia de sesiones)
-last_updated: "2026-09-08T22:59:29.642Z"
+status: verifying
+stopped_at: Completado 04-02-PLAN.md (History view full fidelity, PERS-02)
+last_updated: "2026-09-08T23:06:59.207Z"
 last_activity: 2026-09-08
 last_activity_desc: Phase 04 execution started
 progress:
   total_phases: 3
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
-  percent: 0
+  completed_plans: 2
+  percent: 33
 ---
 
 # Project State
@@ -30,10 +30,10 @@ See: .planning/PROJECT.md (updated 2026-09-05)
 
 Phase: 04 (session-persistence-history) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-09-08 — Phase 04 execution started
 
-Progress: [█████░░░░░] 50%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -65,6 +65,7 @@ Progress: [█████░░░░░] 50%
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 04 P01 | 45min | 3 tasks | 17 files |
+| Phase 04 P02 | 35min | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -81,6 +82,7 @@ Recent decisions affecting current work:
 - [Phase ?]: Task 1 checkpoint auto-seleccionó option-a (Session cruda + snapshot MetricsResult) — idéntico a D-02
 - [Phase ?]: Se fijó dexie@4.4.4 (no 4.4.5) para evitar la señal too-new del seam de legitimidad de paquetes, sin diferencia funcional
 - [Phase ?]: Clave primaria ++id con índice único en startedAt; los campos blob (events/charLog/markers/exercise/metricsSnapshot) nunca se indexan (D-05)
+- [Phase ?]: Fase 4 Plan 2: HistoryRow expandido a las 7 columnas D-11/D-12 via resolveMetrics/relativeTime/glyphFor; toggle activo distinguido por relleno de superficie + peso 600 (sin --color-accent, 04-UI-SPEC.md)
 
 ### Pending Todos
 
@@ -105,8 +107,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-08T22:59:29.633Z
-Stopped at: Completado 04-01-PLAN.md (tracer de persistencia de sesiones)
+Last session: 2026-09-08T23:06:59.200Z
+Stopped at: Completado 04-02-PLAN.md (History view full fidelity, PERS-02)
 Resume file: None
 
 ## Operator Next Steps

@@ -39,10 +39,10 @@ Full detail archived to `.planning/milestones/v1.0-ROADMAP.md`.
   2. The user can open a history view listing past sessions newest-first, each showing its date, WPM, and accuracy.
   3. If the save fails (e.g. storage unavailable/quota exceeded), the user still sees the results screen immediately, with a small non-blocking notice that the session wasn't saved.
 
-**Plans**: 1/2 plans executed
+**Plans**: 2/2 plans executed
 
 - [x] 04-01-PLAN.md — Persistence seam (Dexie 4) + automatic fire-and-forget session write + dismissible save-failure notice (PERS-01, PERS-03)
-- [ ] 04-02-PLAN.md — Full History view: newest-first rows with date/WPM/accuracy/source/language/length/slowest-key, recompute-if-stale guard, styling, D-08 hide-not-unmount verification (PERS-02)
+- [x] 04-02-PLAN.md — Full History view: newest-first rows with date/WPM/accuracy/source/language/length/slowest-key, recompute-if-stale guard, styling, D-08 hide-not-unmount verification (PERS-02)
 
 **UI hint**: yes
 
@@ -84,6 +84,6 @@ Phases execute in numeric order: 4 → 5 → 6
 | 1. Corpus Input & Keystroke Capture | v1.0 | 3/3 | Complete | 2026-09-04 |
 | 2. Interactive Typing Trainer | v1.0 | 3/3 | Complete | 2026-09-05 |
 | 3. Session Metrics | v1.0 | 2/2 | Complete | 2026-09-05 |
-| 4. Session Persistence & History | v1.1 | 1/2 | In Progress|  |
+| 4. Session Persistence & History | v1.1 | 2/2 | In Progress|  |
 | 5. Symbol-Adjusted WPM & Language Tagging | v1.1 | 0/? | Not started | - |
 | 6. Cross-Session Analytics | v1.1 | 0/? | Not started | - |

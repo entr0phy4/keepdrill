@@ -9,7 +9,7 @@
 ### Persistence (PERS)
 
 - [x] **PERS-01**: User's completed session (full raw log, not just summary numbers) is automatically saved to local storage (IndexedDB) with no explicit "save" action, and survives a page reload
-- [ ] **PERS-02**: User can view a list of past sessions (date, WPM, accuracy), newest first
+- [x] **PERS-02**: User can view a list of past sessions (date, WPM, accuracy), newest first
 - [x] **PERS-03**: User sees a non-blocking notice if a session fails to persist (e.g. storage unavailable/quota exceeded) — the results screen is never blocked or delayed by the save
 
 ### Analytics (ANLY)
@@ -49,7 +49,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | PERS-01 | Phase 4 | Complete |
-| PERS-02 | Phase 4 | Pending |
+| PERS-02 | Phase 4 | Complete |
 | PERS-03 | Phase 4 | Complete |
 | ANLY-01 | Phase 5 | Pending |
 | ANLY-02 | Phase 5 | Pending |
