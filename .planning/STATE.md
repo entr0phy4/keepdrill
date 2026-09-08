@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Persistencia y Analíticas
-current_phase: 4
-current_phase_name: Session Persistence & History
-status: planning
-stopped_at: Phase 4 context gathered
-last_updated: "2026-09-07T02:21:40.655Z"
-last_activity: 2026-09-06
-last_activity_desc: Roadmap created for v1.1 (Phases 4-6)
+current_phase: 04
+current_phase_name: session-persistence-history
+status: executing
+stopped_at: Completado 04-01-PLAN.md (tracer de persistencia de sesiones)
+last_updated: "2026-09-08T22:59:29.642Z"
+last_activity: 2026-09-08
+last_activity_desc: Phase 04 execution started
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 2
+  completed_plans: 1
   percent: 0
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-05)
 
 **Core value:** The user can paste or upload a real code/text file, type it with keystroke capture, and see WPM, accuracy, and their five slowest keys — useful enough for a week of daily self-use.
-**Current focus:** v1.1 Persistencia y Analíticas — Phase 4: Session Persistence & History
+**Current focus:** Phase 04 — session-persistence-history
 
 ## Current Position
 
-Phase: 4 of 6 (Session Persistence & History)
-Plan: — (not yet planned)
-Status: Ready to plan
-Last activity: 2026-09-06 — Roadmap created for v1.1 (Phases 4-6)
+Phase: 04 (session-persistence-history) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
+Last activity: 2026-09-08 — Phase 04 execution started
 
 Progress: [█████░░░░░] 50%
 
@@ -60,6 +60,11 @@ Progress: [█████░░░░░] 50%
 - Trend: Stable
 
 *Updated after each plan completion*
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 04 P01 | 45min | 3 tasks | 17 files |
 
 ## Accumulated Context
 
@@ -73,6 +78,9 @@ Recent decisions affecting current work:
 - [Phase 3]: Symbol-adjusted WPM was out of v1.0 scope, now in-scope as Phase 5 (ANLY-01) — must remain a companion metric to net WPM, never a silent replacement.
 - [Phase 1]: Platform locked: Vite 8 + React 19 + TS 5.9 strict browser SPA, pnpm, no backend; pure-core / platform-seam / hot-path module split established — v1.1's `persistence/` and `analytics/` modules should follow this same seam discipline.
 - [Phase 2]: Free-correction typing policy locked (D-04); corrected/uncorrected attempts tracked separately — relevant to any v1.1 metric that touches accuracy.
+- [Phase ?]: Task 1 checkpoint auto-seleccionó option-a (Session cruda + snapshot MetricsResult) — idéntico a D-02
+- [Phase ?]: Se fijó dexie@4.4.4 (no 4.4.5) para evitar la señal too-new del seam de legitimidad de paquetes, sin diferencia funcional
+- [Phase ?]: Clave primaria ++id con índice único en startedAt; los campos blob (events/charLog/markers/exercise/metricsSnapshot) nunca se indexan (D-05)
 
 ### Pending Todos
 
@@ -97,9 +105,9 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-07T02:21:40.646Z
-Stopped at: Phase 4 context gathered
-Resume file: .planning/phases/04-session-persistence-history/04-CONTEXT.md
+Last session: 2026-09-08T22:59:29.633Z
+Stopped at: Completado 04-01-PLAN.md (tracer de persistencia de sesiones)
+Resume file: None
 
 ## Operator Next Steps
 
