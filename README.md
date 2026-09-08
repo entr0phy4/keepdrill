@@ -61,10 +61,15 @@ noting that keystroke measurements may be less precise. It never blocks use.
 
 ## Privacy
 
-Pasted and uploaded corpus content, and the full keystroke log, stay **in
-memory on your machine**. There is no backend, no network calls, no
-analytics, and nothing is uploaded or persisted anywhere in v1 — closing the
-tab discards everything. This is enforced structurally, not just by policy:
-the app has no `fetch`, `XMLHttpRequest`, `sendBeacon`, or `WebSocket` calls
-anywhere in `src/`, and the HTML document ships a `Content-Security-Policy`
-meta tag restricting `connect-src`.
+There is still no backend, no network calls, and no analytics. This is
+enforced structurally, not just by policy: the app has no `fetch`,
+`XMLHttpRequest`, `sendBeacon`, or `WebSocket` calls anywhere in `src/`, and
+the HTML document ships a `Content-Security-Policy` meta tag restricting
+`connect-src`.
+
+As of v1.1, completed sessions — including the full raw keystroke log and any
+pasted or uploaded corpus text — are stored in your browser's local IndexedDB
+on your machine, and now persist across closing the tab. This storage never
+leaves your machine: there is no sync, export, or upload path for it. Clearing
+it is a browser-level action (clearing site data for this origin), not
+something the app exposes a control for in this phase.

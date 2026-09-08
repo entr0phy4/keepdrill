@@ -395,3 +395,22 @@ textarea {
     opacity: 1;
   }
 }
+
+/* Save-failure notice (D-15/D-16/D-17) — reuses .banner/.banner--warning/
+   .banner-lead verbatim; the only addition is a dismiss control. */
+.save-failed-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  justify-content: space-between;
+}
+
+/* Exempt from the 44px control floor — same exception class as .key-chip
+   (WCAG 2.5.8 24x24 minimum; --space-xs padding widens the hit area). */
+.save-failed-dismiss {
+  background: transparent;
+  border: 0;
+  min-height: 0;
+  padding: var(--space-xs);
+  color: var(--color-warning-text);
+}

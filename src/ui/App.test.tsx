@@ -109,3 +109,49 @@ describe('App — completion persists exactly one row (PERS-01)', () => {
     expect(rows[0]?.exercise.text).toBe('ab\n')
   })
 })
+
+describe('App — save-failure notice (PERS-03, D-15/D-16/D-17)', () => {
+  it('renders the results panel synchronously even when the persistence write rejects, then shows a dismissible notice', async () => {
+    // Force the write to reject by closing the DB connection before completion.
+    await db.close()
+
+    await loadAndCompleteExercise()
+
+    // The results panel is present synchronously — the write's outcome never
+    // gates it (D-04).
+    const panel = container.querySelector('.results-panel')
+    expect(panel).not.toBeNull()
+
+    const notice = container.querySelector('[role="status"].save-failed-notice')
+    expect(notice).not.toBeNull()
+
+    const dismissButton = container.querySelector('button[aria-label="Dismiss notice"]')
+    expect(dismissButton).not.toBeNull()
+
+    act(() => {
+      dismissButton!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(container.querySelector('.save-failed-notice')).toBeNull()
+
+    await db.open()
+  })
+
+  it('restarting the exercise clears a save-failure notice', async () => {
+    await db.close()
+    await loadAndCompleteExercise()
+
+    expect(container.querySelector('.save-failed-notice')).not.toBeNull()
+
+    await db.open()
+
+    const restartButton = Array.from(container.querySelectorAll('button')).find(
+      (b) => b.textContent === 'Restart exercise',
+    )!
+    act(() => {
+      restartButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(container.querySelector('.save-failed-notice')).toBeNull()
+  })
+})
