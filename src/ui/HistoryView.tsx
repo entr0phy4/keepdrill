@@ -1,11 +1,15 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { listNewestFirst } from '../persistence/repository'
+import { resolveMetrics } from './history-metrics'
+import { relativeTime } from './relative-time'
+import { glyphFor } from '../trainer/state'
+import type { StoredSession } from '../persistence/types'
 
-// Minimal history list (D-09/D-14) — expanded to full row fidelity (D-11) in
-// plan 04-02. Imports the querier, never `dexie` or `../persistence/db`
-// (D-03). `useLiveQuery` returns `undefined` on first render (loading) and
-// `[]` once resolved with no rows (empty) — the two are never conflated
-// (RESEARCH Pitfall 5).
+// Full PERS-02 row fidelity (D-11/D-12) — expanded from 04-01's minimal
+// date/wpm/accuracy row. Imports the querier, never `dexie` or
+// `../persistence/db` (D-03). `useLiveQuery` returns `undefined` on first
+// render (loading) and `[]` once resolved with no rows (empty) — the two
+// are never conflated (RESEARCH Pitfall 5).
 export function HistoryView() {
   const sessions = useLiveQuery(listNewestFirst)
 
@@ -13,24 +17,51 @@ export function HistoryView() {
     <section role="status" style={{ display: 'grid', gap: 'var(--space-lg)' }}>
       <h2>History</h2>
       {sessions === undefined ? (
-        <p className="text-muted">Loading history…</p>
+        <p className="text-muted history-loading">Loading history…</p>
       ) : sessions.length === 0 ? (
-        <p className="text-muted">
+        <p className="text-muted history-empty">
           No sessions yet — finish a typing exercise and it&rsquo;ll show up here.
         </p>
       ) : (
         <ol className="history-list">
           {sessions.map((s) => (
-            <li key={s.id} className="history-row">
-              <span title={new Date(s.startedAt).toLocaleString()}>
-                {new Date(s.startedAt).toLocaleString()}
-              </span>
-              <span>{Math.round(s.metricsSnapshot.wpm)} wpm</span>
-              <span>{Math.round(s.metricsSnapshot.accuracy * 100)}%</span>
-            </li>
+            <HistoryRow key={s.id} session={s} />
           ))}
         </ol>
       )}
     </section>
+  )
+}
+
+// D-13: inert row — no onClick / href / tabIndex / interactive role. The
+// only hover affordance is the native `title` tooltip on the relative-date
+// span. Rounds only here, at render (matches ResultsView's convention).
+function HistoryRow({ session }: { session: StoredSession }) {
+  const m = resolveMetrics(session)
+  const sourceLabel =
+    session.exercise.sourceType === 'upload' ? session.exercise.sourceRef ?? 'Uploaded file' : 'Pasted snippet'
+  const lengthChars = Array.from(session.exercise.text).length
+  const slowest = m.slowest5[0]
+
+  return (
+    <li className="history-row">
+      <div className="history-row-primary">
+        <span title={new Date(session.startedAt).toLocaleString()}>{relativeTime(session.startedAt)}</span>
+        <span>
+          {Math.round(m.wpm)} <span className="results-stat-label text-muted">wpm</span>
+        </span>
+        <span>{Math.round(m.accuracy * 100)}%</span>
+      </div>
+      <div className="history-row-meta">
+        <span className="text-muted">{sourceLabel}</span>
+        <span className="key-chip">{session.exercise.language}</span>
+        <span className="text-muted">{lengthChars} chars</span>
+        {slowest !== undefined && (
+          <span className="key-chip">
+            {slowest.char === ' ' || slowest.char === '\n' ? glyphFor(slowest.char) : slowest.char}
+          </span>
+        )}
+      </div>
+    </li>
   )
 }
