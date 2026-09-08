@@ -190,3 +190,7 @@ None — no external service configuration required. `dexie`/`dexie-react-hooks`
 ---
 *Phase: 04-session-persistence-history*
 *Completed: 2026-09-08*
+
+## Self-Check: PASSED
+
+All created files verified present on disk (`src/persistence/{types,db,repository}.ts`, `src/test/setup-fake-indexeddb.ts`, `src/ui/HistoryView.tsx`, `src/ui/SaveFailedNotice.tsx`, this SUMMARY.md); all task/summary commit hashes (`3734ba2`, `2551c25`, `b990734`) verified present in `git log --oneline --all`.
