@@ -6,10 +6,13 @@ import { readCrossOriginIsolated, probeTimerResolutionUs } from '../platform/iso
 import { resetCapture } from '../capture/capture'
 import { computeSessionMetrics } from '../metrics/metrics'
 import type { MetricsResult } from '../metrics/metrics'
+import { saveSession } from '../persistence/repository'
 import { Banners } from './Banners'
 import { CorpusInput } from './CorpusInput'
 import { CaptureSurface } from './CaptureSurface'
 import { ResultsView } from './ResultsView'
+import { SaveFailedNotice } from './SaveFailedNotice'
+import { HistoryView } from './HistoryView'
 
 declare global {
   interface Window {
@@ -48,12 +51,19 @@ export function App() {
   const sessionRef = useRef<Session | null>(null)
   const loadRef = useRef<{ exercise: Exercise; startedAt: number } | null>(null)
   const [metrics, setMetrics] = useState<MetricsResult | null>(null)
+  // PERS-03/D-15: reflects only the most-recent completion's write outcome —
+  // cleared at the start of every handleComplete and on any fresh load/restart.
+  const [saveFailed, setSaveFailed] = useState(false)
+  // D-07: no router — a plain useState view flip between the trainer and the
+  // History view.
+  const [view, setView] = useState<'trainer' | 'history'>('trainer')
 
   const handleLoad = (loaded: Exercise) => {
     resetCapture() // fresh buffer per exercise
     setExercise(loaded)
     setLoadToken((token) => token + 1)
     setMetrics(null) // no stale results panel survives a fresh load
+    setSaveFailed(false) // a stale save-failure notice never survives a fresh load
     const startedAt = Date.now()
     loadRef.current = { exercise: loaded, startedAt }
     const session = buildSession(loaded, startedAt)
@@ -75,6 +85,13 @@ export function App() {
     const session = buildSession(current.exercise, current.startedAt)
     const result = computeSessionMetrics(current.exercise.text, session.charLog, session.markers, completedAt)
     setMetrics(result)
+    // D-04/PERS-03: fire-and-forget, AFTER setMetrics, never awaited — the
+    // results screen renders synchronously regardless of write outcome.
+    setSaveFailed(false)
+    void saveSession({ session, completedAt, metricsSnapshot: result }).catch((err: unknown) => {
+      console.warn('[keebdrill] session not persisted:', err)
+      setSaveFailed(true)
+    })
   }
 
   // D-08: Restart keeps the SAME loaded exercise content — only the session
@@ -88,6 +105,7 @@ export function App() {
     resetCapture()
     setLoadToken((token) => token + 1)
     setMetrics(null) // discard the just-computed metrics (D-06)
+    setSaveFailed(false) // a stale save-failure notice never survives a restart
     const startedAt = Date.now()
     loadRef.current = { exercise: current.exercise, startedAt }
     const session = buildSession(current.exercise, startedAt)
@@ -119,8 +137,32 @@ export function App() {
 
   return (
     <main style={{ display: 'grid', gap: 'var(--space-lg)' }}>
-      <header>
+      <header
+        style={{
+          display: 'flex',
+          alignItems: 'baseline',
+          justifyContent: 'space-between',
+          gap: 'var(--space-md)',
+          flexWrap: 'wrap',
+        }}
+      >
         <h1>keebdrill</h1>
+        <nav style={{ display: 'inline-flex', gap: 'var(--space-xs)' }}>
+          <button
+            type="button"
+            aria-current={view === 'trainer' ? 'page' : undefined}
+            onClick={() => setView('trainer')}
+          >
+            Trainer
+          </button>
+          <button
+            type="button"
+            aria-current={view === 'history' ? 'page' : undefined}
+            onClick={() => setView('history')}
+          >
+            History
+          </button>
+        </nav>
       </header>
 
       <Banners
@@ -131,15 +173,22 @@ export function App() {
       <CorpusInput onLoad={handleLoad} />
 
       {exercise === null ? (
-        <section>
-          <h2>No exercise loaded</h2>
-          <p className="text-muted">
-            Paste code or text below, or upload a file, then choose{' '}
-            <strong>Load exercise</strong> to begin.
-          </p>
-        </section>
+        view === 'trainer' && (
+          <section>
+            <h2>No exercise loaded</h2>
+            <p className="text-muted">
+              Paste code or text below, or upload a file, then choose{' '}
+              <strong>Load exercise</strong> to begin.
+            </p>
+          </section>
+        )
       ) : (
-        <div style={{ display: 'grid', gap: 'var(--space-md)' }}>
+        // D-08: hide, don't unmount — toggling `display` directly (never the
+        // `hidden` attribute, which inline `display` would override; never a
+        // conditional unmount, which would drop the uncontrolled <textarea>'s
+        // DOM node and caret/IME state). CaptureSurface's key={loadToken} is
+        // untouched by this toggle.
+        <div style={{ display: view === 'trainer' ? 'grid' : 'none', gap: 'var(--space-md)' }}>
           <CaptureSurface
             key={loadToken}
             text={exercise.text}
@@ -147,11 +196,15 @@ export function App() {
             onComplete={handleComplete}
           />
           {metrics !== null && <ResultsView metrics={metrics} />}
+          {metrics !== null && saveFailed && (
+            <SaveFailedNotice onDismiss={() => setSaveFailed(false)} />
+          )}
           <button type="button" className="primary" onClick={handleRestart}>
             Restart exercise
           </button>
         </div>
       )}
+      {view === 'history' && <HistoryView />}
     </main>
   )
 }

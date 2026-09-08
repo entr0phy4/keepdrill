@@ -21,7 +21,15 @@ export default defineConfig({
           name: 'unit',
           environment: 'node',
           include: ['src/**/*.test.ts'],
-          exclude: ['src/capture/**'],
+          exclude: ['src/capture/**', 'src/persistence/**'],
+        },
+      },
+      {
+        test: {
+          name: 'persistence',
+          environment: 'node',
+          include: ['src/persistence/**/*.test.ts'],
+          setupFiles: ['./src/test/setup-fake-indexeddb.ts'],
         },
       },
       {
@@ -36,6 +44,7 @@ export default defineConfig({
           name: 'ui',
           environment: 'happy-dom',
           include: ['src/ui/**/*.test.tsx'],
+          setupFiles: ['./src/test/setup-fake-indexeddb.ts'],
         },
       },
     ],
