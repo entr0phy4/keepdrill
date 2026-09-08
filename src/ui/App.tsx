@@ -188,6 +188,15 @@ export function App() {
         // conditional unmount, which would drop the uncontrolled <textarea>'s
         // DOM node and caret/IME state). CaptureSurface's key={loadToken} is
         // untouched by this toggle.
+        //
+        // Residual assumption (RESEARCH Open Question 1 / A1, 04-UI-SPEC.md
+        // "unresolved" row): happy-dom has no layout engine and cannot verify
+        // real uncontrolled-<textarea> selection/IME behavior across a real
+        // display:none toggle — that is proven here only in happy-dom
+        // (App.test.tsx's D-08 regression block). The real verification is a
+        // Chromium human-check (queued end-of-phase). Fallback if it fails:
+        // lift the capture buffer into a React ref that survives a
+        // CaptureSurface remount and let the trainer unmount instead.
         <div style={{ display: view === 'trainer' ? 'grid' : 'none', gap: 'var(--space-md)' }}>
           <CaptureSurface
             key={loadToken}

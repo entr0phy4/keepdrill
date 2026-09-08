@@ -1,7 +1,7 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { beforeEach, afterEach, describe, it, expect } from 'vitest'
-import { resetCapture } from '../capture/capture'
+import { resetCapture, getCharLog } from '../capture/capture'
 import { db } from '../persistence/db'
 import { listNewestFirst } from '../persistence/repository'
 import { App } from './App'
@@ -139,6 +139,88 @@ describe('App — view toggle single-active invariant (04-UI-SPEC.md H1)', () =>
 
     expect(trainerButton.getAttribute('aria-current')).toBe('page')
     expect(historyButton.getAttribute('aria-current')).toBeNull()
+  })
+})
+
+describe('App — D-08 hide-not-unmount contract across a view switch', () => {
+  it('typing, switching to History, then back to Trainer preserves charLog length, per-char status, textarea identity, and caret index', async () => {
+    act(() => {
+      root.render(<App />)
+    })
+
+    const pasteArea = container.querySelector<HTMLTextAreaElement>('#corpus-paste')!
+    act(() => {
+      setControlledTextareaValue(pasteArea, 'abcdef')
+    })
+
+    const loadButton = Array.from(container.querySelectorAll('button')).find(
+      (b) => b.textContent === 'Load exercise',
+    )!
+    await act(async () => {
+      loadButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await nextFrame()
+    })
+
+    const captureAreaBefore = container.querySelector<HTMLTextAreaElement>('#capture-surface')!
+
+    // Type "a", "x" (wrong), delete, "b" — one correction, mirroring the
+    // human-check script (RESEARCH Open Question 1).
+    beforeInputAt(captureAreaBefore, { inputType: 'insertText', data: 'a' }, 0)
+    await act(async () => {
+      await nextFrame()
+    })
+    beforeInputAt(captureAreaBefore, { inputType: 'insertText', data: 'x' }, 100)
+    await act(async () => {
+      await nextFrame()
+    })
+    beforeInputAt(captureAreaBefore, { inputType: 'deleteContentBackward', data: null }, 200)
+    await act(async () => {
+      await nextFrame()
+    })
+    beforeInputAt(captureAreaBefore, { inputType: 'insertText', data: 'b' }, 300)
+    await act(async () => {
+      await nextFrame()
+    })
+
+    const charLogLengthBefore = getCharLog().length
+    const statusesBefore = Array.from(
+      container.querySelectorAll('.trainer-rendered-layer [data-status]'),
+    ).map((el) => el.getAttribute('data-status'))
+    const caretIndexBefore = Array.from(
+      container.querySelectorAll('.trainer-rendered-layer > *'),
+    ).findIndex((el) => el.classList.contains('trainer-caret'))
+
+    const historyButton = Array.from(container.querySelectorAll('nav button')).find(
+      (b) => b.textContent === 'History',
+    )!
+    act(() => {
+      historyButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    // The wrapper's computed display is 'none'; HistoryView markup is present.
+    const wrapper = captureAreaBefore.closest('div[style]') as HTMLElement
+    expect(wrapper.style.display).toBe('none')
+    expect(container.querySelector('section[role="status"] h2')?.textContent).toBe('History')
+
+    const trainerButton = Array.from(container.querySelectorAll('nav button')).find(
+      (b) => b.textContent === 'Trainer',
+    )!
+    act(() => {
+      trainerButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    const captureAreaAfter = container.querySelector<HTMLTextAreaElement>('#capture-surface')!
+    const statusesAfter = Array.from(
+      container.querySelectorAll('.trainer-rendered-layer [data-status]'),
+    ).map((el) => el.getAttribute('data-status'))
+    const caretIndexAfter = Array.from(
+      container.querySelectorAll('.trainer-rendered-layer > *'),
+    ).findIndex((el) => el.classList.contains('trainer-caret'))
+
+    expect(getCharLog().length).toBe(charLogLengthBefore)
+    expect(statusesAfter).toEqual(statusesBefore)
+    expect(captureAreaAfter).toBe(captureAreaBefore) // same DOM node — no remount
+    expect(caretIndexAfter).toBe(caretIndexBefore)
   })
 })
 
