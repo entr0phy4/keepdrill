@@ -414,3 +414,67 @@ textarea {
   padding: var(--space-xs);
   color: var(--color-warning-text);
 }
+
+/* View toggle (D-07, 04-UI-SPEC.md) — weight + surface fill carry the active
+   state, never the accent color (04-UI-SPEC.md "Why the active view toggle
+   is NOT accent-colored"). Keyed on [aria-current="page"], set in App.tsx. */
+nav button[aria-current='page'] {
+  background: var(--color-surface);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+nav button:not([aria-current='page']) {
+  background: transparent;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+/* History list (04-UI-SPEC.md "Layout — History view") — a plain gapped
+   grid <ol>, no list markers, no independent scroll container (D-18). */
+.history-list {
+  display: grid;
+  gap: var(--space-sm);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* History row — bordered secondary-surface card, same treatment as
+   .preview / .results-panel, reused not re-invented. */
+.history-row {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: var(--space-md);
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.history-row-primary {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--space-md);
+  row-gap: var(--space-xs);
+  align-items: baseline;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.history-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--space-md);
+  row-gap: var(--space-xs);
+}
+
+.history-row-meta .key-chip {
+  background: var(--color-bg);
+}
+
+.history-empty,
+.history-loading {
+  margin: 0;
+  padding-block: var(--space-md);
+}

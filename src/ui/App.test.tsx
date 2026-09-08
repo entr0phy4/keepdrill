@@ -110,6 +110,38 @@ describe('App — completion persists exactly one row (PERS-01)', () => {
   })
 })
 
+describe('App — view toggle single-active invariant (04-UI-SPEC.md H1)', () => {
+  it('exactly one nav toggle button carries aria-current="page", flipping between Trainer and History', () => {
+    act(() => {
+      root.render(<App />)
+    })
+
+    const trainerButton = Array.from(container.querySelectorAll('nav button')).find(
+      (b) => b.textContent === 'Trainer',
+    )!
+    const historyButton = Array.from(container.querySelectorAll('nav button')).find(
+      (b) => b.textContent === 'History',
+    )!
+
+    expect(trainerButton.getAttribute('aria-current')).toBe('page')
+    expect(historyButton.getAttribute('aria-current')).toBeNull()
+
+    act(() => {
+      historyButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(historyButton.getAttribute('aria-current')).toBe('page')
+    expect(trainerButton.getAttribute('aria-current')).toBeNull()
+
+    act(() => {
+      trainerButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(trainerButton.getAttribute('aria-current')).toBe('page')
+    expect(historyButton.getAttribute('aria-current')).toBeNull()
+  })
+})
+
 describe('App — save-failure notice (PERS-03, D-15/D-16/D-17)', () => {
   it('renders the results panel synchronously even when the persistence write rejects, then shows a dismissible notice', async () => {
     // Force the write to reject by closing the DB connection before completion.
