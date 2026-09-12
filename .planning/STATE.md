@@ -5,8 +5,8 @@ milestone_name: Persistencia y Analíticas
 current_phase: 5
 current_phase_name: Symbol-Adjusted WPM & Language Tagging
 status: planning
-stopped_at: Fase 5 contexto capturado
-last_updated: "2026-09-12T19:28:54.283Z"
+stopped_at: Fase 5 UI-SPEC aprobado
+last_updated: "2026-09-12T19:41:15.541Z"
 last_activity: 2026-09-12
 last_activity_desc: Phase 04 complete, transitioned to Phase 5
 progress:
@@ -108,9 +108,9 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-12T19:28:54.273Z
-Stopped at: Fase 5 contexto capturado
-Resume file: .planning/phases/05-symbol-adjusted-wpm-language-tagging/05-CONTEXT.md
+Last session: 2026-09-12T19:41:15.519Z
+Stopped at: Fase 5 UI-SPEC aprobado
+Resume file: .planning/phases/05-symbol-adjusted-wpm-language-tagging/05-UI-SPEC.md
 
 ## Operator Next Steps
 
