@@ -1,7 +1,7 @@
 ---
 phase: 5
 slug: symbol-adjusted-wpm-language-tagging
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-09-12
@@ -236,11 +236,11 @@ No shadcn, no third-party registries, no external component blocks introduced by
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS (non-blocking recommendation: state focal-point explicitly — see gsd-ui-checker notes)
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved — 2026-09-12
