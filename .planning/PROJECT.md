@@ -35,9 +35,13 @@ is useful for a week of daily self-use, the project is worth continuing.
 - ✓ User sees live per-character correctness feedback with a custom caret and whitespace glyphs, under a free-correction policy with backspace-to-correct, restart, and honest session timing (excludes blurred/hidden time) — Phase 2
 - ✓ User sees net WPM, accuracy, and the five slowest keystrokes on completion, from a pure re-runnable metrics engine — Phase 3
 
+- ✓ User's completed session (full raw log) automatically persists to local IndexedDB with no explicit save action, and survives a page reload — Phase 4
+- ✓ User can view a list of past sessions (date, WPM, accuracy), newest first — Phase 4
+- ✓ User sees a non-blocking notice if a session fails to persist; the results screen is never blocked or delayed by the save — Phase 4
+
 ### Active
 
-- [ ] Scoping in progress for v1.1 — see Current Milestone above (persistence, digraph/trigraph latency, keyboard heatmap, per-language profile, symbol-adjusted WPM). REQ-IDs to follow in REQUIREMENTS.md.
+- [ ] Scoping in progress for v1.1 remainder — see Current Milestone above (digraph/trigraph latency, keyboard heatmap, per-language profile, symbol-adjusted WPM). REQ-IDs in REQUIREMENTS.md (ANLY-01..05).
 
 ### Out of Scope
 
@@ -97,6 +101,9 @@ is useful for a week of daily self-use, the project is worth continuing.
 | Mandatory vs free error correction | Forcing correction of every error changes the state engine completely | ✓ Good — free-correction locked (D-04); advancing past an error is never blocked, corrected/uncorrected tracked separately — Phase 2 |
 | Indentation handling (auto-indent like an editor vs manual) | Auto-indent is realistic but removes Tab/space training | ✓ Good — Tab is fully absorbed as a no-op (no indent insertion, no synthetic character); Escape is the keyboard-only path to Restart since Tab can't reach it via tab-order (D-07 amended) — Phase 2 |
 | Keyboard layout support (US ANSI only vs es-LA / US-International) | Changes the symbol map | ✓ Good — v1 assumes US ANSI only, static notice banner (Phase 1) |
+| Persist full raw `Session` + cached `MetricsResult` snapshot, not just derived summary numbers | Every historical session stays fully recomputable when a formula improves — Phase 5/6 analytics apply retroactively with zero data migration | ✓ Good — Phase 4 |
+| Hide (display:none), never unmount, the trainer subtree when switching to History | Preserves in-progress capture state (caret, per-char coloring, IME) across a view switch with no confirm dialog or lost progress | ✓ Good — Phase 4, verified in happy-dom + real-browser human-check |
+| `persistence/db.ts` is the sole module importing `dexie`; `repository.ts` is the only seam other modules touch | Keeps Dexie as an isolated platform seam, matching the Phase 1 pure-core/platform-seam/hot-path split | ✓ Good — Phase 4 |
 
 ## Success Criteria
 
@@ -122,4 +129,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-05 — v1.1 milestone started*
+*Last updated: 2026-09-12 — Phase 4 (session-persistence-history) complete*

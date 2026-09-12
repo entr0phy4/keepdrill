@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Persistencia y Analíticas
-current_phase: 04
-current_phase_name: session-persistence-history
-status: verifying
+current_phase: 5
+current_phase_name: Symbol-Adjusted WPM & Language Tagging
+status: planning
 stopped_at: Completado 04-02-PLAN.md (History view full fidelity, PERS-02)
-last_updated: "2026-09-08T23:06:59.207Z"
-last_activity: 2026-09-08
-last_activity_desc: Phase 04 execution started
+last_updated: "2026-09-12T19:14:16.017Z"
+last_activity: 2026-09-12
+last_activity_desc: Phase 04 complete, transitioned to Phase 5
 progress:
   total_phases: 3
   completed_phases: 1
@@ -21,17 +21,17 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-09-05)
+See: .planning/PROJECT.md (updated 2026-09-12)
 
 **Core value:** The user can paste or upload a real code/text file, type it with keystroke capture, and see WPM, accuracy, and their five slowest keys — useful enough for a week of daily self-use.
-**Current focus:** Phase 04 — session-persistence-history
+**Current focus:** Phase 5 — Symbol-Adjusted WPM & Language Tagging
 
 ## Current Position
 
-Phase: 04 (session-persistence-history) — EXECUTING
-Plan: 2 of 2
-Status: Phase complete — ready for verification
-Last activity: 2026-09-08 — Phase 04 execution started
+Phase: 5 — Symbol-Adjusted WPM & Language Tagging
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-09-12 — Phase 04 complete, transitioned to Phase 5
 
 Progress: [██████████] 100%
 
@@ -39,7 +39,7 @@ Progress: [██████████] 100%
 
 **Velocity:**
 
-- Total plans completed: 8
+- Total plans completed: 10
 - Average duration: ~13 min
 - Total execution time: ~1.7 hours
 
@@ -50,7 +50,7 @@ Progress: [██████████] 100%
 | 01 | 3 | - | - |
 | 02 | 3 | - | - |
 | 03 | 2 | - | - |
-| 04 | TBD | - | - |
+| 04 | 2 | - | - |
 | 05 | TBD | - | - |
 | 06 | TBD | - | - |
 
@@ -79,10 +79,11 @@ Recent decisions affecting current work:
 - [Phase 3]: Symbol-adjusted WPM was out of v1.0 scope, now in-scope as Phase 5 (ANLY-01) — must remain a companion metric to net WPM, never a silent replacement.
 - [Phase 1]: Platform locked: Vite 8 + React 19 + TS 5.9 strict browser SPA, pnpm, no backend; pure-core / platform-seam / hot-path module split established — v1.1's `persistence/` and `analytics/` modules should follow this same seam discipline.
 - [Phase 2]: Free-correction typing policy locked (D-04); corrected/uncorrected attempts tracked separately — relevant to any v1.1 metric that touches accuracy.
-- [Phase ?]: Task 1 checkpoint auto-seleccionó option-a (Session cruda + snapshot MetricsResult) — idéntico a D-02
-- [Phase ?]: Se fijó dexie@4.4.4 (no 4.4.5) para evitar la señal too-new del seam de legitimidad de paquetes, sin diferencia funcional
-- [Phase ?]: Clave primaria ++id con índice único en startedAt; los campos blob (events/charLog/markers/exercise/metricsSnapshot) nunca se indexan (D-05)
-- [Phase ?]: Fase 4 Plan 2: HistoryRow expandido a las 7 columnas D-11/D-12 via resolveMetrics/relativeTime/glyphFor; toggle activo distinguido por relleno de superficie + peso 600 (sin --color-accent, 04-UI-SPEC.md)
+- [Phase 4]: Task 1 checkpoint auto-seleccionó option-a (Session cruda + snapshot MetricsResult) — idéntico a D-02
+- [Phase 4]: Se fijó dexie@4.4.4 (no 4.4.5) para evitar la señal too-new del seam de legitimidad de paquetes, sin diferencia funcional
+- [Phase 4]: Clave primaria ++id con índice único en startedAt; los campos blob (events/charLog/markers/exercise/metricsSnapshot) nunca se indexan (D-05)
+- [Phase 4]: HistoryRow expandido a las 7 columnas D-11/D-12 via resolveMetrics/relativeTime/glyphFor; toggle activo distinguido por relleno de superficie + peso 600 (sin --color-accent, 04-UI-SPEC.md)
+- [Phase 4]: threats_open: 0 confirmado en 04-SECURITY.md (ASVS L1, register autorado en plan-time); 2 riesgos aceptados documentados (D-18 keep-forever, almacenamiento local sin cifrar)
 
 ### Pending Todos
 
@@ -107,10 +108,11 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-08T23:06:59.200Z
-Stopped at: Completado 04-02-PLAN.md (History view full fidelity, PERS-02)
+Last session: 2026-09-12T19:20:00.000Z
+Stopped at: Phase 4 complete (UAT passed 2/2, threats_open: 0), transitioned to Phase 5
 Resume file: None
 
 ## Operator Next Steps
 
-- Run `/gsd-plan-phase 4` to begin planning Session Persistence & History
+- Run `/gsd-discuss-phase 5` to gather context before planning Symbol-Adjusted WPM & Language Tagging (no CONTEXT.md exists yet)
+- Or run `/gsd-plan-phase 5` to skip discussion and plan directly
