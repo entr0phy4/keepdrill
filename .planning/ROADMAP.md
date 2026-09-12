@@ -22,7 +22,7 @@ Full detail archived to `.planning/milestones/v1.0-ROADMAP.md`.
 
 **Milestone Goal:** Persistir cada sesión localmente y exponer analíticas de dígrafo/trígrafo, heatmap de teclado, perfil por lenguaje y WPM ajustado por símbolos, para poder medir mejora real a través del tiempo.
 
-- [ ] **Phase 4: Session Persistence & History** - Sessions save automatically to IndexedDB and appear in a newest-first history list
+- [x] **Phase 4: Session Persistence & History** - Sessions save automatically to IndexedDB and appear in a newest-first history list (completed 2026-09-12)
 - [ ] **Phase 5: Symbol-Adjusted WPM & Language Tagging** - Results show a symbol-density-aware WPM and pasted exercises can be tagged with a real language
 - [ ] **Phase 6: Cross-Session Analytics** - Digraph latency, keyboard heatmap, and per-language profile computed across accumulated session history
 
@@ -57,7 +57,11 @@ Full detail archived to `.planning/milestones/v1.0-ROADMAP.md`.
   2. The user sees the same symbol-adjusted WPM value when reviewing a session in history.
   3. When pasting text (not uploading), the user can pick or confirm the exercise's language, so pasted sessions are no longer stuck tagged as `'plaintext'`.
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+- [ ] 05-01-PLAN.md — Symbol-adjusted WPM: pure classifier/formula module, metrics.ts schema bump to 2, ResultsView/HistoryRow display (ANLY-01)
+- [ ] 05-02-PLAN.md — Paste language picker: PASTE_LANGUAGE_OPTIONS export, fromPaste signature change, CorpusInput `<select>` (ANLY-02)
+
 **UI hint**: yes
 
 ### Phase 6: Cross-Session Analytics
@@ -84,6 +88,6 @@ Phases execute in numeric order: 4 → 5 → 6
 | 1. Corpus Input & Keystroke Capture | v1.0 | 3/3 | Complete | 2026-09-04 |
 | 2. Interactive Typing Trainer | v1.0 | 3/3 | Complete | 2026-09-05 |
 | 3. Session Metrics | v1.0 | 2/2 | Complete | 2026-09-05 |
-| 4. Session Persistence & History | v1.1 | 2/2 | In Progress|  |
-| 5. Symbol-Adjusted WPM & Language Tagging | v1.1 | 0/? | Not started | - |
+| 4. Session Persistence & History | v1.1 | 2/2 | Complete    | 2026-09-12 |
+| 5. Symbol-Adjusted WPM & Language Tagging | v1.1 | 0/2 | Planned | - |
 | 6. Cross-Session Analytics | v1.1 | 0/? | Not started | - |
