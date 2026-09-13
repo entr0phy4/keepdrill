@@ -88,9 +88,9 @@ Recent decisions affecting current work:
 - [Phase 4]: threats_open: 0 confirmado en 04-SECURITY.md (ASVS L1, register autorado en plan-time); 2 riesgos aceptados documentados (D-18 keep-forever, almacenamiento local sin cifrar)
 - [Phase 5]: symbolAdjustedWpm is an ADDITIVE companion on MetricsResult; wpm remains the primary/required field (assumption-delta: add-alongside, not promote)
 - [Phase 5]: Rule 3: also added symbolAdjustedWpm to persistence test MetricsResult literals so typecheck stays green (Pitfall 3 listed only the two UI fixtures)
-- [Phase ?]: fromPaste language is a required positional parameter with no default (D-15 / RESEARCH A1) so a missed call site fails at compile time
-- [Phase ?]: PASTE_LANGUAGE_OPTIONS excludes plaintext; CorpusInput presents plaintext as the explicit always-selected first option (D-12/D-13)
-- [Phase ?]: Rule 3: Task 1 passed an explicit plaintext into CorpusInput's fromPaste call so typecheck stayed green before Task 2 wired pasteLanguage
+- [Phase 5]: fromPaste language is a required positional parameter with no default (D-15 / RESEARCH A1) so a missed call site fails at compile time
+- [Phase 5]: PASTE_LANGUAGE_OPTIONS excludes plaintext; CorpusInput presents plaintext as the explicit always-selected first option (D-12/D-13)
+- [Phase 5]: Rule 3: Task 1 passed an explicit plaintext into CorpusInput's fromPaste call so typecheck stayed green before Task 2 wired pasteLanguage
 
 ### Pending Todos
 
