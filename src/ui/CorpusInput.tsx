@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import type { Exercise } from '../ingestion/types'
+import { PASTE_LANGUAGE_OPTIONS } from '../ingestion/language-map'
 import { fromPaste } from '../ingestion/paste'
 import { fromFile, MAX_BYTES } from '../ingestion/upload'
 import { CorpusTooLargeError, NonUtf8Error } from '../ingestion/errors'
@@ -27,6 +28,7 @@ interface CorpusInputProps {
 
 export function CorpusInput({ onLoad }: CorpusInputProps) {
   const [value, setValue] = useState('')
+  const [pasteLanguage, setPasteLanguage] = useState('plaintext')
   const [fileError, setFileError] = useState<string | null>(null)
   const [emptyError, setEmptyError] = useState<string | null>(null)
   const [caption, setCaption] = useState<string | null>(null)
@@ -73,7 +75,7 @@ export function CorpusInput({ onLoad }: CorpusInputProps) {
         setBusy(false)
         return
       }
-      const exercise = fromPaste(value, 'plaintext')
+      const exercise = fromPaste(value, pasteLanguage)
       setCaption(null)
       setFileError(null)
       onLoad(exercise)
@@ -121,6 +123,25 @@ export function CorpusInput({ onLoad }: CorpusInputProps) {
           rows={8}
           spellCheck={false}
         />
+      </div>
+
+      <div style={{ display: 'grid', gap: 'var(--space-xs)' }}>
+        <label htmlFor="corpus-paste-language" className="text-label">
+          Language
+        </label>
+        <select
+          id="corpus-paste-language"
+          className="control"
+          value={pasteLanguage}
+          onChange={(e) => setPasteLanguage(e.target.value)}
+        >
+          <option value="plaintext">plaintext</option>
+          {PASTE_LANGUAGE_OPTIONS.map((lang) => (
+            <option key={lang} value={lang}>
+              {lang}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div style={{ display: 'grid', gap: 'var(--space-xs)' }}>
