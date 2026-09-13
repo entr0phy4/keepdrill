@@ -73,7 +73,7 @@ export function CorpusInput({ onLoad }: CorpusInputProps) {
         setBusy(false)
         return
       }
-      const exercise = fromPaste(value)
+      const exercise = fromPaste(value, 'plaintext')
       setCaption(null)
       setFileError(null)
       onLoad(exercise)

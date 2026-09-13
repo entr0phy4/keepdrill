@@ -68,7 +68,7 @@ describe('fromFile', () => {
   it('normalizes CRLF + tabs identically to fromPaste of the same string', async () => {
     const raw = 'function f() {\r\n\tif (a)\treturn 1  \r\n}\r\n'
     const uploaded = await fromFile(textFile(raw, 'f.js'))
-    const pasted = fromPaste(raw)
+    const pasted = fromPaste(raw, 'plaintext')
     expect(uploaded.text).toBe(pasted.text)
     expect(uploaded.text).toBe(normalize(raw, { tabWidth: 4 }))
   })

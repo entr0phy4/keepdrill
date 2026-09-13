@@ -27,6 +27,17 @@ const EXT_TO_LANG: Record<string, string> = {
   '.toml': 'toml',
 }
 
+// D-12: canonical paste/upload language vocabulary, derived from EXT_TO_LANG's
+// own value set so the two paths can never drift onto different lists. Computed
+// once at module load. Deliberately excludes 'plaintext' — the caller presents
+// that as the explicit, always-selected default (D-13) so "is this the default"
+// stays visible at the call site rather than buried here. Do not export
+// EXT_TO_LANG itself (Pitfall 5): that would leak the extension-keying concern
+// into the UI layer.
+export const PASTE_LANGUAGE_OPTIONS: readonly string[] = [
+  ...new Set(Object.values(EXT_TO_LANG)),
+].sort()
+
 export function extToLang(fileName: string): string {
   const dot = fileName.lastIndexOf('.')
   // dot === -1: no extension. dot === 0: a dotfile with no suffix (".gitignore").
