@@ -4,17 +4,17 @@ milestone: v1.1
 milestone_name: Persistencia y Analíticas
 current_phase: 05
 current_phase_name: symbol-adjusted-wpm-language-tagging
-status: executing
-stopped_at: Completed 05-01-PLAN.md
-last_updated: "2026-09-13T18:46:30.434Z"
+status: verifying
+stopped_at: Completed 05-02-PLAN.md
+last_updated: "2026-09-13T18:53:37.508Z"
 last_activity: 2026-09-13
 last_activity_desc: Phase 05 execution started
 progress:
   total_phases: 3
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 4
-  completed_plans: 3
-  percent: 75
+  completed_plans: 4
+  percent: 67
 ---
 
 # Project State
@@ -30,10 +30,10 @@ See: .planning/PROJECT.md (updated 2026-09-12)
 
 Phase: 05 (symbol-adjusted-wpm-language-tagging) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-09-13 — Phase 05 execution started
 
-Progress: [████████░░] 75%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -67,6 +67,7 @@ Progress: [████████░░] 75%
 | Phase 04 P01 | 45min | 3 tasks | 17 files |
 | Phase 04 P02 | 35min | 3 tasks | 10 files |
 | Phase 05 P01 | 7min | 3 tasks | 11 files |
+| Phase 05 P02 | 4 min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -87,6 +88,9 @@ Recent decisions affecting current work:
 - [Phase 4]: threats_open: 0 confirmado en 04-SECURITY.md (ASVS L1, register autorado en plan-time); 2 riesgos aceptados documentados (D-18 keep-forever, almacenamiento local sin cifrar)
 - [Phase 5]: symbolAdjustedWpm is an ADDITIVE companion on MetricsResult; wpm remains the primary/required field (assumption-delta: add-alongside, not promote)
 - [Phase 5]: Rule 3: also added symbolAdjustedWpm to persistence test MetricsResult literals so typecheck stays green (Pitfall 3 listed only the two UI fixtures)
+- [Phase ?]: fromPaste language is a required positional parameter with no default (D-15 / RESEARCH A1) so a missed call site fails at compile time
+- [Phase ?]: PASTE_LANGUAGE_OPTIONS excludes plaintext; CorpusInput presents plaintext as the explicit always-selected first option (D-12/D-13)
+- [Phase ?]: Rule 3: Task 1 passed an explicit plaintext into CorpusInput's fromPaste call so typecheck stayed green before Task 2 wired pasteLanguage
 
 ### Pending Todos
 
@@ -111,8 +115,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-13T18:46:30.426Z
-Stopped at: Completed 05-01-PLAN.md
+Last session: 2026-09-13T18:53:37.500Z
+Stopped at: Completed 05-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
