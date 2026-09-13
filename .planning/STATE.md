@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Persistencia y Analíticas
-current_phase: 5
-current_phase_name: Symbol-Adjusted WPM & Language Tagging
+current_phase: 05
+current_phase_name: symbol-adjusted-wpm-language-tagging
 status: executing
-stopped_at: Fase 5 UI-SPEC aprobado
-last_updated: "2026-09-12T19:53:31.677Z"
-last_activity: 2026-09-12
-last_activity_desc: Phase 04 complete, transitioned to Phase 5
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-09-13T18:46:30.434Z"
+last_activity: 2026-09-13
+last_activity_desc: Phase 05 execution started
 progress:
   total_phases: 3
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
-  percent: 33
+  total_plans: 4
+  completed_plans: 3
+  percent: 75
 ---
 
 # Project State
@@ -24,16 +24,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-12)
 
 **Core value:** The user can paste or upload a real code/text file, type it with keystroke capture, and see WPM, accuracy, and their five slowest keys — useful enough for a week of daily self-use.
-**Current focus:** Phase 5 — Symbol-Adjusted WPM & Language Tagging
+**Current focus:** Phase 05 — symbol-adjusted-wpm-language-tagging
 
 ## Current Position
 
-Phase: 5 — Symbol-Adjusted WPM & Language Tagging
-Plan: Not started
+Phase: 05 (symbol-adjusted-wpm-language-tagging) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
-Last activity: 2026-09-12 — Phase 04 complete, transitioned to Phase 5
+Last activity: 2026-09-13 — Phase 05 execution started
 
-Progress: [██████████] 100%
+Progress: [████████░░] 75%
 
 ## Performance Metrics
 
@@ -66,6 +66,7 @@ Progress: [██████████] 100%
 |------|----------|-------|-------|
 | Phase 04 P01 | 45min | 3 tasks | 17 files |
 | Phase 04 P02 | 35min | 3 tasks | 10 files |
+| Phase 05 P01 | 7min | 3 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -84,6 +85,8 @@ Recent decisions affecting current work:
 - [Phase 4]: Clave primaria ++id con índice único en startedAt; los campos blob (events/charLog/markers/exercise/metricsSnapshot) nunca se indexan (D-05)
 - [Phase 4]: HistoryRow expandido a las 7 columnas D-11/D-12 via resolveMetrics/relativeTime/glyphFor; toggle activo distinguido por relleno de superficie + peso 600 (sin --color-accent, 04-UI-SPEC.md)
 - [Phase 4]: threats_open: 0 confirmado en 04-SECURITY.md (ASVS L1, register autorado en plan-time); 2 riesgos aceptados documentados (D-18 keep-forever, almacenamiento local sin cifrar)
+- [Phase 5]: symbolAdjustedWpm is an ADDITIVE companion on MetricsResult; wpm remains the primary/required field (assumption-delta: add-alongside, not promote)
+- [Phase 5]: Rule 3: also added symbolAdjustedWpm to persistence test MetricsResult literals so typecheck stays green (Pitfall 3 listed only the two UI fixtures)
 
 ### Pending Todos
 
@@ -108,9 +111,9 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-12T19:41:15.519Z
-Stopped at: Fase 5 UI-SPEC aprobado
-Resume file: .planning/phases/05-symbol-adjusted-wpm-language-tagging/05-UI-SPEC.md
+Last session: 2026-09-13T18:46:30.426Z
+Stopped at: Completed 05-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 

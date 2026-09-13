@@ -14,7 +14,7 @@
 
 ### Analytics (ANLY)
 
-- [ ] **ANLY-01**: User can see a symbol-density-adjusted WPM shown as a companion metric next to net WPM, on the results screen and in session history
+- [x] **ANLY-01**: User can see a symbol-density-adjusted WPM shown as a companion metric next to net WPM, on the results screen and in session history
 - [ ] **ANLY-02**: User can pick or confirm the language of a pasted exercise (not just uploads), so pasted sessions are tagged with a real language instead of always defaulting to `'plaintext'`
 - [ ] **ANLY-03**: User can see a ranked table of their slowest digraphs (2-character sequences), accumulated across persisted sessions, with a minimum-sample gate so sparse/noisy pairs aren't shown as confident results
 - [ ] **ANLY-04**: User can see a keyboard heatmap showing which physical keys are slowest, based on median latency accumulated across persisted sessions
@@ -51,7 +51,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PERS-01 | Phase 4 | Complete |
 | PERS-02 | Phase 4 | Complete |
 | PERS-03 | Phase 4 | Complete |
-| ANLY-01 | Phase 5 | Pending |
+| ANLY-01 | Phase 5 | Complete |
 | ANLY-02 | Phase 5 | Pending |
 | ANLY-03 | Phase 6 | Pending |
 | ANLY-04 | Phase 6 | Pending |

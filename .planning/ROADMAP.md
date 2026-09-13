@@ -57,9 +57,9 @@ Full detail archived to `.planning/milestones/v1.0-ROADMAP.md`.
   2. The user sees the same symbol-adjusted WPM value when reviewing a session in history.
   3. When pasting text (not uploading), the user can pick or confirm the exercise's language, so pasted sessions are no longer stuck tagged as `'plaintext'`.
 
-**Plans**: 2 plans
+**Plans**: 1/2 plans executed
 
-- [ ] 05-01-PLAN.md — Symbol-adjusted WPM: pure classifier/formula module, metrics.ts schema bump to 2, ResultsView/HistoryRow display (ANLY-01)
+- [x] 05-01-PLAN.md — Symbol-adjusted WPM: pure classifier/formula module, metrics.ts schema bump to 2, ResultsView/HistoryRow display (ANLY-01)
 - [ ] 05-02-PLAN.md — Paste language picker: PASTE_LANGUAGE_OPTIONS export, fromPaste signature change, CorpusInput `<select>` (ANLY-02)
 
 **UI hint**: yes
@@ -89,5 +89,5 @@ Phases execute in numeric order: 4 → 5 → 6
 | 2. Interactive Typing Trainer | v1.0 | 3/3 | Complete | 2026-09-05 |
 | 3. Session Metrics | v1.0 | 2/2 | Complete | 2026-09-05 |
 | 4. Session Persistence & History | v1.1 | 2/2 | Complete    | 2026-09-12 |
-| 5. Symbol-Adjusted WPM & Language Tagging | v1.1 | 0/2 | Planned | - |
+| 5. Symbol-Adjusted WPM & Language Tagging | v1.1 | 1/2 | In Progress|  |
 | 6. Cross-Session Analytics | v1.1 | 0/? | Not started | - |
