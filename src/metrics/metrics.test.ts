@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { computeSessionMetrics } from './metrics'
 import type { SlowestKeyEntry } from './metrics'
 import type { CommittedChar, CaptureMarker } from '../capture/types'
+import { classifySymbolDensity, computeSymbolAdjustedWpm } from './symbol-density'
 
 // Golden-case table (Case/it.each convention matching state.test.ts /
 // active-time.test.ts) exercising computeSessionMetrics directly, covering
@@ -23,7 +24,7 @@ interface Case {
   charLog: CommittedChar[]
   markers: CaptureMarker[]
   now: number
-  expected: { wpm: number; accuracy: number; slowest5?: SlowestKeyEntry[] }
+  expected: { wpm: number; accuracy: number; slowest5?: SlowestKeyEntry[]; symbolAdjustedWpm?: number }
 }
 
 const cases: Case[] = [
@@ -195,6 +196,8 @@ const cases: Case[] = [
     expected: {
       wpm: 8 / 5 / (360 / 60000),
       accuracy: 1,
+      // 100% symbol density → difficultyMultiplier = SYMBOL_WEIGHT = 2
+      symbolAdjustedWpm: (8 / 5 / (360 / 60000)) * 2,
       slowest5: [
         { char: '[', medianMs: 60 },
         { char: '{', medianMs: 40 },
@@ -224,11 +227,50 @@ describe('computeSessionMetrics() — golden cases (D-01/D-02/D-03/D-04, Pitfall
     if (expected.slowest5 !== undefined) {
       expect(result.slowest5).toEqual(expected.slowest5)
     }
+    expect(result.symbolAdjustedWpm).toBeCloseTo(
+      computeSymbolAdjustedWpm(result.wpm, classifySymbolDensity(target)),
+      6,
+    )
+    if (expected.symbolAdjustedWpm !== undefined) {
+      expect(result.symbolAdjustedWpm).toBeCloseTo(expected.symbolAdjustedWpm, 6)
+    }
   })
 
   it('every MetricsResult carries the current schema version', () => {
     const result = computeSessionMetrics('a', [char(0, 'insertText', 'a', 0)], [], 500)
-    expect(result.schemaVersion).toBe(1)
+    expect(result.schemaVersion).toBe(2)
+  })
+
+  it('D-07: backspace-corrected symbol characters do not inflate the symbolAdjustedWpm/wpm ratio (no double-counting)', () => {
+    const target = 'a{b'
+    const now = 200
+    const markers: CaptureMarker[] = []
+
+    const cleanLog: CommittedChar[] = [
+      char(0, 'insertText', 'a', 0),
+      char(1, 'insertText', '{', 100),
+      char(2, 'insertText', 'b', 200),
+    ]
+
+    // Identical target/now, but '{' is first mistyped, then deleted, then retyped.
+    // Extra attempt-stream records must not change the multiplier (D-04/D-07).
+    const correctedLog: CommittedChar[] = [
+      char(0, 'insertText', 'a', 0),
+      char(1, 'insertText', '[', 50),
+      char(2, 'deleteContentBackward', null, 80),
+      char(3, 'insertText', '{', 100),
+      char(4, 'insertText', 'b', 200),
+    ]
+
+    const resultClean = computeSessionMetrics(target, cleanLog, markers, now)
+    const resultCorrected = computeSessionMetrics(target, correctedLog, markers, now)
+
+    expect(resultClean.wpm).not.toBe(0)
+    expect(resultCorrected.wpm).not.toBe(0)
+    expect(resultClean.symbolAdjustedWpm / resultClean.wpm).toBeCloseTo(
+      resultCorrected.symbolAdjustedWpm / resultCorrected.wpm,
+      10,
+    )
   })
 
   it('never returns more than 5 slowest5 entries even with more qualifying characters', () => {
