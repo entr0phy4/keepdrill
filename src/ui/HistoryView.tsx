@@ -48,7 +48,8 @@ function HistoryRow({ session }: { session: StoredSession }) {
       <div className="history-row-primary">
         <span title={new Date(session.startedAt).toLocaleString()}>{relativeTime(session.startedAt)}</span>
         <span>
-          {Math.round(m.wpm)} <span className="results-stat-label text-muted">wpm</span>
+          {Math.round(m.wpm)} / {Math.round(m.symbolAdjustedWpm)}{' '}
+          <span className="results-stat-label text-muted">adj.</span>
         </span>
         <span>{Math.round(m.accuracy * 100)}%</span>
       </div>

@@ -349,7 +349,7 @@ textarea {
 
 @media (min-width: 640px) {
   .results-stats {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     column-gap: var(--space-lg);
     row-gap: var(--space-md);
   }

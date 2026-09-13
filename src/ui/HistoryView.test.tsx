@@ -111,7 +111,8 @@ describe('HistoryView — fully populated row (D-11/D-12)', () => {
     expect(row).not.toBeNull()
     expect(row!.textContent).toContain('hours ago')
     expect(row!.textContent).toContain('62 ')
-    expect(row!.textContent).toContain('wpm')
+    expect(row!.textContent).toContain('adj.')
+    expect(row!.textContent).toContain('78')
     expect(row!.textContent).toContain('94%')
     expect(row!.textContent).toContain('Pasted snippet')
     expect(row!.textContent).toContain('plaintext')
@@ -137,7 +138,7 @@ describe('HistoryView — fully populated row (D-11/D-12)', () => {
 
     const row = container.querySelector('.history-row')
     expect(row).not.toBeNull()
-    expect(row!.textContent).toContain('wpm')
+    expect(row!.textContent).toContain('adj.')
     expect(row!.textContent).toContain('94%')
     expect(row!.querySelectorAll('.key-chip')).toHaveLength(1) // only the language chip
   })

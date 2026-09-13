@@ -30,6 +30,9 @@ export function ResultsView({ metrics }: ResultsViewProps) {
         <div className="results-stat">
           {Math.round(metrics.accuracy * 100)}% <span className="results-stat-label">accuracy</span>
         </div>
+        <div className="results-stat">
+          {Math.round(metrics.symbolAdjustedWpm)} <span className="results-stat-label">adj. wpm</span>
+        </div>
       </div>
       <div className="results-slowest">
         <span className="text-label text-muted">Slowest keys</span>
