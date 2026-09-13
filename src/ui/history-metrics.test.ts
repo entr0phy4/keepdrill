@@ -17,6 +17,7 @@ const baseSnapshot: MetricsResult = {
   wpm: 42,
   accuracy: 0.9,
   slowest5: [],
+  symbolAdjustedWpm: 60,
 }
 
 function makeStoredSession(overrides: Partial<StoredSession> = {}): StoredSession {

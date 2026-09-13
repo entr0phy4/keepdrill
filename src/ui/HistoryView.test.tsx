@@ -53,6 +53,7 @@ const baseMetrics: MetricsResult = {
   wpm: 62.4,
   accuracy: 0.9432,
   slowest5: [{ char: 'x', medianMs: 210 }],
+  symbolAdjustedWpm: 78,
 }
 
 function buildInput(overrides: { session?: Partial<Session>; metricsSnapshot?: MetricsResult } = {}): NewSession {

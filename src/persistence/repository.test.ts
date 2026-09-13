@@ -22,6 +22,7 @@ const metricsSnapshot: MetricsResult = {
   wpm: 42,
   accuracy: 0.9,
   slowest5: [],
+  symbolAdjustedWpm: 42,
 }
 
 function buildInput(overrides: Partial<Session> = {}, completedAt = 600): NewSession {

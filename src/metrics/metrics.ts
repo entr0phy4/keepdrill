@@ -28,8 +28,9 @@
 
 import type { CommittedChar, CaptureMarker } from '../capture/types'
 import { computeActiveElapsedMs } from '../trainer/active-time'
+import { classifySymbolDensity, computeSymbolAdjustedWpm } from './symbol-density'
 
-export const METRICS_SCHEMA_VERSION = 1
+export const METRICS_SCHEMA_VERSION = 2 // was 1 — D-06
 
 export interface SlowestKeyEntry {
   char: string
@@ -41,6 +42,7 @@ export interface MetricsResult {
   wpm: number
   accuracy: number
   slowest5: SlowestKeyEntry[]
+  symbolAdjustedWpm: number // NEW — D-06
 }
 
 const MIN_GAP_MS = 25
@@ -156,11 +158,14 @@ export function computeSessionMetrics(
 ): MetricsResult {
   const elapsedMs = computeActiveElapsedMs(charLog, markers, now)
   const { correctAttempts, incorrectAttempts, latencySamplesByChar } = replayAttempts(target, charLog)
+  const wpm = computeWpm(correctAttempts, elapsedMs)
+  const symbolDensity = classifySymbolDensity(target)
 
   return {
     schemaVersion: METRICS_SCHEMA_VERSION,
-    wpm: computeWpm(correctAttempts, elapsedMs),
+    wpm,
     accuracy: computeAccuracy(correctAttempts, correctAttempts + incorrectAttempts),
     slowest5: slowestFive(latencySamplesByChar),
+    symbolAdjustedWpm: computeSymbolAdjustedWpm(wpm, symbolDensity),
   }
 }
