@@ -57,6 +57,11 @@
   --color-pending: #5c5c57;
   --color-incorrect: #c0362c;
   --color-incorrect-bg: rgba(192, 54, 44, 0.14);
+
+  /* Heatmap sequential amber (06-UI-SPEC.md) — diagnostic intensity, not a score. */
+  --heatmap-lo: #fef3c7;
+  --heatmap-hi: #c97116;
+  --heatmap-key-fg: #1c1c1a;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -76,6 +81,10 @@
     --color-pending: #8b949e;
     --color-incorrect: #f85149;
     --color-incorrect-bg: rgba(248, 81, 73, 0.18);
+
+    --heatmap-lo: #2a1c08;
+    --heatmap-hi: #9a5a14;
+    --heatmap-key-fg: #e6edf3;
   }
 }
 
@@ -477,4 +486,61 @@ nav button:not([aria-current='page']) {
 .history-loading {
   margin: 0;
   padding-block: var(--space-md);
+}
+
+/* Analytics tables (06-UI-SPEC.md) — sit on --color-bg; numeric columns right-aligned. */
+.analytics-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.analytics-table th,
+.analytics-table td {
+  padding: var(--space-sm) var(--space-md);
+}
+
+.analytics-table thead th {
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--text-label-size);
+  font-weight: var(--text-label-weight);
+  line-height: var(--text-label-line);
+  color: var(--color-text-muted);
+  text-align: left;
+}
+
+.analytics-table th:not(:first-child),
+.analytics-table td:not(:first-child) {
+  text-align: right;
+  font-weight: 600;
+}
+
+.analytics-table tbody tr + tr td {
+  border-top: 1px solid var(--color-border);
+}
+
+.analytics-table .key-chip {
+  background: var(--color-surface);
+}
+
+/* US-ANSI heatmap grid — last-resort overflow only; unused keys stay drawn. */
+.keyboard-heatmap {
+  overflow-x: auto;
+  display: grid;
+  grid-template-columns: repeat(15, minmax(32px, 1fr));
+  gap: var(--space-xs);
+}
+
+.kb-key {
+  min-width: 32px;
+  min-height: 48px;
+  padding: var(--space-xs);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 0;
+  font-size: var(--text-label-size);
+  font-weight: var(--text-label-weight);
+  line-height: var(--text-label-line);
 }

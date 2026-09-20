@@ -92,20 +92,20 @@ describe('KeyboardHeatmap', () => {
     expect(sampledA?.textContent).toContain('A')
     expect(sampledA?.textContent).toContain('100')
     expect(sampledA?.textContent).not.toContain('ms')
-    expect(sampledA?.style.background).toBe(
-      'color-mix(in srgb, var(--heatmap-hi) 0%, var(--heatmap-lo))',
+    expect(sampledA?.getAttribute('style')).toContain(
+      '--kb-fill: color-mix(in srgb, var(--heatmap-hi) 0%, var(--heatmap-lo))',
     )
-    expect(sampledA?.style.color).toBe('var(--heatmap-key-fg)')
+    expect(sampledA?.getAttribute('style')).toContain('var(--heatmap-key-fg)')
 
     expect(sampledS?.textContent).toContain('201')
-    expect(sampledS?.style.background).toBe(
-      'color-mix(in srgb, var(--heatmap-hi) 100%, var(--heatmap-lo))',
+    expect(sampledS?.getAttribute('style')).toContain(
+      '--kb-fill: color-mix(in srgb, var(--heatmap-hi) 100%, var(--heatmap-lo))',
     )
 
     expect(unused?.textContent).toContain('D')
     expect(unused?.textContent).not.toMatch(/\d/)
-    expect(unused?.style.background).toBe('var(--color-surface)')
-    expect(unused?.style.color).toBe('var(--color-text)')
+    expect(unused?.getAttribute('style')).toContain('--kb-fill: var(--color-surface)')
+    expect(unused?.getAttribute('style')).toContain('var(--color-text)')
   })
 
   it('uses the mid-scale mix when every gated key shares the same median', () => {
@@ -118,8 +118,8 @@ describe('KeyboardHeatmap', () => {
     })
 
     const sampled = container.querySelector('[aria-label="A, 150 milliseconds"]') as HTMLElement | null
-    expect(sampled?.style.background).toBe(
-      'color-mix(in srgb, var(--heatmap-hi) 50%, var(--heatmap-lo))',
+    expect(sampled?.getAttribute('style')).toContain(
+      '--kb-fill: color-mix(in srgb, var(--heatmap-hi) 50%, var(--heatmap-lo))',
     )
   })
 })
