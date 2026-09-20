@@ -57,7 +57,7 @@ Full detail archived to `.planning/milestones/v1.1-ROADMAP.md`.
   4. User sees specific, non-generic copy when the repo is missing (404), GitHub rate-limits the client, or the recursive tree is truncated.
   5. Selecting a TypeScript or JavaScript file in the tree does not load a whole-file typing session — the tree stays browse-only until units exist.
 
-**Plans**: 2/3 plans executed
+**Plans**: 3/3 plans executed
 Plans:
 **Wave 1**
 
@@ -69,7 +69,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 07-03-PLAN.md — Paste | GitHub switch, browse-only RepoBrowser
+- [x] 07-03-PLAN.md — Paste | GitHub switch, browse-only RepoBrowser
 
 **UI hint**: yes
 
@@ -114,6 +114,6 @@ Plans:
 | 4. Session Persistence & History | v1.1 | 2/2 | Complete | 2026-09-12 |
 | 5. Symbol-Adjusted WPM & Language Tagging | v1.1 | 2/2 | Complete | 2026-09-13 |
 | 6. Cross-Session Analytics | v1.1 | 3/3 | Complete | 2026-09-20 |
-| 7. GitHub URL & Repo Tree | v2.0 | 2/3 | In Progress|  |
+| 7. GitHub URL & Repo Tree | v2.0 | 3/3 | In Progress|  |
 | 8. Parse & Dependency Units | v2.0 | 0/? | Not started | - |
 | 9. Scaffolded Trainer | v2.0 | 0/? | Not started | - |
