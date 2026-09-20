@@ -1,10 +1,22 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
-import { beforeEach, afterEach, describe, it, expect } from 'vitest'
+import { beforeEach, afterEach, describe, it, expect, vi } from 'vitest'
 import { resetCapture, getCharLog } from '../capture/capture'
 import { db } from '../persistence/db'
 import { listNewestFirst } from '../persistence/repository'
+import type { FilePlan } from '../parse/types'
 import { App } from './App'
+
+let capturedOnPlanned: ((plan: FilePlan) => void) | undefined
+
+vi.mock('./RepoBrowser', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./RepoBrowser')>()
+  function WrappedRepoBrowser(props: { onPlanned?: (plan: FilePlan) => void }) {
+    capturedOnPlanned = props.onPlanned
+    return actual.RepoBrowser(props)
+  }
+  return { RepoBrowser: WrappedRepoBrowser }
+})
 
 // React-DOM + happy-dom end-to-end render test, mirroring
 // CaptureSurface.test.tsx's conventions (trusted-event construction,
@@ -43,6 +55,7 @@ let container: HTMLDivElement
 let root: Root
 
 beforeEach(async () => {
+  capturedOnPlanned = undefined
   resetCapture()
   await db.delete()
   await db.open()
@@ -450,5 +463,46 @@ describe('App — Trainer-only Paste | GitHub corpus shell (D-01..D-04)', () => 
     )
     expect(tabKeys).toEqual([])
     expect(document.cookie).not.toMatch(/corpus/i)
+  })
+
+  it('does not mount #capture-surface when switching to GitHub', () => {
+    act(() => {
+      root.render(<App />)
+    })
+    act(() => {
+      container
+        .querySelector('#corpus-tab-github')!
+        .dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(container.querySelector('#capture-surface')).toBeNull()
+    expect(container.textContent).toContain('Paste code')
+    expect(container.textContent).toContain('Load exercise')
+  })
+
+  it('holds onPlanned FilePlan in memory without starting the trainer', () => {
+    act(() => {
+      root.render(<App />)
+    })
+    expect(typeof capturedOnPlanned).toBe('function')
+
+    act(() => {
+      capturedOnPlanned!({
+        exercise: {
+          text: 'function a() {}\n',
+          language: 'typescript',
+          sourceType: 'github',
+          sourceRef: 'o/r:src/App.tsx',
+        },
+        units: [{ id: 'file', kind: 'file', start: 0, end: 16, dependsOn: [] }],
+        fallback: true,
+      })
+    })
+
+    expect(container.querySelector('#capture-surface')).toBeNull()
+    expect(container.textContent).toContain('Paste code')
+    expect(container.textContent).toContain('Load exercise')
+    expect(container.querySelector('#corpus-panel-github')?.getAttribute('data-file-plan')).toBe(
+      'true',
+    )
   })
 })
