@@ -75,7 +75,12 @@ Full detail archived to `.planning/milestones/v1.0-ROADMAP.md`.
   2. The user can view a keyboard heatmap highlighting which physical keys have the highest median latency across their session history.
   3. The user can view a per-language profile showing WPM and accuracy grouped by tagged language, with untagged/plaintext sessions kept in their own distinct bucket rather than mixed into a real language.
 
-**Plans**: TBD
+**Plans:** 3 plans
+
+Plans:
+- [ ] 06-01-PLAN.md — Extract latency-stats + move resolveMetrics so analytics stays pure (ANLY-03/04/05 foundation)
+- [ ] 06-02-PLAN.md — Pure analytics folds: digraph ranking, keyboard heatmap, language profile
+- [ ] 06-03-PLAN.md — Analytics sibling view: stacked dashboard tables + US-ANSI heatmap (ANLY-03, ANLY-04, ANLY-05)
 **UI hint**: yes
 
 ## Progress
