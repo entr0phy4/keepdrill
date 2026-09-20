@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Katas desde GitHub
-current_phase: 8
-current_phase_name: Parse & Dependency Units
+current_phase: 08
+current_phase_name: parse-dependency-units
 status: executing
-stopped_at: Completed 07-03-PLAN.md
-last_updated: "2026-09-20T23:16:12.900Z"
+stopped_at: Completed 08-01-PLAN.md
+last_updated: "2026-09-20T23:25:05.744Z"
 last_activity: 2026-09-20
-last_activity_desc: Phase 07 complete, transitioned to Phase 8
+last_activity_desc: Completed 08-01 WASM ABI pin
 progress:
   total_phases: 3
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
-  percent: 33
+  total_plans: 7
+  completed_plans: 4
+  percent: 57
 ---
 
 # Project State
@@ -24,16 +24,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-20 after Phase 7)
 
 **Core value:** The user can paste or upload a real code/text file, type it with keystroke capture, and see WPM, accuracy, and their five slowest keys — useful enough for a week of daily self-use.
-**Current focus:** Phase 8 — Parse & Dependency Units
+**Current focus:** Phase 08 — parse-dependency-units
 
 ## Current Position
 
-Phase: 8 — Parse & Dependency Units
-Plan: Not started
+Phase: 08 (parse-dependency-units) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-09-20 — Phase 07 complete, transitioned to Phase 8
+Last activity: 2026-09-20 — Completed 08-01 WASM ABI pin
 
-Progress: [███░░░░░░░] 33%
+Progress: [██████░░░░] 57%
 
 ## Performance Metrics
 
@@ -68,6 +68,7 @@ Progress: [███░░░░░░░] 33%
 | Phase 07 P01 | 5 min | 3 tasks | 8 files |
 | Phase 07 P02 | 4 min | 2 tasks | 2 files |
 | Phase 07 P03 | 8 min | 2 tasks | 5 files |
+| Phase 08 P01 | 4 min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -81,6 +82,9 @@ Recent decisions affecting current work:
 - Scaffolded file: full text visible, only the current AST unit is typeable.
 - GitHub listing is browse-only: TS/JS clicks use not-yet copy; no blob fetch yet.
 - Phase 8 needs a wasm ABI pin spike (`web-tree-sitter` vs grammar versions).
+- [Phase 08]: Pin web-tree-sitter@0.27.0 — Language.load of tree-sitter-typescript@0.23.2 typescript and tsx wasm succeeded in Node (abiVersion 14); 0.25.10 and tree-sitter-cli were not needed
+- [Phase 08]: locateFile scriptName is web-tree-sitter.wasm; copy that basename to public/
+- [Phase 08]: cli_rebuild false; do not install tree-sitter-javascript or tree-sitter-cli
 
 ### Pending Todos
 
@@ -89,7 +93,6 @@ None yet.
 ### Blockers/Concerns
 
 - ANLY-06..09 remain deferred (v2.0 is repo katas, not more analytics).
-- Phase 8 needs a wasm ABI pin spike (`web-tree-sitter` vs grammar versions).
 - COEP `require-corp` must stay; GitHub via cors `fetch`; `credentialless` only as escape hatch.
 
 ## Deferred Items
@@ -103,6 +106,6 @@ Items acknowledged and deferred at milestone close on 2026-09-20:
 
 ## Session Continuity
 
-Last session: 2026-09-20T22:45:00.000Z
-Stopped at: Phase 7 complete, ready to plan Phase 8
+Last session: 2026-09-20T23:25:05.735Z
+Stopped at: Completed 08-01-PLAN.md
 Resume file: None
