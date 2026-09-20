@@ -4,15 +4,15 @@ milestone: v2.0
 milestone_name: Katas desde GitHub
 current_phase: 7
 current_phase_name: GitHub URL & Repo Tree
-status: planning
-stopped_at: Phase 7 plans written
+status: ready_to_execute
+stopped_at: Phase 7 planned
 last_updated: "2026-09-20T21:55:00.000Z"
 last_activity: 2026-09-20
-last_activity_desc: Phase 7 plans revised from checker (EmptyRepoError caption contract)
+last_activity_desc: Phase 7 planned — 3 plans in 3 waves
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 0
+  total_plans: 3
   completed_plans: 0
   percent: 0
 ---
@@ -30,8 +30,8 @@ See: .planning/PROJECT.md (updated 2026-09-20 after starting milestone v2.0)
 
 Phase: 7 of 9 (GitHub URL & Repo Tree)
 Plan: 01–03 created
-Status: Plans written — ready for execute
-Last activity: 2026-09-20 — Phase 7 plans revised (EmptyRepoError owner/repo/defaultBranch caption contract)
+Status: Ready to execute
+Last activity: 2026-09-20 — Phase 7 planned (3 plans, verification passed)
 
 Progress: [░░░░░░░░░░] 0%
 
