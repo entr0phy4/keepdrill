@@ -19,15 +19,16 @@
 //   accuracy = correctAttempts / (correctAttempts + incorrectAttempts)
 //
 // Slowest-5 aggregation (D-03/D-04, METR-03): group latency-gap samples by
-// the logical character committed (CommittedChar.data code point), discard
-// samples outside the exclusive (25ms, 1000ms) window, require >=3 samples
-// remaining POST-filter before a character is eligible, then rank by median
-// gap descending and cap at 5 entries. Do NOT group by KeyboardEvent.code
+// the logical character committed (CommittedChar.data code point), then call
+// gatedMedian(samples, CHAR_MIN_SAMPLES) which owns the exclusive (25ms,
+// 1000ms) window and the post-filter sample gate. Rank by median gap
+// descending and cap at 5 entries. Do NOT group by KeyboardEvent.code
 // (D-03) and do NOT gate the minimum-sample count on raw pre-filter
 // occurrence count (Pitfall 4).
 
 import type { CommittedChar, CaptureMarker } from '../capture/types'
 import { computeActiveElapsedMs } from '../trainer/active-time'
+import { CHAR_MIN_SAMPLES, gatedMedian } from './latency-stats'
 import { classifySymbolDensity, computeSymbolAdjustedWpm } from './symbol-density'
 
 export const METRICS_SCHEMA_VERSION = 2 // was 1 — D-06
@@ -44,10 +45,6 @@ export interface MetricsResult {
   slowest5: SlowestKeyEntry[]
   symbolAdjustedWpm: number // NEW — D-06
 }
-
-const MIN_GAP_MS = 25
-const MAX_GAP_MS = 1000
-const MIN_SAMPLES = 3
 
 /** Mirrors computeTrainerState's delete/insert branching exactly (D-02), but
  *  replays every insert-branch attempt individually — including attempts
@@ -105,33 +102,14 @@ function replayAttempts(
   return { correctAttempts, incorrectAttempts, latencySamplesByChar }
 }
 
-/** Guards samples.length === 0 -> 0 (unreachable in practice, since callers
- *  only invoke this after the >=MIN_SAMPLES gate); every indexed read is
- *  guarded against `undefined` for noUncheckedIndexedAccess safety, without
- *  a non-null assertion. */
-function median(samples: readonly number[]): number {
-  if (samples.length === 0) return 0
-  const sorted = [...samples].sort((a, b) => a - b)
-  const mid = Math.floor(sorted.length / 2)
-  if (sorted.length % 2 === 0) {
-    const lo = sorted[mid - 1]
-    const hi = sorted[mid]
-    return lo !== undefined && hi !== undefined ? (lo + hi) / 2 : 0
-  }
-  const value = sorted[mid]
-  return value !== undefined ? value : 0
-}
-
-/** D-03/D-04, METR-03: filters each character's samples to the exclusive
- *  (MIN_GAP_MS, MAX_GAP_MS) window, requires >=MIN_SAMPLES POST-filter
- *  samples (Pitfall 4), computes the median of the survivors, sorts
- *  descending by median, and caps the result at 5 entries. */
+/** D-03/D-04, METR-03: each character calls gatedMedian with CHAR_MIN_SAMPLES;
+ *  eligible entries are sorted descending by median and capped at 5.
+ *  SlowestKeyEntry stays { char, medianMs } — sampleCount is for analytics. */
 function slowestFive(latencySamplesByChar: Map<string, number[]>): SlowestKeyEntry[] {
   const eligible: SlowestKeyEntry[] = []
   for (const [char, samples] of latencySamplesByChar) {
-    const filtered = samples.filter((gap) => gap > MIN_GAP_MS && gap < MAX_GAP_MS)
-    if (filtered.length < MIN_SAMPLES) continue
-    eligible.push({ char, medianMs: median(filtered) })
+    const gated = gatedMedian(samples, CHAR_MIN_SAMPLES)
+    if (gated) eligible.push({ char, medianMs: gated.medianMs })
   }
   return eligible.sort((a, b) => b.medianMs - a.medianMs).slice(0, 5)
 }
