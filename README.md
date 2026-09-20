@@ -62,11 +62,12 @@ noting that keystroke measurements may be less precise. It never blocks use.
 ## Privacy
 
 There is still no backend and no analytics. The only allowed network egress
-is `https://api.github.com`, and only for **corpus listing** — fetching a
-public repository's default-branch file tree. Keystroke logs and pasted or
-uploaded corpus still never leave the machine. The only `fetch` call in
-`src/` will live in `src/github/client.ts` (added in a later plan of this
-phase).
+is `https://api.github.com`, for **corpus listing and blob contents** —
+fetching a public repository's default-branch file tree and the bytes of a
+clicked file. Keystroke logs and pasted or uploaded corpus still never leave
+the machine. The only `fetch` in `src/` lives in `src/github/client.ts`.
+Same-origin parser wasm under `public/` (runtime plus TypeScript/TSX
+grammars) is not network egress.
 
 This is enforced structurally, not just by policy: the HTML document ships a
 `Content-Security-Policy` meta tag whose `connect-src` allowlist is `'self'`
