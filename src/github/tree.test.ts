@@ -32,6 +32,7 @@ const cases: Case[] = [
             path: 'src/App.tsx',
             sha: 'def',
             entryType: 'blob',
+            size: 120,
           },
         ],
       },
@@ -41,6 +42,7 @@ const cases: Case[] = [
         path: 'README.md',
         sha: 'ghi',
         entryType: 'blob',
+        size: 50,
       },
     ],
   },
@@ -109,6 +111,7 @@ const cases: Case[] = [
         path: 'README.md',
         sha: 'ghi',
         entryType: 'blob',
+        size: 50,
       },
     ],
   },
@@ -141,6 +144,7 @@ describe('foldTree — truncated listings (D-15)', () => {
             path: 'src/App.tsx',
             sha: 'def',
             entryType: 'blob',
+            size: 120,
           },
         ],
       },
@@ -150,6 +154,7 @@ describe('foldTree — truncated listings (D-15)', () => {
         path: 'README.md',
         sha: 'ghi',
         entryType: 'blob',
+        size: 50,
       },
     ])
   })
@@ -158,6 +163,20 @@ describe('foldTree — truncated listings (D-15)', () => {
 describe('foldTree — golden cases (REPO-02)', () => {
   it.each(cases)('case $n: $name', ({ input, expected }) => {
     expect(foldTree(input)).toEqual(expected)
+  })
+})
+
+describe('foldTree — FileNode.size', () => {
+  it('omits size when GitTreeEntry has no size', () => {
+    const [node] = foldTree([{ path: 'main.ts', type: 'blob', sha: 'abc' }])
+    expect(node).toMatchObject({
+      kind: 'file',
+      name: 'main.ts',
+      path: 'main.ts',
+      sha: 'abc',
+      entryType: 'blob',
+    })
+    expect((node as { size?: number }).size).toBeUndefined()
   })
 })
 
