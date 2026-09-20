@@ -4,9 +4,9 @@ milestone: v2.0
 milestone_name: Katas desde GitHub
 current_phase: 8
 current_phase_name: Parse & Dependency Units
-status: planning
+status: executing
 stopped_at: Completed 07-03-PLAN.md
-last_updated: "2026-09-20T22:44:42.771Z"
+last_updated: "2026-09-20T23:16:12.900Z"
 last_activity: 2026-09-20
 last_activity_desc: Phase 07 complete, transitioned to Phase 8
 progress:
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-09-20 after Phase 7)
 
 Phase: 8 — Parse & Dependency Units
 Plan: Not started
-Status: Ready to plan
+Status: Ready to execute
 Last activity: 2026-09-20 — Phase 07 complete, transitioned to Phase 8
 
 Progress: [███░░░░░░░] 33%
