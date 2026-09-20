@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { resolveMetrics } from '../metrics/resolve-metrics'
+import { resolveMetrics } from './history-metrics'
 import { METRICS_SCHEMA_VERSION, computeSessionMetrics } from '../metrics/metrics'
 import type { MetricsResult } from '../metrics/metrics'
 import type { StoredSession } from '../persistence/types'
