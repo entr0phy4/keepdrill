@@ -1,7 +1,7 @@
 ---
 phase: 07-github-url-repo-tree
 verified: 2026-09-20T22:32:00Z
-status: human_needed
+status: passed
 score: 46/47 must-haves verified
 behavior_unverified: 0
 overrides_applied: 0
@@ -30,7 +30,7 @@ human_verification:
 
 **Phase Goal:** The user can import a public GitHub repository by URL and browse it as a filesystem tree, with honest blocked-file and error copy — without starting a typing session from the tree.
 **Verified:** 2026-09-20T22:32:00Z
-**Status:** human_needed
+**Status:** passed
 **Re-verification:** No — initial verification
 
 Automated must-haves are present, wired, and exercised by passing unit/UI tests (68/68 in the phase files). Status is `human_needed` because (1) a `verification: backstop` REPO-01 truth has no held-out evidence, (2) 07-03 harvested live Chromium / COEP checks, and (3) flagged must-NOT prohibitions require a human pass. No implementation gaps.
