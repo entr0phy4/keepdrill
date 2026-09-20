@@ -111,20 +111,21 @@ describe('App — completion persists exactly one row (PERS-01)', () => {
 })
 
 describe('App — view toggle single-active invariant (04-UI-SPEC.md H1)', () => {
-  it('exactly one nav toggle button carries aria-current="page", flipping between Trainer and History', () => {
+  it('exactly one of three nav buttons carries aria-current="page"; Analytics takes it when clicked', () => {
     act(() => {
       root.render(<App />)
     })
 
-    const trainerButton = Array.from(container.querySelectorAll('nav button')).find(
-      (b) => b.textContent === 'Trainer',
-    )!
-    const historyButton = Array.from(container.querySelectorAll('nav button')).find(
-      (b) => b.textContent === 'History',
-    )!
+    const navButtons = Array.from(container.querySelectorAll('nav button'))
+    expect(navButtons.map((b) => b.textContent)).toEqual(['Trainer', 'History', 'Analytics'])
+
+    const trainerButton = navButtons[0]!
+    const historyButton = navButtons[1]!
+    const analyticsButton = navButtons[2]!
 
     expect(trainerButton.getAttribute('aria-current')).toBe('page')
     expect(historyButton.getAttribute('aria-current')).toBeNull()
+    expect(analyticsButton.getAttribute('aria-current')).toBeNull()
 
     act(() => {
       historyButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
@@ -132,6 +133,15 @@ describe('App — view toggle single-active invariant (04-UI-SPEC.md H1)', () =>
 
     expect(historyButton.getAttribute('aria-current')).toBe('page')
     expect(trainerButton.getAttribute('aria-current')).toBeNull()
+    expect(analyticsButton.getAttribute('aria-current')).toBeNull()
+
+    act(() => {
+      analyticsButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(analyticsButton.getAttribute('aria-current')).toBe('page')
+    expect(trainerButton.getAttribute('aria-current')).toBeNull()
+    expect(historyButton.getAttribute('aria-current')).toBeNull()
 
     act(() => {
       trainerButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
@@ -139,6 +149,7 @@ describe('App — view toggle single-active invariant (04-UI-SPEC.md H1)', () =>
 
     expect(trainerButton.getAttribute('aria-current')).toBe('page')
     expect(historyButton.getAttribute('aria-current')).toBeNull()
+    expect(analyticsButton.getAttribute('aria-current')).toBeNull()
   })
 })
 
@@ -220,6 +231,84 @@ describe('App — D-08 hide-not-unmount contract across a view switch', () => {
     expect(getCharLog().length).toBe(charLogLengthBefore)
     expect(statusesAfter).toEqual(statusesBefore)
     expect(captureAreaAfter).toBe(captureAreaBefore) // same DOM node — no remount
+    expect(caretIndexAfter).toBe(caretIndexBefore)
+  })
+
+  it('typing, switching to Analytics, then back to Trainer preserves textarea identity and caret; CorpusInput stays mounted', async () => {
+    act(() => {
+      root.render(<App />)
+    })
+
+    const pasteArea = container.querySelector<HTMLTextAreaElement>('#corpus-paste')!
+    act(() => {
+      setControlledTextareaValue(pasteArea, 'abcdef')
+    })
+
+    const loadButton = Array.from(container.querySelectorAll('button')).find(
+      (b) => b.textContent === 'Load exercise',
+    )!
+    await act(async () => {
+      loadButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await nextFrame()
+    })
+
+    const captureAreaBefore = container.querySelector<HTMLTextAreaElement>('#capture-surface')!
+
+    beforeInputAt(captureAreaBefore, { inputType: 'insertText', data: 'a' }, 0)
+    await act(async () => {
+      await nextFrame()
+    })
+    beforeInputAt(captureAreaBefore, { inputType: 'insertText', data: 'x' }, 100)
+    await act(async () => {
+      await nextFrame()
+    })
+    beforeInputAt(captureAreaBefore, { inputType: 'deleteContentBackward', data: null }, 200)
+    await act(async () => {
+      await nextFrame()
+    })
+    beforeInputAt(captureAreaBefore, { inputType: 'insertText', data: 'b' }, 300)
+    await act(async () => {
+      await nextFrame()
+    })
+
+    const charLogLengthBefore = getCharLog().length
+    const statusesBefore = Array.from(
+      container.querySelectorAll('.trainer-rendered-layer [data-status]'),
+    ).map((el) => el.getAttribute('data-status'))
+    const caretIndexBefore = Array.from(
+      container.querySelectorAll('.trainer-rendered-layer > *'),
+    ).findIndex((el) => el.classList.contains('trainer-caret'))
+
+    const analyticsButton = Array.from(container.querySelectorAll('nav button')).find(
+      (b) => b.textContent === 'Analytics',
+    )!
+    act(() => {
+      analyticsButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    const wrapper = captureAreaBefore.closest('div[style]') as HTMLElement
+    expect(wrapper.style.display).toBe('none')
+    expect(container.querySelector('section[role="status"] h2')?.textContent).toBe('Analytics')
+    expect(document.querySelector('#corpus-paste')).not.toBeNull()
+
+    const trainerButton = Array.from(container.querySelectorAll('nav button')).find(
+      (b) => b.textContent === 'Trainer',
+    )!
+    act(() => {
+      trainerButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    const captureAreaAfter = container.querySelector<HTMLTextAreaElement>('#capture-surface')!
+    const statusesAfter = Array.from(
+      container.querySelectorAll('.trainer-rendered-layer [data-status]'),
+    ).map((el) => el.getAttribute('data-status'))
+    const caretIndexAfter = Array.from(
+      container.querySelectorAll('.trainer-rendered-layer > *'),
+    ).findIndex((el) => el.classList.contains('trainer-caret'))
+
+    expect(getCharLog().length).toBe(charLogLengthBefore)
+    expect(statusesAfter).toEqual(statusesBefore)
+    expect(captureAreaAfter).toBe(captureAreaBefore)
     expect(caretIndexAfter).toBe(caretIndexBefore)
   })
 })
