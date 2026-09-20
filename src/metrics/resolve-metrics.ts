@@ -14,12 +14,16 @@ import { computeSessionMetrics, METRICS_SCHEMA_VERSION } from './metrics'
 import type { MetricsResult } from './metrics'
 import type { StoredSession } from '../persistence/types'
 
-/** The five StoredSession fields resolveMetrics reads. Analytics projections
- *  have no Dexie `id`; StoredSession remains assignable. */
+/** The five StoredSession fields resolveMetrics reads. charLog/markers are
+ *  readonly so AnalyticsSession projections (no Dexie `id`) stay assignable;
+ *  StoredSession remains assignable because mutable arrays satisfy readonly. */
 export type ResolvableSession = Pick<
   StoredSession,
-  'exercise' | 'charLog' | 'markers' | 'completedAtTMs' | 'metricsSnapshot'
->
+  'exercise' | 'completedAtTMs' | 'metricsSnapshot'
+> & {
+  charLog: readonly StoredSession['charLog'][number][]
+  markers: readonly StoredSession['markers'][number][]
+}
 
 export function resolveMetrics(s: ResolvableSession): MetricsResult {
   if (s.metricsSnapshot.schemaVersion === METRICS_SCHEMA_VERSION) return s.metricsSnapshot

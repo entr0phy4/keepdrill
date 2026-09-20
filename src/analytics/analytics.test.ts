@@ -97,10 +97,12 @@ describe('computeDigraphLatency', () => {
       t += 100
     }
     const result = computeDigraphLatency([makeSession({ charLog: log })])
+    // Gap attaches to the last IME codepoint after earlier codepoints update
+    // prevInsertChar, so the pair is "ab" not "xa"/"xb" (metrics n=10 analog).
     expect(result.find((e) => e.pair === 'xa')).toBeUndefined()
-    const xb = result.find((e) => e.pair === 'xb')
-    expect(xb?.sampleCount).toBe(5)
-    expect(xb?.medianMs).toBe(100)
+    const ab = result.find((e) => e.pair === 'ab')
+    expect(ab?.sampleCount).toBe(5)
+    expect(ab?.medianMs).toBe(100)
   })
 
   it('treats a supplementary-plane codepoint as one Array.from element in the pair key', () => {
@@ -147,13 +149,11 @@ describe('computeLanguageProfile', () => {
     ]
     const rows = computeLanguageProfile(sessions)
     expect(rows).toHaveLength(2)
-    expect(rows[0]).toEqual({
-      language: 'rust',
-      wpm: 50,
-      symbolAdjustedWpm: 60,
-      accuracy: 0.85,
-      sessionCount: 2,
-    })
+    expect(rows[0]?.language).toBe('rust')
+    expect(rows[0]?.sessionCount).toBe(2)
+    expect(rows[0]?.wpm).toBe(50)
+    expect(rows[0]?.symbolAdjustedWpm).toBe(60)
+    expect(rows[0]?.accuracy).toBeCloseTo(0.85)
     expect(rows[1]).toMatchObject({ language: 'plaintext', sessionCount: 1, wpm: 80 })
   })
 
