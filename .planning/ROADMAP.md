@@ -75,7 +75,7 @@ Full detail archived to `.planning/milestones/v1.0-ROADMAP.md`.
   2. The user can view a keyboard heatmap highlighting which physical keys have the highest median latency across their session history.
   3. The user can view a per-language profile showing WPM and accuracy grouped by tagged language, with untagged/plaintext sessions kept in their own distinct bucket rather than mixed into a real language.
 
-**Plans:** 1/3 plans executed
+**Plans:** 2/3 plans executed
 
 Plans:
 **Wave 1**
@@ -84,7 +84,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 06-02-PLAN.md — Pure analytics folds: digraph ranking, keyboard heatmap, language profile
+- [x] 06-02-PLAN.md — Pure analytics folds: digraph ranking, keyboard heatmap, language profile
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -104,4 +104,4 @@ Phases execute in numeric order: 4 → 5 → 6
 | 3. Session Metrics | v1.0 | 2/2 | Complete | 2026-09-05 |
 | 4. Session Persistence & History | v1.1 | 2/2 | Complete    | 2026-09-12 |
 | 5. Symbol-Adjusted WPM & Language Tagging | v1.1 | 2/2 | In Progress|  |
-| 6. Cross-Session Analytics | v1.1 | 1/3 | In Progress|  |
+| 6. Cross-Session Analytics | v1.1 | 2/3 | In Progress|  |

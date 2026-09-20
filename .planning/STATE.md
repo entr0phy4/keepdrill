@@ -5,16 +5,16 @@ milestone_name: Persistencia y Analíticas
 current_phase: 06
 current_phase_name: Cross-Session Analytics
 status: executing
-stopped_at: Completed 06-01-PLAN.md
-last_updated: "2026-09-20T18:10:09.311Z"
+stopped_at: Completed 06-02-PLAN.md
+last_updated: "2026-09-20T18:20:45.506Z"
 last_activity: 2026-09-20
 last_activity_desc: Phase 06 execution started
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 7
-  completed_plans: 5
-  percent: 67
+  completed_plans: 6
+  percent: 86
 ---
 
 # Project State
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-09-12)
 ## Current Position
 
 Phase: 06 (Cross-Session Analytics) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-09-20 — Phase 06 execution started
 
-Progress: [███████░░░] 71%
+Progress: [█████████░] 86%
 
 ## Performance Metrics
 
@@ -69,6 +69,7 @@ Progress: [███████░░░] 71%
 | Phase 05 P01 | 7min | 3 tasks | 11 files |
 | Phase 05 P02 | 4 min | 2 tasks | 7 files |
 | Phase 06 P01 | 4 min | 2 tasks | 5 files |
+| Phase 06 P02 | 8 min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -94,6 +95,10 @@ Recent decisions affecting current work:
 - [Phase 5]: Rule 3: Task 1 passed an explicit plaintext into CorpusInput's fromPaste call so typecheck stayed green before Task 2 wired pasteLanguage
 - [Phase 06]: gatedMedian is the single filter→gate→median owner; DIGRAPH_MIN_SAMPLES=5 is a named export so digraph/heatmap cannot bury 5 as a magic number (D-06, D-09)
 - [Phase 06]: resolveMetrics parameter widened to ResolvableSession (Pick of five StoredSession fields) so analytics Session projections without Dexie id remain assignable (ANLY-05)
+- [Phase 06]: Language aggregation is the unweighted arithmetic mean of per-session resolveMetrics values, not duration-weighted (RESEARCH A2)
+- [Phase 06]: Heatmap latency is keydown→keydown IKI among sampleable codes; modifiers and isRepeat are neither samples nor anchors (RESEARCH A1)
+- [Phase 06]: Equal sessionCount language rows sort by language string ascending so tests are deterministic
+- [Phase 06]: ResolvableSession charLog/markers widened to readonly so AnalyticsSession assigns without a Dexie-shaped cast
 
 ### Pending Todos
 
@@ -118,8 +123,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-20T18:10:09.296Z
-Stopped at: Completed 06-01-PLAN.md
+Last session: 2026-09-20T18:20:45.497Z
+Stopped at: Completed 06-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
