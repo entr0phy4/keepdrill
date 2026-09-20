@@ -1,6 +1,7 @@
-// Platform seam — the ONLY module that may fetch (GitHub listing). Kept out of
-// the hot path. Callers receive RepoTreeResult or a typed Error. TypeError from
-// fetch (CSP/COEP/offline) is not wrapped; the UI maps unreachable copy.
+// Platform seam — the ONLY module that may fetch (GitHub listing and blob
+// contents). Kept out of the hot path. Callers receive RepoTreeResult, blob
+// bytes, or a typed Error. TypeError from fetch (CSP/COEP/offline) is not
+// wrapped; the UI maps unreachable copy.
 
 import {
   EmptyRepoError,
@@ -8,14 +9,26 @@ import {
   RateLimitedError,
   RepoNotFoundError,
 } from './errors'
+import { CorpusTooLargeError } from '../ingestion/errors'
+import { MAX_BYTES } from '../ingestion/upload'
 import type { GitTreeEntry, RepoRef, RepoTreeResult } from './types'
+
+export type GithubBlobResult = {
+  sha: string
+  size: number
+  bytes: Uint8Array
+}
 
 const inflight = new Map<string, Promise<RepoTreeResult>>()
 const cache = new Map<string, RepoTreeResult | string>()
+const blobInflight = new Map<string, Promise<GithubBlobResult>>()
+const blobCache = new Map<string, GithubBlobResult>()
 
 export function resetGithubCache(): void {
   inflight.clear()
   cache.clear()
+  blobInflight.clear()
+  blobCache.clear()
 }
 
 function githubGet(path: string): Promise<Response> {
@@ -97,5 +110,50 @@ export function fetchRepoTree(ref: RepoRef): Promise<RepoTreeResult> {
     inflight.delete(key)
   })
   inflight.set(key, pending)
+  return pending
+}
+
+async function loadGithubBlob(ref: RepoRef, sha: string): Promise<GithubBlobResult> {
+  const res = await githubGet(
+    `/repos/${enc(ref.owner)}/${enc(ref.repo)}/git/blobs/${enc(sha)}`,
+  )
+  const body = (await readGithub(res)) as {
+    content?: string
+    encoding?: string
+    size?: number | null
+    sha?: string
+  }
+  if (typeof body.content !== 'string') {
+    throw new GithubHttpError(422)
+  }
+  const size = body.size ?? 0
+  if (size > MAX_BYTES) throw new CorpusTooLargeError(size)
+  const b64 = body.content.replace(/\n/g, '')
+  const binary = atob(b64)
+  const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0))
+  if (bytes.byteLength > MAX_BYTES) {
+    throw new CorpusTooLargeError(bytes.byteLength)
+  }
+  const out: GithubBlobResult = {
+    sha: body.sha ?? sha,
+    size: bytes.byteLength,
+    bytes,
+  }
+  blobCache.set(sha, out)
+  return out
+}
+
+export function fetchGithubBlob(
+  ref: RepoRef,
+  sha: string,
+): Promise<GithubBlobResult> {
+  const cached = blobCache.get(sha)
+  if (cached) return Promise.resolve(cached)
+  const existing = blobInflight.get(sha)
+  if (existing) return existing
+  const pending = loadGithubBlob(ref, sha).finally(() => {
+    blobInflight.delete(sha)
+  })
+  blobInflight.set(sha, pending)
   return pending
 }
