@@ -31,14 +31,25 @@ function program(text: string, namedChildren: TsNode[]): TsNode {
 }
 
 function ident(text: string, name: string, type = 'identifier'): TsNode {
-  const match = new RegExp(`\\b${name}\\b`).exec(text)
-  if (!match) throw new Error(`ident not found: ${name}`)
-  return {
-    type,
-    startIndex: match.index,
-    endIndex: match.index + name.length,
-    namedChildren: [],
+  return identAt(text, name, 1, type)
+}
+
+function identAt(text: string, name: string, occurrence = 1, type = 'identifier'): TsNode {
+  const re = new RegExp(`\\b${name}\\b`, 'g')
+  let match: RegExpExecArray | null
+  let n = 0
+  while ((match = re.exec(text))) {
+    n += 1
+    if (n === occurrence) {
+      return {
+        type,
+        startIndex: match.index,
+        endIndex: match.index + name.length,
+        namedChildren: [],
+      }
+    }
   }
+  throw new Error(`ident ${name} occurrence ${occurrence} not found`)
 }
 
 interface CoverCase {
@@ -303,5 +314,102 @@ describe('fallbackPlan', () => {
       notice: 'Could not split this file into units.',
       units: [{ id: 'file', kind: 'file', start: 0, end: Array.from(ex.text).length, dependsOn: [] }],
     })
+  })
+})
+
+describe('planUnits — leaves-first topo (PLAN-02)', () => {
+  it('orders callee B before caller A even when A appears first in source', () => {
+    const text = 'function a() { b() }\nfunction b() {}\n'
+    const aName = identAt(text, 'a')
+    const bCall = identAt(text, 'b', 1)
+    const bName = identAt(text, 'b', 2)
+    const fnA = node('function_declaration', text, 'function a() { b() }', [aName, bCall], { name: aName })
+    const fnB = node('function_declaration', text, 'function b() {}', [bName], { name: bName })
+    const plan = planUnits(program(text, [fnA, fnB]), exercise(text))
+    expect(plan.units.map((u) => u.name)).toEqual(['b', 'a'])
+    const a = plan.units.find((u) => u.name === 'a')!
+    const b = plan.units.find((u) => u.name === 'b')!
+    expect(a.dependsOn).toContain(b.id)
+  })
+
+  it('keeps an import that defines a used specifier first (in-degree 0)', () => {
+    const text = "function a() { b() }\nimport { b } from './mod'\n"
+    const aName = identAt(text, 'a')
+    const bCall = identAt(text, 'b', 1)
+    const bSpec = identAt(text, 'b', 2)
+    const fnA = node('function_declaration', text, 'function a() { b() }', [aName, bCall], { name: aName })
+    const spec = node('import_specifier', text, '{ b }', [bSpec], { name: bSpec })
+    const imp = node('import_statement', text, "import { b } from './mod'", [spec])
+    const plan = planUnits(program(text, [fnA, imp]), exercise(text))
+    expect(plan.units.map((u) => u.kind)).toEqual(['import', 'function'])
+    expect(plan.units[0]!.dependsOn).toEqual([])
+    expect(plan.units[1]!.dependsOn).toContain(plan.units[0]!.id)
+  })
+
+  it('concatenates cycle leftovers after the Kahn prefix, sorted by start', () => {
+    const text = 'type T = number\nfunction a() { b() }\nfunction b() { a() }\n'
+    const tName = identAt(text, 'T', 1, 'type_identifier')
+    const aName = identAt(text, 'a', 1)
+    const bCall = identAt(text, 'b', 1)
+    const bName = identAt(text, 'b', 2)
+    const aCall = identAt(text, 'a', 2)
+    const typeT = node('type_alias_declaration', text, 'type T = number', [], { name: tName })
+    const fnA = node('function_declaration', text, 'function a() { b() }', [aName, bCall], { name: aName })
+    const fnB = node('function_declaration', text, 'function b() { a() }', [bName, aCall], { name: bName })
+    const plan = planUnits(program(text, [typeT, fnA, fnB]), exercise(text))
+    expect(plan.units.map((u) => u.name ?? u.kind)).toEqual(['T', 'a', 'b'])
+    const a = plan.units.find((u) => u.name === 'a')!
+    const b = plan.units.find((u) => u.name === 'b')!
+    expect(a.dependsOn).toContain(b.id)
+    expect(b.dependsOn).toContain(a.id)
+  })
+
+  it('ignores property_identifier so foo.bar does not depend on bar', () => {
+    const text = 'function a() { foo.bar }\nfunction bar() {}\n'
+    const aName = identAt(text, 'a')
+    const foo = identAt(text, 'foo')
+    const barProp: TsNode = {
+      type: 'property_identifier',
+      startIndex: text.indexOf('.bar') + 1,
+      endIndex: text.indexOf('.bar') + 4,
+      namedChildren: [],
+    }
+    const member: TsNode = {
+      type: 'member_expression',
+      startIndex: text.indexOf('foo.bar'),
+      endIndex: text.indexOf('foo.bar') + 'foo.bar'.length,
+      namedChildren: [foo, barProp],
+    }
+    const barName = identAt(text, 'bar', 2)
+    const fnA = node('function_declaration', text, 'function a() { foo.bar }', [aName, member], { name: aName })
+    const fnBar = node('function_declaration', text, 'function bar() {}', [barName], { name: barName })
+    const plan = planUnits(program(text, [fnA, fnBar]), exercise(text))
+    expect(plan.units.map((u) => u.name)).toEqual(['a', 'bar'])
+    const a = plan.units.find((u) => u.name === 'a')!
+    const bar = plan.units.find((u) => u.name === 'bar')!
+    expect(a.dependsOn).not.toContain(bar.id)
+  })
+
+  it('keeps equal-start leftover cycle members in source order', () => {
+    const text = 'a;b'
+    const aName = identAt(text, 'a')
+    const bName = identAt(text, 'b')
+    const fnA: TsNode = {
+      type: 'function_declaration',
+      startIndex: 0,
+      endIndex: 3,
+      namedChildren: [aName, bName],
+      childForFieldName: (field) => (field === 'name' ? aName : null),
+    }
+    const fnB: TsNode = {
+      type: 'function_declaration',
+      startIndex: 0,
+      endIndex: 3,
+      namedChildren: [bName, aName],
+      childForFieldName: (field) => (field === 'name' ? bName : null),
+    }
+    const plan = planUnits(program(text, [fnA, fnB]), exercise(text))
+    expect(plan.units.map((u) => u.name)).toEqual(['a', 'b'])
+    expect(plan.units[0]!.start).toBe(plan.units[1]!.start)
   })
 })
