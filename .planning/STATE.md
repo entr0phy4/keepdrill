@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Persistencia y Analíticas
 current_phase: 06
-current_phase_name: cross-session-analytics
-status: ready
-stopped_at: Phase 06 planned
-last_updated: "2026-09-20T18:02:58.715Z"
+current_phase_name: Cross-Session Analytics
+status: executing
+stopped_at: Completed 06-01-PLAN.md
+last_updated: "2026-09-20T18:10:09.311Z"
 last_activity: 2026-09-20
-last_activity_desc: Phase 06 planned (3 plans)
+last_activity_desc: Phase 06 execution started
 progress:
   total_phases: 3
   completed_phases: 2
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 7
+  completed_plans: 5
   percent: 67
 ---
 
@@ -28,12 +28,12 @@ See: .planning/PROJECT.md (updated 2026-09-12)
 
 ## Current Position
 
-Phase: 06 (Cross-Session Analytics) — READY TO EXECUTE
-Plan: 0 of 3
+Phase: 06 (Cross-Session Analytics) — EXECUTING
+Plan: 2 of 3
 Status: Ready to execute
-Last activity: 2026-09-20 — Phase 06 planned (3 plans in 3 waves)
+Last activity: 2026-09-20 — Phase 06 execution started
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [███████░░░] 71%
 
 ## Performance Metrics
 
@@ -68,6 +68,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 04 P02 | 35min | 3 tasks | 10 files |
 | Phase 05 P01 | 7min | 3 tasks | 11 files |
 | Phase 05 P02 | 4 min | 2 tasks | 7 files |
+| Phase 06 P01 | 4 min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -91,6 +92,8 @@ Recent decisions affecting current work:
 - [Phase 5]: fromPaste language is a required positional parameter with no default (D-15 / RESEARCH A1) so a missed call site fails at compile time
 - [Phase 5]: PASTE_LANGUAGE_OPTIONS excludes plaintext; CorpusInput presents plaintext as the explicit always-selected first option (D-12/D-13)
 - [Phase 5]: Rule 3: Task 1 passed an explicit plaintext into CorpusInput's fromPaste call so typecheck stayed green before Task 2 wired pasteLanguage
+- [Phase 06]: gatedMedian is the single filter→gate→median owner; DIGRAPH_MIN_SAMPLES=5 is a named export so digraph/heatmap cannot bury 5 as a magic number (D-06, D-09)
+- [Phase 06]: resolveMetrics parameter widened to ResolvableSession (Pick of five StoredSession fields) so analytics Session projections without Dexie id remain assignable (ANLY-05)
 
 ### Pending Todos
 
@@ -115,9 +118,9 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-20T17:40:40.823Z
-Stopped at: Phase 06 UI-SPEC approved
-Resume file: .planning/phases/06-cross-session-analytics/06-UI-SPEC.md
+Last session: 2026-09-20T18:10:09.296Z
+Stopped at: Completed 06-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
