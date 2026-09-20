@@ -1,8 +1,8 @@
 ---
 phase: 06-cross-session-analytics
 verified: 2026-09-20T18:40:00Z
-status: human_needed
-score: 18/22 must-haves verified
+status: passed
+score: 22/22 must-haves verified
 behavior_unverified: 0
 overrides_applied: 0
 human_verification:
@@ -30,7 +30,7 @@ human_verification:
 
 **Phase Goal:** The user can see patterns across their accumulated typing history: which digraphs and physical keys are slowest, and how they perform by language.
 **Verified:** 2026-09-20T18:40:00Z
-**Status:** human_needed
+**Status:** passed (UAT 2026-09-20: 6/6 human checks passed)
 **Re-verification:** No — initial verification
 
 ## Goal Achievement
@@ -177,7 +177,7 @@ No `TBD` / `FIXME` / `XXX` debt markers in Phase 6 files. No placeholder/stub re
 
 ### Human Verification Required
 
-Automated checks for inferable truths passed. Four PLAN backstops abstain (honest-verifier / insufficient_spec). 06-03 also queued Chromium visual/D-08 checks at end-of-phase.
+Automated checks for inferable truths passed. Four PLAN backstops abstained (honest-verifier / insufficient_spec). 06-03 also queued Chromium visual/D-08 checks at end-of-phase. All six items passed in UAT on 2026-09-20.
 
 ### 1. Chromium empty + populated Analytics (light and dark)
 
@@ -217,7 +217,7 @@ Automated checks for inferable truths passed. Four PLAN backstops abstain (hones
 
 ### Gaps Summary
 
-No implementation gaps on the phase goal. Ranked digraphs, physical-key heatmap, and per-language profile (plaintext distinct) exist, are substantive, are wired from IndexedDB through pure folds into the Analytics sibling view, and have passing unit tests. Status is `human_needed` because four `verification: backstop` truths have no held-out evidence and the UI-SPEC visual / D-08 / judgment-tier prohibition checks require a browser. Nothing here is deferred to a later milestone phase (Phase 6 is the last v1.1 phase; ANLY-06/07/08 are future requirements, not this phase's missed work).
+No implementation gaps on the phase goal. Ranked digraphs, physical-key heatmap, and per-language profile (plaintext distinct) exist, are substantive, are wired from IndexedDB through pure folds into the Analytics sibling view, and have passing unit tests. Human UAT (6/6) closed the four `verification: backstop` truths and the UI-SPEC visual / D-08 / judgment-tier checks. Nothing is deferred to a later milestone phase (Phase 6 is the last v1.1 phase; ANLY-06/07/08 are future requirements, not this phase's missed work).
 
 ---
 
