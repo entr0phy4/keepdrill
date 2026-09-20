@@ -13,6 +13,7 @@ import { CaptureSurface } from './CaptureSurface'
 import { ResultsView } from './ResultsView'
 import { SaveFailedNotice } from './SaveFailedNotice'
 import { HistoryView } from './HistoryView'
+import { AnalyticsDashboard } from './AnalyticsDashboard'
 
 declare global {
   interface Window {
@@ -54,9 +55,9 @@ export function App() {
   // PERS-03/D-15: reflects only the most-recent completion's write outcome —
   // cleared at the start of every handleComplete and on any fresh load/restart.
   const [saveFailed, setSaveFailed] = useState(false)
-  // D-07: no router — a plain useState view flip between the trainer and the
-  // History view.
-  const [view, setView] = useState<'trainer' | 'history'>('trainer')
+  // D-07/D-01: no router — a plain useState view flip among Trainer, History,
+  // and Analytics. Trainer subtree hides via display, never unmounts (D-08).
+  const [view, setView] = useState<'trainer' | 'history' | 'analytics'>('trainer')
 
   const handleLoad = (loaded: Exercise) => {
     resetCapture() // fresh buffer per exercise
@@ -162,6 +163,13 @@ export function App() {
           >
             History
           </button>
+          <button
+            type="button"
+            aria-current={view === 'analytics' ? 'page' : undefined}
+            onClick={() => setView('analytics')}
+          >
+            Analytics
+          </button>
         </nav>
       </header>
 
@@ -214,6 +222,7 @@ export function App() {
         </div>
       )}
       {view === 'history' && <HistoryView />}
+      {view === 'analytics' && <AnalyticsDashboard />}
     </main>
   )
 }
