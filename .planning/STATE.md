@@ -5,16 +5,16 @@ milestone_name: Katas desde GitHub
 current_phase: 08
 current_phase_name: parse-dependency-units
 status: executing
-stopped_at: Completed 08-02-PLAN.md
-last_updated: "2026-09-20T23:34:42.139Z"
+stopped_at: Completed 08-03-PLAN.md
+last_updated: "2026-09-20T23:46:51.704Z"
 last_activity: 2026-09-20
 last_activity_desc: Completed 08-02 blob fetch and corpus tag
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 7
-  completed_plans: 5
-  percent: 71
+  completed_plans: 6
+  percent: 33
 ---
 
 # Project State
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-09-20 after Phase 7)
 ## Current Position
 
 Phase: 08 (parse-dependency-units) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-09-20 — Completed 08-02 blob fetch and corpus tag
 
-Progress: [███████░░░] 71%
+Progress: [█████████░] 86%
 
 ## Performance Metrics
 
@@ -70,6 +70,7 @@ Progress: [███████░░░] 71%
 | Phase 07 P03 | 8 min | 2 tasks | 5 files |
 | Phase 08 P01 | 4 min | 3 tasks | 8 files |
 | Phase 08 P02 | 7 min | 3 tasks | 10 files |
+| Phase 08 P03 | 8 min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -89,6 +90,9 @@ Recent decisions affecting current work:
 - [Phase 08]: sourceRef for github is owner/repo:path (colon separator, no blob sha) — FILE-02 / RESEARCH A2; History must not show blob sha
 - [Phase 08]: blob cache/inflight keyed by sha only; resetGithubCache clears tree and blob maps — content-addressed cache; overlapping clicks share one GET
 - [Phase 08]: missing blob content on HTTP 200 throws GithubHttpError(422) — plan action: prefer 422 when content is absent on 200
+- [Phase 08]: Unit ids are kind-start-seq so equal-start cycle members stay unique for dependsOn — Two function units can share start in a cycle leftover; kind-start alone would collide in the dependsOn graph
+- [Phase 08]: Import units never emit dependsOn; specifiers are definitions (in-degree 0) — PLAN-02: imports are in-degree 0 so they come first; specifier names are defs not in-file uses
+- [Phase 08]: plan.ts and utf16.ts stay PURE with zero WASM imports; 08-04 owns Parser.init — Success criterion: plan.ts and utf16.ts MUST NOT import the WASM runtime
 
 ### Pending Todos
 
@@ -110,6 +114,6 @@ Items acknowledged and deferred at milestone close on 2026-09-20:
 
 ## Session Continuity
 
-Last session: 2026-09-20T23:34:17.656Z
-Stopped at: Completed 08-02-PLAN.md
+Last session: 2026-09-20T23:46:39.043Z
+Stopped at: Completed 08-03-PLAN.md
 Resume file: None

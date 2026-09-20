@@ -20,9 +20,9 @@
 
 ### Plan
 
-- [ ] **PLAN-01**: User's TS/JS file is split into non-overlapping syntactic units (top-level functions, import/type blocks; a class is one unit; nested functions stay inside their parent)
-- [ ] **PLAN-02**: User types those units in dependency order: indispensable/leaf units first, then units that depend on them
-- [ ] **PLAN-03**: User still gets an exercise if the file cannot be split: the whole file is the single unit, with a notice — never a silent no-op
+- [x] **PLAN-01**: User's TS/JS file is split into non-overlapping syntactic units (top-level functions, import/type blocks; a class is one unit; nested functions stay inside their parent)
+- [x] **PLAN-02**: User types those units in dependency order: indispensable/leaf units first, then units that depend on them
+- [x] **PLAN-03**: User still gets an exercise if the file cannot be split: the whole file is the single unit, with a notice — never a silent no-op
 
 ### Scaffold
 
@@ -81,9 +81,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REPO-04 | Phase 7 | Complete |
 | FILE-01 | Phase 8 | Complete |
 | FILE-02 | Phase 8 | Complete |
-| PLAN-01 | Phase 8 | Pending |
-| PLAN-02 | Phase 8 | Pending |
-| PLAN-03 | Phase 8 | Pending |
+| PLAN-01 | Phase 8 | Complete |
+| PLAN-02 | Phase 8 | Complete |
+| PLAN-03 | Phase 8 | Complete |
 | SCAF-01 | Phase 9 | Pending |
 | SCAF-02 | Phase 9 | Pending |
 | SCAF-03 | Phase 9 | Pending |
