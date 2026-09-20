@@ -1,10 +1,11 @@
 ---
 phase: 7
 slug: github-url-repo-tree
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-09-20
+reviewed_at: 2026-09-20T21:27:00Z
 ---
 
 # Phase 7 — UI Design Contract
@@ -63,6 +64,8 @@ Inherited unchanged from `01-UI-SPEC.md` (multiples of 4 only): `--space-xs` 4px
 - The repo tree **never** shares space with the 8-row paste box.
 
 **Layout — GitHub panel (`RepoBrowser`):**
+
+**Visual focal point:** Before a tree exists, the Import button (accent fill) is the visual anchor of the GitHub panel. After a successful import, the tree wrapper is the anchor.
 
 Stacked grid, `gap: var(--space-md)`, matching `CorpusInput`:
 
@@ -200,6 +203,54 @@ Copy lives as a `COPY` const in `src/ui/RepoBrowser.tsx`, verbatim from this tab
 
 ---
 
+## UI Considerations
+
+> Populated by the ui-phase UI-consideration probe (Step 9.5) and lifted by plan-phase's
+> `## UI Considerations` lift rule via the identical rule as SPEC `## Edge Coverage`. Shape-rooted UI *state*
+> coverage (empty / loading / error / populated / partial / overflow / zero-one-many / long-text).
+> Empty-state and error-state COPY live in `## Copywriting Contract` above — this section covers
+> state coverage and REFERENCES those rows rather than restating the copy (de-dup).
+
+Applicable state considerations resolved: 16 covered, 0 backstop, 0 unresolved (9 dismissed)
+
+| Category | Element(s) | Status | Resolution / Reason |
+|----------|------------|--------|---------------------|
+| empty | import form (E2) | ✅ covered | Labeled URL field + Import is the empty GitHub panel; no extra empty-state paragraph |
+| loading | import form (E2) | ✅ covered | Import button shows Importing… and is disabled; URL field stays enabled; no spinner |
+| error | import form (E2) | ✅ covered | Named copy in the status region; previous tree stays; `aria-invalid` only for invalid URL |
+| long-text | import form (E2) | ✅ covered | URL field is full width; long values scroll inside the native input |
+| overflow | caption (E3) | ✅ covered | Caption reserved `min-height: 1.4em` is a floor, not a clip |
+| long-text | caption (E3) | ✅ covered | Caption wraps with `overflow-wrap: anywhere` |
+| empty | repo tree (E4) | ✅ covered | Empty-repo notice in status; omit the `<ul>`; keep caption |
+| loading | repo tree (E4) | ✅ covered | Previous tree and caption stay until new success; busy is Importing… on the form, not a tree skeleton |
+| error | repo tree (E4) | ✅ covered | Previous tree stays browseable; error copy in the status region |
+| populated | repo tree (E4) | ✅ covered | Nested `<ul>`, top-level folders open, every returned path visible |
+| partial | repo tree (E4) | ✅ covered | `truncated: true` still renders arrived entries plus the truncated notice |
+| overflow | repo tree (E4) | ✅ covered | Tree wrapper `max-height: 40vh; overflow: auto`; wrap names; horizontal scroll only for an unbreakable token |
+| zero-one-many | repo tree (E4) | ✅ covered | Zero files: omit `<ul>` + empty-repo copy. One or many: same row layout (no plural copy) |
+| long-text | file/folder rows (E5) | ✅ covered | File and folder names wrap with `overflow-wrap: anywhere`; no ellipsis |
+| overflow | status region (E6) | ✅ covered | Status `min-height: 48px` so two-sentence notices do not reflow; extra wrap may grow the slot |
+| long-text | status region (E6) | ✅ covered | Status copy wraps in `--column-max`; no ellipsis |
+| loading | tabs (E1) | ⛔ dismissed | Local chrome; Paste is selected on first paint; no data fetch |
+| error | tabs (E1) | ⛔ dismissed | Tab switch cannot fail; GitHub errors live on the form/status |
+| overflow | tabs (E1) | ⛔ dismissed | Two fixed short labels; same 44px header geometry |
+| long-text | tabs (E1) | ⛔ dismissed | Labels are locked Paste / GitHub |
+| partial | import form (E2) | ⛔ dismissed | Single URL field; no multi-field partial-fill state |
+| loading | corpus shell (E7) | ⛔ dismissed | Display toggle only; not a data load |
+| error | corpus shell (E7) | ⛔ dismissed | Shell cannot fail; errors are on the GitHub form/status |
+| overflow | corpus shell (E7) | ⛔ dismissed | Tree overflow is owned by the repo tree |
+| long-text | corpus shell (E7) | ⛔ dismissed | Corpus shell has no own text |
+
+<!-- Status vocabulary (locked by probe-core projectTruths):
+     ✅ covered   → a plain truth string lifted into must_haves.truths
+     🧪 backstop  → a flat scalar { statement, verification: backstop }; at verify time, no explicit
+                    evidence → insufficient_spec → human_needed (never a silent pass, #1154)
+     ⚠ unresolved → an explicit planner assumption (surfaced, never silently dropped)
+     ⛔ dismissed → not applicable; reason required; not lifted into must_haves
+     Rows are REPLACED (not appended) on a probe re-run — idempotent. -->
+
+---
+
 ## Interaction Contract
 
 ### Tabs and persistence (D-01..D-04)
@@ -297,11 +348,11 @@ No shadcn, no third-party registries, no external component blocks. Registry vet
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS (FLAG addressed: GitHub-panel focal point named — Import before a tree, tree wrapper after success)
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved 2026-09-20
