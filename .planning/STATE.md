@@ -4,17 +4,17 @@ milestone: v2.0
 milestone_name: Katas desde GitHub
 current_phase: 08
 current_phase_name: parse-dependency-units
-status: executing
-stopped_at: Completed 08-03-PLAN.md
-last_updated: "2026-09-20T23:46:51.704Z"
+status: verifying
+stopped_at: Completed 08-04-PLAN.md
+last_updated: "2026-09-20T23:59:07.508Z"
 last_activity: 2026-09-20
-last_activity_desc: Completed 08-02 blob fetch and corpus tag
+last_activity_desc: Completed 08-04 click-to-plan WASM seam
 progress:
   total_phases: 3
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 7
-  completed_plans: 6
-  percent: 33
+  completed_plans: 7
+  percent: 67
 ---
 
 # Project State
@@ -30,10 +30,10 @@ See: .planning/PROJECT.md (updated 2026-09-20 after Phase 7)
 
 Phase: 08 (parse-dependency-units) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
-Last activity: 2026-09-20 — Completed 08-02 blob fetch and corpus tag
+Status: Phase complete — ready for verification
+Last activity: 2026-09-20 — Completed 08-04 click-to-plan WASM seam
 
-Progress: [█████████░] 86%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -71,6 +71,7 @@ Progress: [█████████░] 86%
 | Phase 08 P01 | 4 min | 3 tasks | 8 files |
 | Phase 08 P02 | 7 min | 3 tasks | 10 files |
 | Phase 08 P03 | 8 min | 3 tasks | 5 files |
+| Phase 08 P04 | 8 min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -93,6 +94,9 @@ Recent decisions affecting current work:
 - [Phase 08]: Unit ids are kind-start-seq so equal-start cycle members stay unique for dependsOn — Two function units can share start in a cycle leftover; kind-start alone would collide in the dependsOn graph
 - [Phase 08]: Import units never emit dependsOn; specifiers are definitions (in-degree 0) — PLAN-02: imports are in-degree 0 so they come first; specifier names are defs not in-file uses
 - [Phase 08]: plan.ts and utf16.ts stay PURE with zero WASM imports; 08-04 owns Parser.init — Success criterion: plan.ts and utf16.ts MUST NOT import the WASM runtime
+- [Phase 08]: wasm.ts is the only WASM runtime importer; locateFile returns /${scriptName}
+- [Phase 08]: Clicks share Import's tokenRef so last-wins holds across overlapping blob GETs
+- [Phase 08]: App holds FilePlan in memory via onPlanned; plan.exercise is never passed to handleLoad
 
 ### Pending Todos
 
@@ -114,6 +118,6 @@ Items acknowledged and deferred at milestone close on 2026-09-20:
 
 ## Session Continuity
 
-Last session: 2026-09-20T23:46:39.043Z
-Stopped at: Completed 08-03-PLAN.md
+Last session: 2026-09-20T23:59:07.496Z
+Stopped at: Completed 08-04-PLAN.md
 Resume file: None
