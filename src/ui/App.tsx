@@ -9,6 +9,7 @@ import type { MetricsResult } from '../metrics/metrics'
 import { saveSession } from '../persistence/repository'
 import { Banners } from './Banners'
 import { CorpusInput } from './CorpusInput'
+import { RepoBrowser } from './RepoBrowser'
 import { CaptureSurface } from './CaptureSurface'
 import { ResultsView } from './ResultsView'
 import { SaveFailedNotice } from './SaveFailedNotice'
@@ -58,6 +59,7 @@ export function App() {
   // D-07/D-01: no router — a plain useState view flip among Trainer, History,
   // and Analytics. Trainer subtree hides via display, never unmounts (D-08).
   const [view, setView] = useState<'trainer' | 'history' | 'analytics'>('trainer')
+  const [corpusTab, setCorpusTab] = useState<'paste' | 'github'>('paste')
 
   const handleLoad = (loaded: Exercise) => {
     resetCapture() // fresh buffer per exercise
@@ -178,7 +180,48 @@ export function App() {
         timingResolutionUs={timingResolutionUs}
       />
 
-      <CorpusInput onLoad={handleLoad} />
+      <div style={{ display: view === 'trainer' ? 'grid' : 'none', gap: 'var(--space-md)' }}>
+        <div
+          role="tablist"
+          aria-label="Corpus source"
+          style={{ display: 'inline-flex', gap: 'var(--space-xs)' }}
+        >
+          <button
+            type="button"
+            role="tab"
+            id="corpus-tab-paste"
+            aria-controls="corpus-panel-paste"
+            aria-selected={corpusTab === 'paste' ? 'true' : 'false'}
+            onClick={() => setCorpusTab('paste')}
+          >
+            Paste
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="corpus-tab-github"
+            aria-controls="corpus-panel-github"
+            aria-selected={corpusTab === 'github' ? 'true' : 'false'}
+            onClick={() => setCorpusTab('github')}
+          >
+            GitHub
+          </button>
+        </div>
+        <div
+          id="corpus-panel-paste"
+          role="tabpanel"
+          style={{ display: corpusTab === 'paste' ? 'grid' : 'none' }}
+        >
+          <CorpusInput onLoad={handleLoad} />
+        </div>
+        <div
+          id="corpus-panel-github"
+          role="tabpanel"
+          style={{ display: corpusTab === 'github' ? 'grid' : 'none' }}
+        >
+          <RepoBrowser />
+        </div>
+      </div>
 
       {exercise === null ? (
         view === 'trainer' && (
