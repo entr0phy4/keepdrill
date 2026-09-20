@@ -61,11 +61,16 @@ noting that keystroke measurements may be less precise. It never blocks use.
 
 ## Privacy
 
-There is still no backend, no network calls, and no analytics. This is
-enforced structurally, not just by policy: the app has no `fetch`,
-`XMLHttpRequest`, `sendBeacon`, or `WebSocket` calls anywhere in `src/`, and
-the HTML document ships a `Content-Security-Policy` meta tag restricting
-`connect-src`.
+There is still no backend and no analytics. The only allowed network egress
+is `https://api.github.com`, and only for **corpus listing** — fetching a
+public repository's default-branch file tree. Keystroke logs and pasted or
+uploaded corpus still never leave the machine. The only `fetch` call in
+`src/` will live in `src/github/client.ts` (added in a later plan of this
+phase).
+
+This is enforced structurally, not just by policy: the HTML document ships a
+`Content-Security-Policy` meta tag whose `connect-src` allowlist is `'self'`
+and `https://api.github.com`.
 
 As of v1.1, completed sessions — including the full raw keystroke log and any
 pasted or uploaded corpus text — are stored in your browser's local IndexedDB
