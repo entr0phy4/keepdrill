@@ -75,27 +75,28 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| REPO-01 | — | Pending |
-| REPO-02 | — | Pending |
-| REPO-03 | — | Pending |
-| REPO-04 | — | Pending |
-| FILE-01 | — | Pending |
-| FILE-02 | — | Pending |
-| PLAN-01 | — | Pending |
-| PLAN-02 | — | Pending |
-| PLAN-03 | — | Pending |
-| SCAF-01 | — | Pending |
-| SCAF-02 | — | Pending |
-| SCAF-03 | — | Pending |
-| SCAF-04 | — | Pending |
-| SCAF-05 | — | Pending |
+| REPO-01 | Phase 7 | Pending |
+| REPO-02 | Phase 7 | Pending |
+| REPO-03 | Phase 7 | Pending |
+| REPO-04 | Phase 7 | Pending |
+| FILE-01 | Phase 8 | Pending |
+| FILE-02 | Phase 8 | Pending |
+| PLAN-01 | Phase 8 | Pending |
+| PLAN-02 | Phase 8 | Pending |
+| PLAN-03 | Phase 8 | Pending |
+| SCAF-01 | Phase 9 | Pending |
+| SCAF-02 | Phase 9 | Pending |
+| SCAF-03 | Phase 9 | Pending |
+| SCAF-04 | Phase 9 | Pending |
+| SCAF-05 | Phase 9 | Pending |
 
 **Coverage:**
 
 - v2.0 requirements: 14 total
-- Mapped to phases: 0
-- Unmapped: 14 ⚠️ (roadmap will fill this)
+- Mapped to phases: 14
+- Unmapped: 0 ✓
+- Not mapped (deferred): ANLY-06..09, REPO-05/06, PLAN-04/05 (Future Requirements)
 
 ---
 *Requirements defined: 2026-09-20*
-*Last updated: 2026-09-20 after initial definition*
+*Last updated: 2026-09-20 after v2.0 roadmap*

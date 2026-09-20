@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Katas desde GitHub
 status: planning
-last_updated: "2026-09-20T20:26:27.982Z"
+last_updated: "2026-09-20T20:50:00.000Z"
 last_activity: 2026-09-20
 progress:
-  total_phases: 0
+  total_phases: 3
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,17 +17,19 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-09-20 after v1.1)
+See: .planning/PROJECT.md (updated 2026-09-20 after starting milestone v2.0)
 
 **Core value:** The user can paste or upload a real code/text file, type it with keystroke capture, and see WPM, accuracy, and their five slowest keys — useful enough for a week of daily self-use.
-**Current focus:** Planning next milestone
+**Current focus:** Phase 7 — GitHub URL & Repo Tree
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 7 of 9 (GitHub URL & Repo Tree)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-09-20 — Milestone v2.0 started
+Status: Ready to plan
+Last activity: 2026-09-20 — v2.0 roadmap written (Phases 7–9)
+
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
@@ -54,41 +56,28 @@ Last activity: 2026-09-20 — Milestone v2.0 started
 - Trend: Stable
 
 *Updated after each plan completion*
-**Per-Plan Metrics:**
-
-| Plan | Duration | Tasks | Files |
-|------|----------|-------|-------|
-| Phase 04 P01 | 45min | 3 tasks | 17 files |
-| Phase 04 P02 | 35min | 3 tasks | 10 files |
-| Phase 05 P01 | 7min | 3 tasks | 11 files |
-| Phase 05 P02 | 4 min | 2 tasks | 7 files |
-| Phase 06 P01 | 4 min | 2 tasks | 5 files |
-| Phase 06 P02 | 8 min | 3 tasks | 9 files |
-| Phase 06 P03 | 7 min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
-Full decision log is in PROJECT.md Key Decisions. Carried into next milestone:
+Recent decisions affecting current work:
 
-- Persistence seam: `db.ts` is the sole Dexie import; full raw Session + MetricsResult snapshot (not derived-only).
-- `symbolAdjustedWpm` stays an additive companion; net WPM remains primary.
-- `gatedMedian` owns the exclusive (25ms, 1000ms) window; `DIGRAPH_MIN_SAMPLES = 5`.
-- Hide-not-unmount trainer on History/Analytics view switches (D-08).
+- v2.0 corpus source = public GitHub API (URL → tree → blob), not Tauri and not generic git clone.
+- Scaffolded file: full text visible, only the current AST unit is typeable.
+- Parser = tree-sitter WASM for TypeScript/JavaScript only.
+- Click-to-type-whole-file is never the happy path; FILE-* lands in Phase 8 (plan units), typing chrome in Phase 9.
 
 ### Pending Todos
-
-[From .planning/todos/pending/ — ideas captured during sessions]
 
 None yet.
 
 ### Blockers/Concerns
 
-[Issues that affect future work]
-
-- ANLY-06 trigraph latency still needs more accumulated session volume than digraphs; candidate for the next milestone.
+- ANLY-06..09 remain deferred (v2.0 is repo katas, not more analytics).
+- Phase 8 needs a wasm ABI pin spike (`web-tree-sitter` vs grammar versions).
+- COEP `require-corp` must stay; GitHub via cors `fetch`; `credentialless` only as escape hatch.
 
 ## Deferred Items
 
@@ -101,10 +90,6 @@ Items acknowledged and deferred at milestone close on 2026-09-20:
 
 ## Session Continuity
 
-Last session: 2026-09-20T18:55:00Z
-Stopped at: Milestone v1.1 archived (override_closeout)
+Last session: 2026-09-20
+Stopped at: v2.0 ROADMAP.md written (Phases 7–9)
 Resume file: None
-
-## Operator Next Steps
-
-- Start the next milestone with /gsd-new-milestone
