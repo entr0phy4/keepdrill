@@ -7,15 +7,34 @@ import {
   RateLimitedError,
   RepoNotFoundError,
 } from '../github/errors'
+import type { GithubBlobResult } from '../github/client'
 import type { GitTreeEntry, RepoTreeResult } from '../github/types'
+import type { FilePlan, TsNode } from '../parse/types'
 import { RepoBrowser } from './RepoBrowser'
 
-const { fetchRepoTree } = vi.hoisted(() => ({
+const { fetchRepoTree, fetchGithubBlob } = vi.hoisted(() => ({
   fetchRepoTree: vi.fn(),
+  fetchGithubBlob: vi.fn(),
+}))
+
+const { parseSource, ensureParser } = vi.hoisted(() => ({
+  parseSource: vi.fn(),
+  ensureParser: vi.fn(),
 }))
 
 vi.mock('../github/client', () => ({
   fetchRepoTree,
+  fetchGithubBlob,
+}))
+
+vi.mock('../parse/wasm', () => ({
+  parseSource,
+  ensureParser,
+  loadDialect: vi.fn(),
+  dialectForPath: (path: string) => {
+    const base = path.slice(path.lastIndexOf('/') + 1).toLowerCase()
+    return base.endsWith('.tsx') || base.endsWith('.jsx') ? 'tsx' : 'typescript'
+  },
 }))
 
 ;(globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
@@ -28,16 +47,63 @@ const COPY = {
   unreachable: "Couldn't reach GitHub. Check the connection and try again.",
   truncated: 'GitHub returned a partial file list (repository too large). Showing what arrived.',
   blocked: "This file can't be split yet. No exercise loaded.",
-  notYet:
-    'TypeScript/JavaScript files open as scaffolded exercises in the next step. Browsing only for now.',
+  loading: 'Loading {path}…',
+  plannedOne: 'Planned 1 unit from {path}.',
+  plannedMany: 'Planned {count} units from {path}.',
+  fallback: "Couldn't split {path}. You'll type the whole file as one unit.",
+  errTooLarge: 'This file is over 100 KB. Paste a smaller section, or trim the file first.',
+  blobMissing: "That file isn't on GitHub anymore.",
   emptyRepo: 'This repository has no files on the default branch.',
 } as const
+
+const SOURCE_TEXT = 'function a() {}\nfunction b() {}\n'
+const SOURCE_BYTES = new TextEncoder().encode(SOURCE_TEXT)
+
+function twoFnTree(text: string): TsNode {
+  const first = 'function a() {}'
+  const second = 'function b() {}'
+  const aAt = text.indexOf('a')
+  const bAt = text.indexOf('b')
+  return {
+    type: 'program',
+    startIndex: 0,
+    endIndex: text.length,
+    namedChildren: [
+      {
+        type: 'function_declaration',
+        startIndex: text.indexOf(first),
+        endIndex: text.indexOf(first) + first.length,
+        namedChildren: [],
+        childForFieldName: (field) =>
+          field === 'name'
+            ? { type: 'identifier', startIndex: aAt, endIndex: aAt + 1, namedChildren: [] }
+            : null,
+      },
+      {
+        type: 'function_declaration',
+        startIndex: text.indexOf(second),
+        endIndex: text.indexOf(second) + second.length,
+        namedChildren: [],
+        childForFieldName: (field) =>
+          field === 'name'
+            ? { type: 'identifier', startIndex: bAt, endIndex: bAt + 1, namedChildren: [] }
+            : null,
+      },
+    ],
+  }
+}
+
+function blobResult(sha: string): GithubBlobResult {
+  return { sha, size: SOURCE_BYTES.byteLength, bytes: SOURCE_BYTES }
+}
 
 const NESTED_ENTRIES: GitTreeEntry[] = [
   { path: 'src', type: 'tree', sha: 'abc' },
   { path: 'src/nested', type: 'tree', sha: 'nest' },
   { path: 'src/nested/util.ts', type: 'blob', sha: 'util' },
   { path: 'src/App.tsx', type: 'blob', sha: 'def', size: 120 },
+  { path: 'src/huge.ts', type: 'blob', sha: 'huge', size: 100_001 },
+  { path: 'vendor/mod.ts', type: 'commit', sha: 'sub' },
   { path: 'README.md', type: 'blob', sha: 'ghi', size: 50 },
   { path: 'index.mjs', type: 'blob', sha: 'mjs' },
 ]
@@ -65,6 +131,12 @@ let root: Root
 
 beforeEach(() => {
   fetchRepoTree.mockReset()
+  fetchGithubBlob.mockReset()
+  parseSource.mockReset()
+  ensureParser.mockReset()
+  ensureParser.mockResolvedValue(undefined)
+  parseSource.mockResolvedValue(twoFnTree(SOURCE_TEXT))
+  fetchGithubBlob.mockResolvedValue(blobResult('def'))
   container = document.createElement('div')
   document.body.appendChild(container)
   root = createRoot(container)
@@ -77,9 +149,9 @@ afterEach(() => {
   container.remove()
 })
 
-function renderBrowser(): void {
+function renderBrowser(onPlanned?: (plan: FilePlan) => void): void {
   act(() => {
-    root.render(<RepoBrowser />)
+    root.render(<RepoBrowser onPlanned={onPlanned} />)
   })
 }
 
@@ -146,7 +218,7 @@ describe('RepoBrowser — import form and locked copy', () => {
     expect(app.classList.contains('text-muted')).toBe(false)
   })
 
-  it('shows blocked copy on README.md click and not-yet copy on App.tsx click', async () => {
+  it('shows blocked copy on README.md click and does not fetch the blob', async () => {
     fetchRepoTree.mockResolvedValue(treeResult())
     renderBrowser()
     await importValue('o/r')
@@ -159,19 +231,10 @@ describe('RepoBrowser — import form and locked copy', () => {
     })
     expect(statusRegion().getAttribute('role')).toBe('status')
     expect(statusRegion().textContent).toBe(COPY.blocked)
-
-    const app = Array.from(container.querySelectorAll('.repo-tree button')).find(
-      (b) => b.textContent === 'App.tsx',
-    )!
-    act(() => {
-      app.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    })
-    expect(statusRegion().getAttribute('role')).toBe('status')
-    expect(statusRegion().textContent).toBe(COPY.notYet)
-    expect(COPY.blocked).not.toBe(COPY.notYet)
+    expect(fetchGithubBlob).not.toHaveBeenCalled()
   })
 
-  it('shows blocked copy for .mjs, not the not-yet string', async () => {
+  it('shows blocked copy for .mjs, not the planned or fallback strings', async () => {
     fetchRepoTree.mockResolvedValue(treeResult())
     renderBrowser()
     await importValue('o/r')
@@ -183,7 +246,9 @@ describe('RepoBrowser — import form and locked copy', () => {
       mjs.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
     expect(statusRegion().textContent).toBe(COPY.blocked)
-    expect(statusRegion().textContent).not.toBe(COPY.notYet)
+    expect(statusRegion().textContent).not.toBe(COPY.fallback.replace('{path}', 'index.mjs'))
+    expect(statusRegion().textContent).not.toContain('Planned')
+    expect(fetchGithubBlob).not.toHaveBeenCalled()
   })
 
   it('renders truncated listings plus the truncated notice', async () => {
@@ -404,5 +469,154 @@ describe('RepoBrowser — import form and locked copy', () => {
     expect(container.querySelector('label[for="github-url"]')?.textContent).toBe(
       'GitHub URL or owner/repo',
     )
+  })
+})
+
+async function clickTreeFile(name: string): Promise<HTMLButtonElement> {
+  const btn = Array.from(container.querySelectorAll('.repo-tree button')).find(
+    (b) => b.textContent === name,
+  )!
+  await act(async () => {
+    btn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    await Promise.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
+  })
+  return btn
+}
+
+describe('RepoBrowser — loadable click plans units', () => {
+  it('plans App.tsx via blob → corpus → parse, calls onPlanned, and does not mount CaptureSurface', async () => {
+    const onPlanned = vi.fn()
+    fetchRepoTree.mockResolvedValue(treeResult())
+    renderBrowser(onPlanned)
+    await importValue('o/r')
+
+    await clickTreeFile('App.tsx')
+
+    expect(fetchGithubBlob).toHaveBeenCalledWith({ owner: 'o', repo: 'r' }, 'def')
+    expect(onPlanned).toHaveBeenCalledTimes(1)
+    const plan = onPlanned.mock.calls[0]![0] as FilePlan
+    expect(plan.fallback).toBe(false)
+    expect(plan.units.length).toBe(2)
+    expect(plan.exercise.sourceType).toBe('github')
+    expect(plan.exercise.sourceRef).toBe('o/r:src/App.tsx')
+    expect(statusRegion().getAttribute('role')).toBe('status')
+    expect(statusRegion().textContent).toBe('Planned 2 units from src/App.tsx.')
+    expect(container.querySelector('#capture-surface')).toBeNull()
+    expect(COPY.fallback).not.toBe(COPY.blocked)
+  })
+
+  it('calls onPlanned with fallback and distinct notice when parseSource rejects', async () => {
+    const onPlanned = vi.fn()
+    fetchRepoTree.mockResolvedValue(treeResult())
+    parseSource.mockRejectedValue(new Error('Language.load failed'))
+    renderBrowser(onPlanned)
+    await importValue('o/r')
+
+    await clickTreeFile('App.tsx')
+
+    expect(onPlanned).toHaveBeenCalledTimes(1)
+    const plan = onPlanned.mock.calls[0]![0] as FilePlan
+    expect(plan.fallback).toBe(true)
+    expect(plan.units).toHaveLength(1)
+    expect(plan.units[0]?.kind).toBe('file')
+    expect(statusRegion().getAttribute('role')).toBe('status')
+    expect(statusRegion().textContent).toBe(
+      "Couldn't split src/App.tsx. You'll type the whole file as one unit.",
+    )
+    expect(statusRegion().textContent).not.toBe(COPY.blocked)
+  })
+
+  it('last-wins overlapping clicks: slow first sha cannot overwrite the second', async () => {
+    const onPlanned = vi.fn()
+    let resolveFirst!: (value: GithubBlobResult) => void
+    const first = new Promise<GithubBlobResult>((resolve) => {
+      resolveFirst = resolve
+    })
+    fetchRepoTree.mockResolvedValue(treeResult())
+    fetchGithubBlob.mockReturnValueOnce(first).mockResolvedValueOnce(blobResult('util'))
+    renderBrowser(onPlanned)
+    await importValue('o/r')
+
+    const app = Array.from(container.querySelectorAll('.repo-tree button')).find(
+      (b) => b.textContent === 'App.tsx',
+    )!
+    const util = Array.from(container.querySelectorAll('.repo-tree button')).find(
+      (b) => b.textContent === 'util.ts',
+    )!
+    await act(async () => {
+      app.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await Promise.resolve()
+    })
+    await act(async () => {
+      util.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(onPlanned).toHaveBeenCalledTimes(1)
+    expect((onPlanned.mock.calls[0]![0] as FilePlan).exercise.sourceRef).toBe(
+      'o/r:src/nested/util.ts',
+    )
+    expect(statusRegion().textContent).toBe('Planned 2 units from src/nested/util.ts.')
+
+    await act(async () => {
+      resolveFirst(blobResult('def'))
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    expect(onPlanned).toHaveBeenCalledTimes(1)
+    expect(statusRegion().textContent).toBe('Planned 2 units from src/nested/util.ts.')
+  })
+
+  it('refuses a 100001-byte node with the too-large alert and skips the blob GET', async () => {
+    const onPlanned = vi.fn()
+    fetchRepoTree.mockResolvedValue(treeResult())
+    renderBrowser(onPlanned)
+    await importValue('o/r')
+
+    await clickTreeFile('huge.ts')
+
+    expect(fetchGithubBlob).not.toHaveBeenCalled()
+    expect(onPlanned).not.toHaveBeenCalled()
+    expect(statusRegion().getAttribute('role')).toBe('alert')
+    expect(statusRegion().textContent).toBe(COPY.errTooLarge)
+  })
+
+  it('maps blob 404 RepoNotFoundError to blobMissing alert', async () => {
+    const onPlanned = vi.fn()
+    fetchRepoTree.mockResolvedValue(treeResult())
+    fetchGithubBlob.mockRejectedValue(new RepoNotFoundError())
+    renderBrowser(onPlanned)
+    await importValue('o/r')
+
+    await clickTreeFile('App.tsx')
+
+    expect(onPlanned).not.toHaveBeenCalled()
+    expect(statusRegion().getAttribute('role')).toBe('alert')
+    expect(statusRegion().textContent).toBe(COPY.blobMissing)
+  })
+
+  it('blocks commit entries even when the path looks loadable', async () => {
+    fetchRepoTree.mockResolvedValue(treeResult())
+    renderBrowser()
+    await importValue('o/r')
+
+    await clickTreeFile('mod.ts')
+
+    expect(statusRegion().textContent).toBe(COPY.blocked)
+    expect(fetchGithubBlob).not.toHaveBeenCalled()
+  })
+
+  it('does not take a paste/upload load callback and never renders #capture-surface', async () => {
+    fetchRepoTree.mockResolvedValue(treeResult())
+    renderBrowser()
+    await importValue('o/r')
+    await clickTreeFile('App.tsx')
+    expect(container.querySelector('#capture-surface')).toBeNull()
+    expect(RepoBrowser.length).toBeLessThanOrEqual(1)
   })
 })
