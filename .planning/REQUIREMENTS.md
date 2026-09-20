@@ -8,8 +8,8 @@
 
 ### Repo
 
-- [ ] **REPO-01**: User can paste a public GitHub URL or `owner/repo` and see the repository as a filesystem tree of the default branch
-- [ ] **REPO-02**: User can expand and collapse folders in that tree and see every file path GitHub returns (not only TS/JS)
+- [x] **REPO-01**: User can paste a public GitHub URL or `owner/repo` and see the repository as a filesystem tree of the default branch
+- [x] **REPO-02**: User can expand and collapse folders in that tree and see every file path GitHub returns (not only TS/JS)
 - [ ] **REPO-03**: User who clicks a non-`.ts`/`.tsx`/`.js`/`.jsx` file sees a notice that the file cannot be split yet, and no exercise loads
 - [ ] **REPO-04**: User sees specific, non-generic copy when the repo is missing (404), GitHub rate-limits the client, or the recursive tree is truncated
 
@@ -75,8 +75,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| REPO-01 | Phase 7 | Pending |
-| REPO-02 | Phase 7 | Pending |
+| REPO-01 | Phase 7 | Complete |
+| REPO-02 | Phase 7 | Complete |
 | REPO-03 | Phase 7 | Pending |
 | REPO-04 | Phase 7 | Pending |
 | FILE-01 | Phase 8 | Pending |

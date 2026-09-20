@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Katas desde GitHub
-current_phase: 7
-current_phase_name: GitHub URL & Repo Tree
-status: ready_to_execute
-stopped_at: Phase 7 planned
-last_updated: "2026-09-20T21:55:00.000Z"
+current_phase: 07
+current_phase_name: github-url-repo-tree
+status: executing
+stopped_at: Completed 07-01-PLAN.md
+last_updated: "2026-09-20T22:07:04.926Z"
 last_activity: 2026-09-20
-last_activity_desc: Phase 7 planned — 3 plans in 3 waves
+last_activity_desc: Phase 07 execution started
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 3
-  completed_plans: 0
+  completed_plans: 1
   percent: 0
 ---
 
@@ -24,16 +24,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-20 after starting milestone v2.0)
 
 **Core value:** The user can paste or upload a real code/text file, type it with keystroke capture, and see WPM, accuracy, and their five slowest keys — useful enough for a week of daily self-use.
-**Current focus:** Phase 7 — GitHub URL & Repo Tree
+**Current focus:** Phase 07 — github-url-repo-tree
 
 ## Current Position
 
-Phase: 7 of 9 (GitHub URL & Repo Tree)
-Plan: 01–03 created
+Phase: 07 (github-url-repo-tree) — EXECUTING
+Plan: 2 of 3
 Status: Ready to execute
-Last activity: 2026-09-20 — Phase 7 planned (3 plans, verification passed)
+Last activity: 2026-09-20 — Phase 07 execution started
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [███░░░░░░░] 33%
 
 ## Performance Metrics
 
@@ -60,6 +60,11 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: Stable
 
 *Updated after each plan completion*
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 07 P01 | 5 min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -72,6 +77,9 @@ Recent decisions affecting current work:
 - Scaffolded file: full text visible, only the current AST unit is typeable.
 - Parser = tree-sitter WASM for TypeScript/JavaScript only.
 - Click-to-type-whole-file is never the happy path; FILE-* lands in Phase 8 (plan units), typing chrome in Phase 9.
+- [Phase 07]: Scheme-less github.com/owner/repo is accepted by prefixing https:// (RESEARCH A1) — Locked this plan so 07-02 callers can pass scheme-less paste without a second parser.
+- [Phase 07]: EmptyRepoError and RateLimitedError take object constructors so 07-02 can map HTTP 409/429 without guessing field order — Matches 07-RESEARCH mapping used by fetchRepoTree.
+- [Phase 07]: isLoadablePath uses a dedicated LOADABLE Set; it does not import language-map or extToLang — .mjs stays blocked (D-05) even though extToLang maps it to javascript.
 
 ### Pending Todos
 
@@ -94,6 +102,6 @@ Items acknowledged and deferred at milestone close on 2026-09-20:
 
 ## Session Continuity
 
-Last session: 2026-09-20T21:33:19.324Z
-Stopped at: Phase 7 UI-SPEC approved
-Resume file: .planning/phases/07-github-url-repo-tree/07-UI-SPEC.md
+Last session: 2026-09-20T22:06:55.980Z
+Stopped at: Completed 07-01-PLAN.md
+Resume file: None
