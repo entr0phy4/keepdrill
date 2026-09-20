@@ -212,6 +212,11 @@ describe('App — D-08 hide-not-unmount contract across a view switch', () => {
     const wrapper = captureAreaBefore.closest('div[style]') as HTMLElement
     expect(wrapper.style.display).toBe('none')
     expect(container.querySelector('section[role="status"] h2')?.textContent).toBe('History')
+    expect(document.querySelector('#corpus-paste')).not.toBeNull()
+    expect(document.querySelector('#github-url')).not.toBeNull()
+    expect((container.querySelector('#corpus-panel-paste') as HTMLElement).parentElement!.style.display).toBe(
+      'none',
+    )
 
     const trainerButton = Array.from(container.querySelectorAll('nav button')).find(
       (b) => b.textContent === 'Trainer',
@@ -290,6 +295,10 @@ describe('App — D-08 hide-not-unmount contract across a view switch', () => {
     expect(wrapper.style.display).toBe('none')
     expect(container.querySelector('section[role="status"] h2')?.textContent).toBe('Analytics')
     expect(document.querySelector('#corpus-paste')).not.toBeNull()
+    expect(document.querySelector('#github-url')).not.toBeNull()
+    expect((container.querySelector('#corpus-panel-paste') as HTMLElement).parentElement!.style.display).toBe(
+      'none',
+    )
 
     const trainerButton = Array.from(container.querySelectorAll('nav button')).find(
       (b) => b.textContent === 'Trainer',
@@ -356,5 +365,90 @@ describe('App — save-failure notice (PERS-03, D-15/D-16/D-17)', () => {
     })
 
     expect(container.querySelector('.save-failed-notice')).toBeNull()
+  })
+})
+
+describe('App — Trainer-only Paste | GitHub corpus shell (D-01..D-04)', () => {
+  it('selects Paste on first paint and keeps #corpus-paste in the Paste tabpanel', () => {
+    act(() => {
+      root.render(<App />)
+    })
+
+    const pasteTab = container.querySelector('#corpus-tab-paste')
+    const githubTab = container.querySelector('#corpus-tab-github')
+    expect(pasteTab?.getAttribute('aria-selected')).toBe('true')
+    expect(githubTab?.getAttribute('aria-selected')).toBe('false')
+    expect(container.querySelector('#corpus-panel-paste #corpus-paste')).not.toBeNull()
+    expect((container.querySelector('#corpus-panel-paste') as HTMLElement).style.display).toBe('grid')
+    expect((container.querySelector('#corpus-panel-github') as HTMLElement).style.display).toBe('none')
+  })
+
+  it('reveals #github-url on the GitHub tab and hides the Paste panel', () => {
+    act(() => {
+      root.render(<App />)
+    })
+
+    act(() => {
+      container
+        .querySelector('#corpus-tab-github')!
+        .dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect((container.querySelector('#corpus-panel-paste') as HTMLElement).style.display).toBe('none')
+    expect((container.querySelector('#corpus-panel-github') as HTMLElement).style.display).toBe('grid')
+    expect(container.querySelector('#github-url')).not.toBeNull()
+    expect(container.querySelector('#corpus-tab-github')?.getAttribute('aria-selected')).toBe('true')
+    expect(container.querySelector('#corpus-tab-paste')?.getAttribute('aria-selected')).toBe('false')
+  })
+
+  it('keeps paste text when switching to GitHub and back', () => {
+    act(() => {
+      root.render(<App />)
+    })
+
+    const pasteArea = container.querySelector<HTMLTextAreaElement>('#corpus-paste')!
+    act(() => {
+      setControlledTextareaValue(pasteArea, 'kept across tabs')
+    })
+
+    act(() => {
+      container
+        .querySelector('#corpus-tab-github')!
+        .dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    act(() => {
+      container
+        .querySelector('#corpus-tab-paste')!
+        .dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(container.querySelector<HTMLTextAreaElement>('#corpus-paste')?.value).toBe(
+      'kept across tabs',
+    )
+  })
+
+  it('does not persist the corpus tab in localStorage or cookies', () => {
+    localStorage.clear()
+    act(() => {
+      root.render(<App />)
+    })
+    act(() => {
+      container
+        .querySelector('#corpus-tab-github')!
+        .dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    act(() => {
+      container
+        .querySelector('#corpus-tab-paste')!
+        .dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(localStorage.getItem('corpus-tab')).toBeNull()
+    expect(localStorage.getItem('corpusTab')).toBeNull()
+    const tabKeys = Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i)).filter(
+      (key) => key !== null && /corpus/i.test(key),
+    )
+    expect(tabKeys).toEqual([])
+    expect(document.cookie).not.toMatch(/corpus/i)
   })
 })
