@@ -472,7 +472,7 @@ describe('RepoBrowser — import form and locked copy', () => {
   })
 })
 
-async function clickTreeFile(name: string): Promise<HTMLButtonElement> {
+async function clickTreeFile(name: string): Promise<void> {
   const btn = Array.from(container.querySelectorAll('.repo-tree button')).find(
     (b) => b.textContent === name,
   )!
@@ -482,7 +482,6 @@ async function clickTreeFile(name: string): Promise<HTMLButtonElement> {
     await Promise.resolve()
     await Promise.resolve()
   })
-  return btn
 }
 
 describe('RepoBrowser — loadable click plans units', () => {

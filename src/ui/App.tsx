@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Exercise } from '../ingestion/types'
+import type { FilePlan } from '../parse/types'
 import type { Session } from '../capture/types'
 import { buildSession } from '../session'
 import { readCrossOriginIsolated, probeTimerResolutionUs } from '../platform/isolation'
@@ -31,6 +32,7 @@ const SESSION_REFRESH_MS = 250
 
 export function App() {
   const [exercise, setExercise] = useState<Exercise | null>(null)
+  const [filePlan, setFilePlan] = useState<FilePlan | null>(null)
   // CR-02: a monotonic token, not exercise content, so CaptureSurface remounts
   // on every load — including loading the *same* text/file twice in a row,
   // which a content-derived key would miss. The remount discards the stale
@@ -217,9 +219,10 @@ export function App() {
         <div
           id="corpus-panel-github"
           role="tabpanel"
+          data-file-plan={filePlan !== null ? 'true' : undefined}
           style={{ display: corpusTab === 'github' ? 'grid' : 'none' }}
         >
-          <RepoBrowser />
+          <RepoBrowser onPlanned={setFilePlan} />
         </div>
       </div>
 
