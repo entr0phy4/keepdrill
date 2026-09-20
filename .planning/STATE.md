@@ -5,10 +5,10 @@ milestone_name: Katas desde GitHub
 current_phase: 7
 current_phase_name: GitHub URL & Repo Tree
 status: planning
-stopped_at: Phase 7 research complete
-last_updated: "2026-09-20T21:20:00.000Z"
+stopped_at: Phase 7 UI-SPEC draft written
+last_updated: "2026-09-20T21:30:00.000Z"
 last_activity: 2026-09-20
-last_activity_desc: Phase 7 RESEARCH.md written (GitHub URL & repo tree)
+last_activity_desc: Phase 7 UI-SPEC.md written (GitHub URL & repo tree)
 progress:
   total_phases: 3
   completed_phases: 0
@@ -30,8 +30,8 @@ See: .planning/PROJECT.md (updated 2026-09-20 after starting milestone v2.0)
 
 Phase: 7 of 9 (GitHub URL & Repo Tree)
 Plan: —
-Status: Research complete — ready to plan
-Last activity: 2026-09-20 — Phase 7 RESEARCH.md written
+Status: UI-SPEC draft — ready for checker
+Last activity: 2026-09-20 — Phase 7 UI-SPEC.md written
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -96,4 +96,4 @@ Items acknowledged and deferred at milestone close on 2026-09-20:
 
 Last session: 2026-09-20T21:09:58.673Z
 Stopped at: Phase 7 research complete
-Resume file: .planning/phases/07-github-url-repo-tree/07-RESEARCH.md
+Resume file: .planning/phases/07-github-url-repo-tree/07-UI-SPEC.md
