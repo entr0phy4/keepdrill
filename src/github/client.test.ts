@@ -187,7 +187,25 @@ describe('fetchRepoTree', () => {
 
 const BLOB_SHA = 'deadbeef'
 const BLOB_PAYLOAD = 'const x = 1\n'
-const BLOB_B64 = Buffer.from(BLOB_PAYLOAD, 'utf8').toString('base64')
+
+function utf8Bytes(text: string): Uint8Array {
+  return new TextEncoder().encode(text)
+}
+
+function bytesToUtf8(bytes: Uint8Array): string {
+  return new TextDecoder().decode(bytes)
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = ''
+  const chunk = 8192
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk))
+  }
+  return btoa(binary)
+}
+
+const BLOB_B64 = bytesToBase64(utf8Bytes(BLOB_PAYLOAD))
 const WRAPPED_B64 = BLOB_B64.replace(/(.{8})/g, '$1\n').replace(/\n$/, '')
 
 function stubBlob(
@@ -226,13 +244,13 @@ describe('fetchGithubBlob', () => {
     )
     assertListingFetch(call)
     expect(result.sha).toBe(BLOB_SHA)
-    expect(Buffer.from(result.bytes).toString('utf8')).toBe(BLOB_PAYLOAD)
+    expect(bytesToUtf8(result.bytes)).toBe(BLOB_PAYLOAD)
   })
 
   it('decodes GitHub-wrapped base64 (newlines in content) to the original bytes', async () => {
     stubBlob({ content: WRAPPED_B64, size: BLOB_PAYLOAD.length })
     const result = await fetchGithubBlob(REF, BLOB_SHA)
-    expect(Buffer.from(result.bytes).toString('utf8')).toBe(BLOB_PAYLOAD)
+    expect(bytesToUtf8(result.bytes)).toBe(BLOB_PAYLOAD)
   })
 
   it('throws CorpusTooLargeError for JSON size 100001 before atob', async () => {
@@ -243,9 +261,9 @@ describe('fetchGithubBlob', () => {
   })
 
   it('accepts JSON size 100000 with 100000 decoded bytes', async () => {
-    const bytes = Buffer.alloc(100_000, 0x61)
+    const bytes = new Uint8Array(100_000).fill(0x61)
     stubBlob({
-      content: bytes.toString('base64'),
+      content: bytesToBase64(bytes),
       size: 100_000,
       sha: BLOB_SHA,
     })
@@ -255,9 +273,9 @@ describe('fetchGithubBlob', () => {
   })
 
   it('throws CorpusTooLargeError when size is null and decoded byteLength exceeds MAX_BYTES', async () => {
-    const bytes = Buffer.alloc(100_001, 0x61)
+    const bytes = new Uint8Array(100_001).fill(0x61)
     stubBlob({
-      content: bytes.toString('base64'),
+      content: bytesToBase64(bytes),
       size: null,
       sha: BLOB_SHA,
     })
