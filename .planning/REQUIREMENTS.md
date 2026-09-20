@@ -15,8 +15,8 @@
 
 ### File
 
-- [ ] **FILE-01**: User who clicks a TypeScript or JavaScript file gets that blob loaded as corpus — same 100 KB cap and UTF-8 rules as upload — then normalized like paste/upload
-- [ ] **FILE-02**: User's resulting exercise is tagged `sourceType: 'github'` with repo and path in `sourceRef`, so History can show where it came from
+- [x] **FILE-01**: User who clicks a TypeScript or JavaScript file gets that blob loaded as corpus — same 100 KB cap and UTF-8 rules as upload — then normalized like paste/upload
+- [x] **FILE-02**: User's resulting exercise is tagged `sourceType: 'github'` with repo and path in `sourceRef`, so History can show where it came from
 
 ### Plan
 
@@ -79,8 +79,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REPO-02 | Phase 7 | Complete |
 | REPO-03 | Phase 7 | Complete |
 | REPO-04 | Phase 7 | Complete |
-| FILE-01 | Phase 8 | Pending |
-| FILE-02 | Phase 8 | Pending |
+| FILE-01 | Phase 8 | Complete |
+| FILE-02 | Phase 8 | Complete |
 | PLAN-01 | Phase 8 | Pending |
 | PLAN-02 | Phase 8 | Pending |
 | PLAN-03 | Phase 8 | Pending |
