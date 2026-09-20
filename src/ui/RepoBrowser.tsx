@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import { fetchRepoTree } from '../github/client'
+import { fetchGithubBlob, fetchRepoTree } from '../github/client'
 import {
   EmptyRepoError,
   GithubHttpError,
@@ -10,9 +10,14 @@ import {
 } from '../github/errors'
 import { foldTree, isLoadablePath } from '../github/tree'
 import { parseGithubRef } from '../github/url'
-import type { DirNode, FileNode, TreeNode } from '../github/types'
+import type { DirNode, FileNode, RepoRef, TreeNode } from '../github/types'
+import { CorpusTooLargeError, NonUtf8Error } from '../ingestion/errors'
+import { fromGithubBlob } from '../ingestion/github'
+import { MAX_BYTES } from '../ingestion/upload'
+import { fallbackPlan, planUnits } from '../parse/plan'
+import type { FilePlan } from '../parse/types'
+import { dialectForPath, ensureParser, parseSource } from '../parse/wasm'
 
-// Copy strings are verbatim from 07-UI-SPEC.md Copywriting Contract.
 const COPY = {
   urlLabel: 'GitHub URL or owner/repo',
   urlPlaceholder: 'owner/repo or https://github.com/owner/repo',
@@ -26,8 +31,13 @@ const COPY = {
   unreachable: "Couldn't reach GitHub. Check the connection and try again.",
   truncated: 'GitHub returned a partial file list (repository too large). Showing what arrived.',
   blocked: "This file can't be split yet. No exercise loaded.",
-  notYet:
-    'TypeScript/JavaScript files open as scaffolded exercises in the next step. Browsing only for now.',
+  loading: 'Loading {path}…',
+  plannedOne: 'Planned 1 unit from {path}.',
+  plannedMany: 'Planned {count} units from {path}.',
+  fallback: "Couldn't split {path}. You'll type the whole file as one unit.",
+  errTooLarge: 'This file is over 100 KB. Paste a smaller section, or trim the file first.',
+  errNonUtf8: "This file isn't UTF-8 text. Save it as UTF-8, or paste the contents instead.",
+  blobMissing: "That file isn't on GitHub anymore.",
   emptyRepo: 'This repository has no files on the default branch.',
 } as const
 
@@ -97,19 +107,82 @@ function Dir({
   )
 }
 
-export function RepoBrowser() {
+export function RepoBrowser({ onPlanned }: { onPlanned?: (plan: FilePlan) => void } = {}) {
   const [url, setUrl] = useState('')
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState<StatusState | null>(null)
   const [caption, setCaption] = useState('')
   const [nodes, setNodes] = useState<TreeNode[] | null>(null)
+  const [importedRef, setImportedRef] = useState<RepoRef | null>(null)
   const tokenRef = useRef(0)
 
-  const onFileClick = (node: FileNode) => {
-    setStatus({
-      kind: 'status',
-      text: isLoadablePath(node.path) ? COPY.notYet : COPY.blocked,
-    })
+  const onFileClick = async (node: FileNode) => {
+    if (node.entryType === 'commit' || !isLoadablePath(node.path)) {
+      setStatus({ kind: 'status', text: COPY.blocked })
+      return
+    }
+
+    const token = ++tokenRef.current
+    setStatus({ kind: 'status', text: COPY.loading.replace('{path}', node.path) })
+
+    if ((node.size ?? 0) > MAX_BYTES) {
+      if (tokenRef.current !== token) return
+      setStatus({ kind: 'alert', text: COPY.errTooLarge })
+      return
+    }
+
+    const ref = importedRef
+    if (!ref) return
+
+    try {
+      const blob = await fetchGithubBlob(ref, node.sha)
+      if (tokenRef.current !== token) return
+
+      const exercise = fromGithubBlob(blob.bytes, {
+        owner: ref.owner,
+        repo: ref.repo,
+        path: node.path,
+      })
+
+      let plan: FilePlan
+      try {
+        await ensureParser()
+        const root = await parseSource(exercise.text, dialectForPath(node.path))
+        plan = planUnits(root, exercise)
+        if (plan.fallback) {
+          plan = fallbackPlan(exercise, COPY.fallback.replace('{path}', node.path))
+        }
+      } catch {
+        plan = fallbackPlan(exercise, COPY.fallback.replace('{path}', node.path))
+      }
+
+      if (tokenRef.current !== token) return
+      onPlanned?.(plan)
+      const count = plan.units.length
+      const text = plan.fallback
+        ? COPY.fallback.replace('{path}', node.path)
+        : count === 1
+          ? COPY.plannedOne.replace('{path}', node.path)
+          : COPY.plannedMany.replace('{count}', String(count)).replace('{path}', node.path)
+      setStatus({ kind: 'status', text })
+    } catch (err) {
+      if (tokenRef.current !== token) return
+      if (err instanceof CorpusTooLargeError) {
+        setStatus({ kind: 'alert', text: COPY.errTooLarge })
+      } else if (err instanceof NonUtf8Error) {
+        setStatus({ kind: 'alert', text: COPY.errNonUtf8 })
+      } else if (err instanceof RepoNotFoundError) {
+        setStatus({ kind: 'alert', text: COPY.blobMissing })
+      } else if (err instanceof RateLimitedError) {
+        setStatus({ kind: 'alert', text: formatRateLimit(err.resetEpochS) })
+      } else if (err instanceof GithubHttpError) {
+        setStatus({ kind: 'alert', text: COPY.otherHttp })
+      } else if (err instanceof TypeError) {
+        setStatus({ kind: 'alert', text: COPY.unreachable })
+      } else {
+        throw err
+      }
+    }
   }
 
   const onImport = async () => {
@@ -133,6 +206,7 @@ export function RepoBrowser() {
       const result = await fetchRepoTree(ref)
       if (tokenRef.current !== token) return
 
+      setImportedRef({ owner: result.owner, repo: result.repo })
       setCaption(formatCaption(result.owner, result.repo, result.defaultBranch))
       if (result.entries.length === 0) {
         setNodes([])
