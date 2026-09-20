@@ -17,11 +17,9 @@ is useful for a week of daily self-use, the project is worth continuing.
 
 ## Current State
 
-**Shipped: v1.1 Persistencia y Analíticas** (2026-09-20)
+**Shipped: v2.0 Phase 7 GitHub URL & Repo Tree** (2026-09-20)
 
-The paste/type/metrics loop from v1.0 now persists every completed session to IndexedDB (full raw log + cached metrics snapshot) and exposes a History list plus a stacked Analytics view: symbol-adjusted WPM beside net WPM, ranked digraph latency, a US-ANSI keyboard heatmap, and a per-language profile (plaintext kept as its own bucket).
-
-Closeout was `override_closeout`: Phase 5 UAT passed (10/10) and ANLY-01/02 shipped, but `05-VERIFICATION.md` was never written. See `.planning/MILESTONES.md` Known Gaps.
+Trainer has a Paste | GitHub switch. The user can import a public GitHub repository by URL or `owner/repo`, browse the default-branch filesystem tree, and see locked blocked / not-yet / 404 / rate-limit copy. File clicks never start a typing session. Paste/upload remain the whole-file path.
 
 ## Current Milestone: v2.0 Katas desde GitHub
 
@@ -53,14 +51,14 @@ Closeout was `override_closeout`: Phase 5 UAT passed (10/10) and ANLY-01/02 ship
 - ✓ User can view a ranked table of their slowest digraphs across persisted sessions, with a minimum-sample gate — Phase 6
 - ✓ User can view a US-ANSI keyboard heatmap of physical-key median latency across session history — Phase 6
 - ✓ User can view a per-language WPM/accuracy profile, with plaintext kept as its own bucket — Phase 6
+- ✓ User can import a public GitHub repository by URL and browse it as a filesystem tree — Phase 7
+- ✓ Clicking a non-TS/JS file in the tree shows a blocked notice and does not load an exercise — Phase 7
 
 ### Active
 
-- [ ] User can import a public GitHub repository by URL and browse it as a filesystem tree
 - [ ] User can click a TypeScript/JavaScript file in that tree to load a scaffolded exercise
 - [ ] User sees the full file; only the current syntactic unit is typeable; future units remain visible but locked
 - [ ] Units are ordered by dependencies so the user completes indispensable/leaf functions first, then dependents, until the file is done
-- [ ] Clicking a non-TS/JS file in the tree shows a blocked notice and does not load an exercise
 - [ ] Paste and upload remain available as the existing corpus path (fallback for other languages and ad-hoc snippets)
 
 ### Out of Scope
@@ -141,7 +139,7 @@ Closeout was `override_closeout`: Phase 5 UAT passed (10/10) and ANLY-01/02 ship
 | `gatedMedian` owns the exclusive (25ms, 1000ms) window and both sample gates; `DIGRAPH_MIN_SAMPLES = 5` | Digraph ranking and heatmap cannot bury 5 as a magic number | ✓ Good — Phase 6 |
 | Language profile is the unweighted mean of per-session `resolveMetrics`; heatmap IKI skips modifiers and `isRepeat` | RESEARCH A2 / A1; plaintext is a normal map key | ✓ Good — Phase 6 |
 | Analytics is a third header sibling; trainer stays hide-not-unmount; heatmap fill via `--kb-fill` color-mix | Extends Phase 4 D-08; sequential amber, not score colors; inert keys | ✓ Good — Phase 6 |
-| v2.0 corpus source = public GitHub API (URL → tree → blob), not Tauri and not generic git clone | Browser SPA constraint; GitHub-only keeps CORS/auth surface small | — Pending |
+| v2.0 corpus source = public GitHub API (URL → tree → blob), not Tauri and not generic git clone | Browser SPA constraint; GitHub-only keeps CORS/auth surface small | ✓ Good — Phase 7 listing (blob still Phase 8) |
 | Scaffolded file: full text visible, only the current AST unit is typeable | User asked to see the whole file while typing indispensable units first | — Pending |
 | Parser = tree-sitter WASM for TypeScript/JavaScript only | Real function/dependency split; other languages stay blocked in the tree | — Pending |
 
@@ -169,4 +167,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-20 after starting milestone v2.0*
+*Last updated: 2026-09-20 after Phase 7*
