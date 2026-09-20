@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Persistencia y Analíticas
-current_phase: 05
-current_phase_name: symbol-adjusted-wpm-language-tagging
-status: verifying
-stopped_at: Phase 06 UI-SPEC approved
-last_updated: "2026-09-20T17:40:40.834Z"
-last_activity: 2026-09-13
-last_activity_desc: Phase 05 execution started
+current_phase: 06
+current_phase_name: cross-session-analytics
+status: ready
+stopped_at: Phase 06 planned
+last_updated: "2026-09-20T18:02:58.715Z"
+last_activity: 2026-09-20
+last_activity_desc: Phase 06 planned (3 plans)
 progress:
   total_phases: 3
   completed_phases: 2
@@ -24,16 +24,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-12)
 
 **Core value:** The user can paste or upload a real code/text file, type it with keystroke capture, and see WPM, accuracy, and their five slowest keys — useful enough for a week of daily self-use.
-**Current focus:** Phase 05 — symbol-adjusted-wpm-language-tagging
+**Current focus:** Phase 06 — Cross-Session Analytics
 
 ## Current Position
 
-Phase: 05 (symbol-adjusted-wpm-language-tagging) — EXECUTING
-Plan: 2 of 2
-Status: Phase complete — ready for verification
-Last activity: 2026-09-13 — Phase 05 execution started
+Phase: 06 (Cross-Session Analytics) — READY TO EXECUTE
+Plan: 0 of 3
+Status: Ready to execute
+Last activity: 2026-09-20 — Phase 06 planned (3 plans in 3 waves)
 
-Progress: [██████████] 100%
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
@@ -121,5 +121,5 @@ Resume file: .planning/phases/06-cross-session-analytics/06-UI-SPEC.md
 
 ## Operator Next Steps
 
-- Run `/gsd-discuss-phase 5` to gather context before planning Symbol-Adjusted WPM & Language Tagging (no CONTEXT.md exists yet)
-- Or run `/gsd-plan-phase 5` to skip discussion and plan directly
+- Run `/gsd-execute-phase 06` to execute Cross-Session Analytics
+- Or `/gsd-review --phase 06 --all` to peer-review plans first

@@ -78,9 +78,18 @@ Full detail archived to `.planning/milestones/v1.0-ROADMAP.md`.
 **Plans:** 3 plans
 
 Plans:
+**Wave 1**
+
 - [ ] 06-01-PLAN.md — Extract latency-stats + move resolveMetrics so analytics stays pure (ANLY-03/04/05 foundation)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 06-02-PLAN.md — Pure analytics folds: digraph ranking, keyboard heatmap, language profile
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 06-03-PLAN.md — Analytics sibling view: stacked dashboard tables + US-ANSI heatmap (ANLY-03, ANLY-04, ANLY-05)
+
 **UI hint**: yes
 
 ## Progress
