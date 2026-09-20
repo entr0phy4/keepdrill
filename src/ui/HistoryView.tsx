@@ -38,8 +38,13 @@ export function HistoryView() {
 // span. Rounds only here, at render (matches ResultsView's convention).
 function HistoryRow({ session }: { session: StoredSession }) {
   const m = resolveMetrics(session)
+  const sourceType = session.exercise.sourceType
   const sourceLabel =
-    session.exercise.sourceType === 'upload' ? session.exercise.sourceRef ?? 'Uploaded file' : 'Pasted snippet'
+    sourceType === 'upload'
+      ? (session.exercise.sourceRef ?? 'Uploaded file')
+      : sourceType === 'github'
+        ? (session.exercise.sourceRef ?? 'GitHub file')
+        : 'Pasted snippet'
   const lengthChars = Array.from(session.exercise.text).length
   const slowest = m.slowest5[0]
 
