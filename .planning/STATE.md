@@ -6,9 +6,9 @@ current_phase: 7
 current_phase_name: GitHub URL & Repo Tree
 status: planning
 stopped_at: Phase 7 plans written
-last_updated: "2026-09-20T21:50:00.000Z"
+last_updated: "2026-09-20T21:55:00.000Z"
 last_activity: 2026-09-20
-last_activity_desc: Phase 7 PLAN.md files written (07-01..07-03)
+last_activity_desc: Phase 7 plans revised from checker (EmptyRepoError caption contract)
 progress:
   total_phases: 3
   completed_phases: 0
@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-09-20 after starting milestone v2.0)
 Phase: 7 of 9 (GitHub URL & Repo Tree)
 Plan: 01–03 created
 Status: Plans written — ready for execute
-Last activity: 2026-09-20 — Phase 7 07-01..07-03 PLAN.md written
+Last activity: 2026-09-20 — Phase 7 plans revised (EmptyRepoError owner/repo/defaultBranch caption contract)
 
 Progress: [░░░░░░░░░░] 0%
 

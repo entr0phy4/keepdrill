@@ -174,7 +174,7 @@ User pastes URL or owner/repo  ──Enter / Import click──►  RepoBrowser 
         │
         └─ GET .../git/trees/{encodeURIComponent(default_branch)}?recursive=1
               200 → { sha, tree[], truncated }
-              409 → EmptyRepoError
+              409 → EmptyRepoError { owner, repo, defaultBranch }
               404 → RepoNotFoundError
                 │
                 ▼
@@ -427,7 +427,12 @@ Golden cases (must-have tests):
 // Source: docs.github.com REST trees + rate-limits + troubleshooting
 async function readGithub(res: Response): Promise<unknown> {
   if (res.status === 404) throw new RepoNotFoundError()
-  if (res.status === 409) throw new EmptyRepoError()
+  // 409 is mapped in fetchRepoTree after GET /repos learned default_branch —
+  // throw EmptyRepoError({ owner: ref.owner, repo: ref.repo, defaultBranch })
+  // so 07-03 can caption {owner}/{repo}@{defaultBranch}. Do not return RepoTreeResult.
+  if (res.status === 409) {
+    throw new EmptyRepoError({ owner, repo, defaultBranch })
+  }
   const remaining = res.headers.get('x-ratelimit-remaining')
   const reset = res.headers.get('x-ratelimit-reset')
   if (res.status === 429 || (res.status === 403 && remaining === '0')) {
@@ -574,30 +579,17 @@ Also assert every `fetch` URL starts with `https://api.github.com/` and headers 
 
 Discretion items (copy strings, caption, last-wins) are **not** assumptions — they are assigned to UI-SPEC / planner.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Exact user-facing copy**
-   - What we know: tones are locked (blocked ≠ not-yet; named 404 / rate-limit / truncated). `UI hint: yes`.
-   - What's unclear: final strings.
-   - Recommendation: UI-SPEC owns them. Starter copy for the UI researcher:
-     - Tabs: `Paste` / `GitHub`
-     - Button: `Import` / busy `Importing…`
-     - Invalid URL: `Paste a GitHub URL or owner/repo.`
-     - 404: `No public GitHub repository matches that URL.`
-     - Rate limit: `GitHub rate-limited this browser. Try again after {time}.`
-     - Truncated: `GitHub returned a partial file list (repository too large). Showing what arrived.`
-     - Blocked: `This file can't be split yet. No exercise loaded.`
-     - TS/JS: `TypeScript/JavaScript files open as scaffolded exercises in the next step. Browsing only for now.`
-     - Empty: `This repository has no files on the default branch.`
-     - Network/CSP/COEP TypeError: `Couldn't reach GitHub. Check the connection and try again.` (do not echo `Failed to fetch`)
-
-2. **Live COEP × GitHub in the operator's Chromium**
-   - What we know: MDN says cors-mode + CORS-enabled API is allowed under `require-corp`.
-   - What's unclear: a specific browser build might still block.
-   - Recommendation: human-check at end of phase; fallback `credentialless` only.
-
-3. **Caption `owner/repo@default_branch`**
-   - Discretion. Recommendation: yes, `role="status"` in the same reserved region is crowded — put the caption above the tree as muted text, keep the region for errors/notices.
+1. **Exact user-facing copy** — RESOLVED in `07-UI-SPEC.md` Copywriting Contract
+   (verbatim `COPY` keys, including `rateLimitedUnknown`).
+2. **Live COEP × GitHub in the operator's Chromium** — RESOLVED as the
+   `07-03-PLAN.md` verification `<human-check>` step 5 (`credentialless`
+   fallback only; never strip isolation).
+3. **Caption `owner/repo@default_branch`** — RESOLVED in `07-UI-SPEC.md`
+   Caption row: `{owner}/{repo}@{defaultBranch}` interpolates the API
+   `default_branch`. HTTP 409 captions from `EmptyRepoError.owner/repo/defaultBranch`
+   (see 07-01/07-02/07-03 empty-success contract).
 
 ## Environment Availability
 
