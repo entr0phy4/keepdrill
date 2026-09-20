@@ -544,3 +544,59 @@ nav button:not([aria-current='page']) {
   font-weight: var(--text-label-weight);
   line-height: var(--text-label-line);
 }
+
+/* Corpus source tabs — selected treatment matches header nav, not accent. */
+[role='tab'][aria-selected='true'] {
+  background: var(--color-surface);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+[role='tab'][aria-selected='false'] {
+  background: transparent;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.repo-caption {
+  min-height: 1.4em;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.repo-status {
+  min-height: 48px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.repo-tree {
+  max-height: 40vh;
+  overflow: auto;
+}
+
+.repo-tree ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0;
+}
+
+.repo-tree ul ul {
+  padding-inline-start: var(--space-md);
+}
+
+/* Exempt from the 44px control floor — same exception class as .save-failed-dismiss */
+.repo-tree button,
+.repo-tree summary {
+  min-height: 32px;
+  min-width: 0;
+  padding: var(--space-xs) var(--space-sm);
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  text-align: left;
+  width: 100%;
+  overflow-wrap: anywhere;
+}
