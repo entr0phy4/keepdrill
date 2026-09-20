@@ -1,10 +1,11 @@
 ---
 phase: 6
 slug: cross-session-analytics
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-09-20
+reviewed_at: 2026-09-20
 ---
 
 # Phase 6 — UI Design Contract
@@ -57,8 +58,8 @@ Inherited unchanged from `01-UI-SPEC.md` (multiples of 4 only): `--space-xs` 4px
 - `<AnalyticsDashboard>` internal: `<h2>Analytics</h2>` → `var(--space-lg)` (24px) gap → loading / page-empty / three sections. Reuse History's `role="status"` + `display: grid; gap: var(--space-lg)` wrapper.
 - **Page empty / loading:** a single muted `<p>` (`margin: 0; padding-block: var(--space-md)`), same class treatment as `.history-empty` / `.history-loading`. **Do not mount the three sections** when `sessions === undefined` or `sessions.length === 0` (D-04).
 - **Populated:** three stacked `<section>`s in this **fixed** order (D-02), **scroll only — no jump links, no TOC, no in-page index** (D-03):
-  1. Slowest digraphs
-  2. Keyboard heatmap
+  1. Slowest digraphs — **primary visual anchor** of the page (checker FLAG: heatmap color/size must not read as the hero; Display 28px is unused)
+  2. Keyboard heatmap — diagnostic, secondary
   3. Language profile
 - Gap between sections: `var(--space-xl)` (32px). Each section is `display: grid; gap: var(--space-md)` — heading → body.
 - No independent page-level scroll container. The dashboard grows the page downward with normal document flow (same as History). `--column-max: 45rem` is **not** widened.
@@ -245,7 +246,9 @@ Voice: unchanged from Phase 1–5 — plain, second person, no exclamation point
 > section-empty · **A7** keyboard heatmap diagram · **A8** heatmap ungated caption · **A9** language
 > profile table · **A10** CorpusInput (already-resolved control, visibility only).
 >
-> Applicable state considerations resolved: **14 covered, 4 backstop, 0 unresolved.**
+> Engine re-run 2026-09-20 after checker approval (10 surfaces, kind overrides applied).
+> Applicable state considerations resolved: **18 covered, 4 backstop, 0 unresolved.**
+> Extra engine items that do not apply independently are dismissed with reasons under **Not applicable**.
 
 | Category | Element(s) | Status | Resolution / Reason |
 |----------|------------|--------|---------------------|
@@ -262,8 +265,12 @@ Voice: unchanged from Phase 1–5 — plain, second person, no exclamation point
 | partial | A7 | ✅ covered | A mix of sampled and unused keys is the expected shape; unused remain drawn. |
 | overflow | A5, A9 | ✅ covered | Tables are `width: 100%` and wrap with the column; long language strings wrap inside the cell, never a page-level horizontal scrollbar. |
 | overflow | A7 | ✅ covered | `--column-max` unchanged; `.keyboard-heatmap` may `overflow-x: auto` at narrow viewports. |
+| overflow | A1 nav | ✅ covered | Header flex row already `flex-wrap: wrap`; three labels wrap as a unit, never clip. |
+| overflow | A2 page | ✅ covered | Dashboard grows with normal document flow; no independent page-level scroll container; `--column-max` unchanged. |
+| overflow | A8 caption | ✅ covered | Figure caption is Body 15/400/1.5 muted and wraps inside `--column-max`. |
 | zero-one-many | A5, A9 | ✅ covered | 0 digraph rows → section empty (not a 0-row table). 1 language row is a normal table. Many language rows grow the page. |
 | long-text | A5 digraph | ✅ covered | Pair is two codepoints after `glyphFor`; chip stays 1–4 visible characters. |
+| long-text | A1, A2, A8 | ✅ covered | Nav label, page heading, and ungated caption are fixed locked copy (`Analytics` / `No keys have 5 samples yet.`) — never user-typed. |
 | overflow | A7 at 320px | 🧪 backstop | Statement: at 320px viewport the keyboard diagram never expands `#root` horizontally; overflow is confined to `.keyboard-heatmap` (`overflow-x: auto`) and the US-ANSI silhouette remains intact after a horizontal scroll. — verification: backstop |
 | overflow | A9 long language tag | 🧪 backstop | Statement: an unexpectedly long `exercise.language` string wraps or breaks inside its table cell and never causes a page-level horizontal scrollbar. — verification: backstop |
 | long-text | A7 key label + ms | 🧪 backstop | Statement: every drawn key's label (≤ 5 chars, e.g. `Shift`) plus optional 1–4 digit ms number stay inside the 32×48 key box without overflowing into a neighbor. — verification: backstop |
@@ -288,10 +295,17 @@ Voice: unchanged from Phase 1–5 — plain, second person, no exclamation point
 
 ### Not applicable
 
-- `error` as a retryable fetch UI — local IndexedDB read, same as History.
-- `empty` for A9 — cardinality is guaranteed once the page is populated.
+- `error` as a retryable fetch UI — local IndexedDB read, same as History. Folds do not throw on empty input.
+- `empty` for A9 — cardinality is guaranteed once the page is populated (≥1 session ⇒ ≥1 language row).
 - Destructive / confirmation states — none this phase.
 - Real-time / optimistic heatmap — deferred anti-feature (D-15).
+- A1 `loading` / `error` — nav buttons render from first paint with no fetch.
+- A3 `empty` / `populated` / `partial` / `overflow` / `zero-one-many` — A3 is only the `undefined` loading paragraph; empty is A4, populated is A5/A7/A9, overflow is a single line.
+- A4 `loading` / `populated` / `partial` / `overflow` — loading is A3; `[]` is complete empty, not partial; single paragraph does not overflow.
+- A5/A6 `loading` — tables/section-empty are not mounted until `sessions` is defined.
+- A6 `populated` / `partial` / `error` / `overflow` — A6 is the zero-eligible-pairs copy only; populated is A5.
+- A7 `loading` — heatmap is not mounted until sessions exist.
+- A10 empty/loading/error/partial/long-text — CorpusInput states already resolved in `01-UI-SPEC.md`; this phase only keeps it visible on Analytics.
 
 ---
 
@@ -323,11 +337,11 @@ No shadcn, no third-party registries, no external component blocks. Hand-rolled 
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: FLAG — primary anchor declared as Slowest digraphs (section 1); heatmap is diagnostic
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved 2026-09-20 (5/6 PASS, 1 non-blocking FLAG on visuals, mitigated in Layout)
