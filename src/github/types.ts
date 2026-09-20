@@ -1,6 +1,5 @@
 // Named types only — no runtime, no Dexie, no React. Loaded GitHub trees
-// are held in memory this phase; sourceType stays 'paste' | 'upload' until
-// Phase 8 actually builds an Exercise.
+// are held in memory; SourceType lives on Exercise in ingestion, not here.
 
 export interface RepoRef {
   owner: string
@@ -36,6 +35,7 @@ export interface FileNode {
   path: string
   sha: string
   entryType: 'blob' | 'commit'
+  size?: number
 }
 
 export type TreeNode = DirNode | FileNode

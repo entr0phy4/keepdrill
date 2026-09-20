@@ -58,6 +58,7 @@ export function foldTree(entries: readonly GitTreeEntry[]): TreeNode[] {
       path: entry.path,
       sha: entry.sha,
       entryType: entry.type,
+      size: entry.size,
     }
     attach(file, entry.path)
   }
