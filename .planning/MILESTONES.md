@@ -1,5 +1,33 @@
 # Milestones
 
+## v1.1 Persistencia y Analíticas (Shipped: 2026-09-20)
+
+**Delivered:** Completed sessions persist locally to IndexedDB and the user can inspect symbol-adjusted WPM, ranked digraph latency, a US-ANSI keyboard heatmap, and a per-language profile across history.
+
+**Phases completed:** 3 phases, 7 plans, 19 tasks
+**Timeline:** 2026-09-05 → 2026-09-20 (~15 days) · 113 files changed, +14580/-1262 · ~5,966 LOC (src/)
+**Git range:** `feat(04-01)` → `feat(06-03)`
+**Closeout type:** override_closeout
+**Known verification overrides:** 1 (see Known Gaps)
+
+**Key accomplishments:**
+
+- Dexie 4 platform seam persisting the full raw Session + cached MetricsResult to IndexedDB on every completion, fire-and-forget from `App.tsx::handleComplete`, with a minimal `useLiveQuery`-bound History view and a dismissible save-failure notice.
+- `HistoryRow` expandido a las siete columnas D-11/D-12 (fecha relativa, wpm, accuracy, source, idioma, longitud, tecla más lenta) vía `resolveMetrics`/`relativeTime`/`glyphFor`, estilado según 04-UI-SPEC sin nuevos tokens, con el contrato D-08 hide-not-unmount endurecido y verificado en happy-dom.
+- Companion `symbolAdjustedWpm` from a target-only density classifier (`SYMBOL_WEIGHT=2`), schema v2 recompute-on-read, shown as "adj. wpm" on results and `{wpm} / {adj} adj.` in history
+- Closed Language `<select>` on the paste path, fed by `PASTE_LANGUAGE_OPTIONS` derived from `EXT_TO_LANG`, with `fromPaste`'s language now a required caller-supplied argument
+- Single `gatedMedian` owns the exclusive (25ms, 1000ms) window and both sample gates; `resolveMetrics` moved to `src/metrics/` so analytics never imports `ui/`
+- Pure `src/analytics/` folds: ranked digraphs (top 10, n≥5), full US-ANSI heatmap by physical code, and unweighted per-language `resolveMetrics` means — zero DOM, zero Dexie, zero rounding
+- Stacked Analytics sibling view: semantic top-10 digraph table, static US-ANSI amber heatmap with on-key ms, and per-language profile including plaintext — hide-not-unmount from a third header item
+
+### Known Gaps
+
+- Phase 5 never produced `05-VERIFICATION.md` (`verification_status: missing`) and its ROADMAP checkbox was never sealed before close, despite `05-UAT.md` complete (10/10) and ANLY-01/02 checked. Accepted as tech debt at milestone close (`override_closeout`).
+
+**What's next:** Trigraph latency (ANLY-06), per-session drill-down (ANLY-07), language-filtered heatmap/digraphs (ANLY-08), auto language detection for paste (ANLY-09) — define via `/gsd-new-milestone`.
+
+---
+
 ## v1.0 MVP (Shipped: 2026-09-05)
 
 **Phases completed:** 3 phases, 8 plans, 15 tasks

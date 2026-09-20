@@ -2,38 +2,36 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Persistencia y Analíticas
-current_phase: 06
-current_phase_name: Cross-Session Analytics
-status: complete
-stopped_at: Phase 06 UAT complete (6/6); v1.1 last phase sealed. Phase 5 ROADMAP checkbox still open.
-last_updated: "2026-09-20T18:49:06.200Z"
+status: Awaiting next milestone
+stopped_at: Milestone v1.1 archived (override_closeout)
+last_updated: "2026-09-20T18:55:22.464Z"
 last_activity: 2026-09-20
-last_activity_desc: Phase 06 UAT passed, security verified, marked complete
+last_activity_desc: Milestone v1.1 completed and archived
 progress:
   total_phases: 3
   completed_phases: 3
   total_plans: 7
   completed_plans: 7
   percent: 100
+current_phase: 06
+current_phase_name: Cross-Session Analytics
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-09-20)
+See: .planning/PROJECT.md (updated 2026-09-20 after v1.1)
 
 **Core value:** The user can paste or upload a real code/text file, type it with keystroke capture, and see WPM, accuracy, and their five slowest keys — useful enough for a week of daily self-use.
-**Current focus:** v1.1 milestone close (Phase 06 complete; Phase 5 ROADMAP seal outstanding)
+**Current focus:** Planning next milestone
 
 ## Current Position
 
-Phase: 06 (Cross-Session Analytics) — COMPLETE
-Plan: 3 of 3
-Status: Phase complete — v1.1 last phase sealed
-Last activity: 2026-09-20 — Phase 06 UAT passed (6/6), security verified
-
-Progress: [████████████████████] 7/7 plans (100%)
+Phase: Milestone v1.1 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-09-20 — Milestone v1.1 completed and archived
 
 ## Performance Metrics
 
@@ -77,31 +75,12 @@ Progress: [████████████████████] 7/7 pla
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
+Full decision log is in PROJECT.md Key Decisions. Carried into next milestone:
 
-- [Roadmap v1.1]: 3 phases derived from research's proposed structure — Phase 4 (persistence foundation, blocks everything), Phase 5 (symbol-adjusted WPM + paste-language-picker prerequisite, no persistence dependency beyond Phase 4's stored fields), Phase 6 (cross-session analytics: digraph, heatmap, per-language profile — mutually independent, share one `analytics.ts` module, depends on Phase 5 for real language tags).
-- [Roadmap v1.1]: Trigraph latency (ANLY-06) explicitly deferred — needs more accumulated session volume than digraphs to clear a meaningful sample gate; tracked in REQUIREMENTS.md Future Requirements.
-- [Phase 3]: Symbol-adjusted WPM was out of v1.0 scope, now in-scope as Phase 5 (ANLY-01) — must remain a companion metric to net WPM, never a silent replacement.
-- [Phase 1]: Platform locked: Vite 8 + React 19 + TS 5.9 strict browser SPA, pnpm, no backend; pure-core / platform-seam / hot-path module split established — v1.1's `persistence/` and `analytics/` modules should follow this same seam discipline.
-- [Phase 2]: Free-correction typing policy locked (D-04); corrected/uncorrected attempts tracked separately — relevant to any v1.1 metric that touches accuracy.
-- [Phase 4]: Task 1 checkpoint auto-seleccionó option-a (Session cruda + snapshot MetricsResult) — idéntico a D-02
-- [Phase 4]: Se fijó dexie@4.4.4 (no 4.4.5) para evitar la señal too-new del seam de legitimidad de paquetes, sin diferencia funcional
-- [Phase 4]: Clave primaria ++id con índice único en startedAt; los campos blob (events/charLog/markers/exercise/metricsSnapshot) nunca se indexan (D-05)
-- [Phase 4]: HistoryRow expandido a las 7 columnas D-11/D-12 via resolveMetrics/relativeTime/glyphFor; toggle activo distinguido por relleno de superficie + peso 600 (sin --color-accent, 04-UI-SPEC.md)
-- [Phase 4]: threats_open: 0 confirmado en 04-SECURITY.md (ASVS L1, register autorado en plan-time); 2 riesgos aceptados documentados (D-18 keep-forever, almacenamiento local sin cifrar)
-- [Phase 5]: symbolAdjustedWpm is an ADDITIVE companion on MetricsResult; wpm remains the primary/required field (assumption-delta: add-alongside, not promote)
-- [Phase 5]: Rule 3: also added symbolAdjustedWpm to persistence test MetricsResult literals so typecheck stays green (Pitfall 3 listed only the two UI fixtures)
-- [Phase 5]: fromPaste language is a required positional parameter with no default (D-15 / RESEARCH A1) so a missed call site fails at compile time
-- [Phase 5]: PASTE_LANGUAGE_OPTIONS excludes plaintext; CorpusInput presents plaintext as the explicit always-selected first option (D-12/D-13)
-- [Phase 5]: Rule 3: Task 1 passed an explicit plaintext into CorpusInput's fromPaste call so typecheck stayed green before Task 2 wired pasteLanguage
-- [Phase 06]: gatedMedian is the single filter→gate→median owner; DIGRAPH_MIN_SAMPLES=5 is a named export so digraph/heatmap cannot bury 5 as a magic number (D-06, D-09)
-- [Phase 06]: resolveMetrics parameter widened to ResolvableSession (Pick of five StoredSession fields) so analytics Session projections without Dexie id remain assignable (ANLY-05)
-- [Phase 06]: Language aggregation is the unweighted arithmetic mean of per-session resolveMetrics values, not duration-weighted (RESEARCH A2)
-- [Phase 06]: Heatmap latency is keydown→keydown IKI among sampleable codes; modifiers and isRepeat are neither samples nor anchors (RESEARCH A1)
-- [Phase 06]: Equal sessionCount language rows sort by language string ascending so tests are deterministic
-- [Phase 06]: ResolvableSession charLog/markers widened to readonly so AnalyticsSession assigns without a Dexie-shaped cast
-- [Phase 06]: Heatmap sampled fill is stored on --kb-fill because happy-dom drops color-mix on the background shorthand; browsers still paint via background: var(--kb-fill)
-- [Phase 06]: Digraph and language rankings use UI-SPEC semantic tables, not the PATTERNS.md ResultsView ol / HistoryRow analog
+- Persistence seam: `db.ts` is the sole Dexie import; full raw Session + MetricsResult snapshot (not derived-only).
+- `symbolAdjustedWpm` stays an additive companion; net WPM remains primary.
+- `gatedMedian` owns the exclusive (25ms, 1000ms) window; `DIGRAPH_MIN_SAMPLES = 5`.
+- Hide-not-unmount trainer on History/Analytics view switches (D-08).
 
 ### Pending Todos
 
@@ -113,25 +92,23 @@ None yet.
 
 [Issues that affect future work]
 
-- [Phase 5] ROADMAP checkbox still open even though 05-UAT.md is `complete` (2026-09-13) and ANLY-01/02 are checked — seal before `/gsd-complete-milestone v1.1`.
-- [Future] ANLY-06 trigraph latency still needs more accumulated session volume than digraphs; tracked in REQUIREMENTS.md Future Requirements.
+- ANLY-06 trigraph latency still needs more accumulated session volume than digraphs; candidate for the next milestone.
 
 ## Deferred Items
 
-Items acknowledged and carried forward from previous milestone close:
+Items acknowledged and deferred at milestone close on 2026-09-20:
 
-| Category | Item | Status | Deferred At |
-|----------|------|--------|-------------|
-| *(none)* | | | |
+| Category | Item | Status |
+|----------|------|--------|
+| verification | phase-05-missing-VERIFICATION.md | override_closeout |
+| roadmap | phase-05-checkbox-unsealed | override_closeout |
 
 ## Session Continuity
 
-Last session: 2026-09-20T18:49:00Z
-Stopped at: Phase 06 complete, ready to close milestone v1.1 (Phase 5 ROADMAP seal outstanding)
+Last session: 2026-09-20T18:55:00Z
+Stopped at: Milestone v1.1 archived (override_closeout)
 Resume file: None
 
 ## Operator Next Steps
 
-- `/gsd-complete-milestone v1.1` — after sealing Phase 5 in ROADMAP
-- `/gsd-ui-review 06` — visual quality audit (frontend files were modified)
-- `/gsd-progress` — see roadmap status
+- Start the next milestone with /gsd-new-milestone

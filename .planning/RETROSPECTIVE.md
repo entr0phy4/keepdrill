@@ -39,6 +39,46 @@
 
 ---
 
+## Milestone: v1.1 — Persistencia y Analíticas
+
+**Shipped:** 2026-09-20
+**Phases:** 3 | **Plans:** 7
+**Closeout:** override_closeout (Phase 5 missing `05-VERIFICATION.md`)
+
+### What Was Built
+- Phase 4: Dexie 4 persistence seam auto-saving the full raw Session + cached MetricsResult, newest-first History with seven-column rows, dismissible save-failure notice, hide-not-unmount trainer toggle.
+- Phase 5: Companion symbol-adjusted WPM (schema v2 recompute-on-read) and a closed Language `<select>` on the paste path so sessions are no longer stuck as plaintext.
+- Phase 6: Pure `src/analytics/` folds (ranked digraphs n≥5, US-ANSI heatmap, unweighted per-language profile) plus a stacked Analytics sibling view.
+
+### What Worked
+- Seam discipline held: only `persistence/db.ts` imports Dexie; analytics stays pure (zero DOM, zero Dexie, zero rounding) and never imports `ui/`.
+- Schema bump + existing `resolveMetrics` recompute-on-read meant Phase 5/6 formulas applied to old history with zero data migration.
+- Hide-not-unmount (D-08) extended from History to a third Analytics sibling without losing in-progress capture state.
+- Fire-and-forget `saveSession` after `setMetrics` kept PERS-03 literally true — the results screen never waits on IndexedDB.
+
+### What Was Inefficient
+- Phase 5 UAT passed 10/10 on 2026-09-13 but `05-VERIFICATION.md` was never written and the ROADMAP checkbox stayed open through Phase 6 close. That forced `override_closeout` instead of `verified_closeout`.
+- No `.planning/v1.1-MILESTONE-AUDIT.md` was produced before close.
+- Phase 4 `PATTERNS.md` / `REVIEW.md` / `VERIFICATION.md` sat untracked until the archive move.
+
+### Patterns Established
+- Isolated platform seam for IndexedDB (`db.ts` / `repository.ts`) matching the Phase 1 pure-core / platform-seam / hot-path split.
+- Additive companion metrics (`symbolAdjustedWpm`) — never a silent replacement of a shipped primary field.
+- One shared `gatedMedian` owns the exclusive latency window so digraph ranking, heatmap, and slowest-five cannot drift.
+- Header view switches are siblings that hide (never unmount) the trainer.
+
+### Key Lessons
+1. A completed UAT file is not a substitute for `*-VERIFICATION.md` plus the ROADMAP checkbox — GSD `init.manager` treats missing verification as `phase_complete: false` and blocks verified closeout.
+2. Recompute-on-read via a schema version on cached snapshots is cheaper than a Dexie migration when formulas improve.
+3. Keep-forever local history (D-18) and unencrypted IndexedDB remain accepted risks; they should stay visible in the next milestone's threat model if anything syncs or exports.
+
+### Cost Observations
+- Model mix: not recorded per session (adaptive profile).
+- Sessions: work spanned 2026-09-05 → 2026-09-20 (~15 days calendar, not wall-clock agent time).
+- Notable: Phase 5/6 plan execution stayed short (~4–8 min per plan) after Phase 4's heavier persistence tracer (~45 + 35 min).
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -46,13 +86,16 @@
 | Milestone | Sessions | Phases | Key Change |
 |-----------|----------|--------|------------|
 | v1.0 | 2 | 3 | Established the full gate sequence (research → pattern-map → plan → check → execute → review → verify → secure) and the code-point-indexing discipline the hard way. |
+| v1.1 | multi-session, 15 calendar days | 3 | Persistence + analytics seams; closeout slipped to override because Phase 5 skipped the verification report. |
 
 ### Cumulative Quality
 
 | Milestone | Tests | Coverage | Zero-Dep Additions |
 |-----------|-------|----------|---------------------|
 | v1.0 | 132 | not measured (no coverage tool configured) | 0 (zero-runtime-dependency convention maintained throughout) |
+| v1.1 | ~140 `it`/`test` blocks in src/ (plus `it.each` goldens) | not measured | Dexie 4.4.4 + dexie-react-hooks isolated to the persistence seam |
 
 ### Top Lessons (Verified Across Milestones)
 
 1. Independent re-verification (reverting a fix to prove the regression test would have caught it) is worth the extra agent spawn — it turns "the executor says it's fixed" into a provable claim.
+2. UAT complete ≠ phase sealed — missing `VERIFICATION.md` blocks verified milestone closeout even when requirements and tests are green.

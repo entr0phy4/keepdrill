@@ -15,16 +15,24 @@ The user can paste or upload a real code/text file, type it with keystroke
 capture, and see WPM, accuracy, and their five slowest keys. If that single loop
 is useful for a week of daily self-use, the project is worth continuing.
 
-## Current Milestone: v1.1 Persistencia y Analíticas
+## Current State
 
-**Goal:** Persistir cada sesión localmente y exponer analíticas de dígrafo/trígrafo, heatmap de teclado, perfil por lenguaje y WPM ajustado por símbolos, para poder medir mejora real a través del tiempo.
+**Shipped: v1.1 Persistencia y Analíticas** (2026-09-20)
 
-**Target features:**
-- Persistencia de sesiones (Dexie/IndexedDB) + vista de historial (fecha, WPM, accuracy)
-- Latencia por dígrafo/trígrafo acumulada entre sesiones
-- Heatmap de teclado
-- Perfil por lenguaje
-- WPM ajustado por densidad de símbolos
+The paste/type/metrics loop from v1.0 now persists every completed session to IndexedDB (full raw log + cached metrics snapshot) and exposes a History list plus a stacked Analytics view: symbol-adjusted WPM beside net WPM, ranked digraph latency, a US-ANSI keyboard heatmap, and a per-language profile (plaintext kept as its own bucket).
+
+Closeout was `override_closeout`: Phase 5 UAT passed (10/10) and ANLY-01/02 shipped, but `05-VERIFICATION.md` was never written. See `.planning/MILESTONES.md` Known Gaps.
+
+## Next Milestone Goals
+
+Not yet planned. Candidates carried from v1.1 Future Requirements:
+
+- Trigraph (3-character) latency once enough history exists to clear a sample gate (ANLY-06)
+- Drill-down into a single past session's own metrics from its persisted raw log (ANLY-07)
+- Filter heatmap / digraph table by language (ANLY-08)
+- Automatic language detection for pasted exercises (ANLY-09)
+
+Start with `/gsd-new-milestone`.
 
 ## Requirements
 
@@ -46,7 +54,10 @@ is useful for a week of daily self-use, the project is worth continuing.
 
 ### Active
 
-- (none for v1.1 — remaining analytics items ANLY-06 trigraph, ANLY-07 session drill-down, ANLY-08 language filter are in REQUIREMENTS.md Future Requirements)
+- [ ] Trigraph latency across persisted sessions, gated so sparse triples are not ranked (ANLY-06)
+- [ ] Drill-down into a single past session's own slowest-5 / digraph breakdown from its raw log (ANLY-07)
+- [ ] Filter keyboard heatmap or digraph table by language (ANLY-08)
+- [ ] Automatic language detection for pasted exercises (ANLY-09)
 
 ### Out of Scope
 
@@ -62,6 +73,12 @@ is useful for a week of daily self-use, the project is worth continuing.
 
 ## Context
 
+- **v1.1 shipped 2026-09-20** (Sept 5 → Sept 20, ~15 days): Dexie 4.4.4
+  persistence seam + `src/analytics/` pure folds + Analytics sibling view.
+  ~5,966 LOC in `src/`. 3 phases, 7 plans, 19 tasks. Runtime deps beyond
+  React: `dexie` / `dexie-react-hooks` (isolated to `persistence/db.ts` and
+  `HistoryView`). Closeout: `override_closeout` (Phase 5 verification report
+  missing).
 - **v1.0 shipped 2026-09-05** (Sept 3 → Sept 5, ~2 days): Vite 8 / React 19 / TS
   5.9 browser SPA, ~3,156 LOC in `src/`, zero runtime dependencies beyond
   React itself. 3 phases, 8 plans, 15 tasks, 132 passing tests.
@@ -81,12 +98,12 @@ is useful for a week of daily self-use, the project is worth continuing.
 
 ## Constraints
 
-- **Scope**: v1 is deliberately minimal — paste/upload, type with capture, see
-  WPM + accuracy + five slowest keys. Nothing else. — Validates the idea cheaply
-  before further investment.
-- **Tech stack**: Resolved in Phase 1 — local-first browser SPA (Vite 8 + React
-  19 + TypeScript, pnpm), no backend. No FastAPI/PostgreSQL, no TUI. Tauri v2
-  remains the evolution path if native filesystem/Git access is needed later.
+- **Scope**: v1.0 was the minimal paste/type/metrics loop. v1.1 added local
+  persistence and cross-session analytics; still no accounts, sync, or charts.
+- **Tech stack**: Local-first browser SPA (Vite 8 + React 19 + TypeScript, pnpm),
+  no backend. Persistence is Dexie 4.4.4 isolated behind `persistence/db.ts`.
+  No FastAPI/PostgreSQL, no TUI. Tauri v2 remains the evolution path if native
+  filesystem/Git access is needed later.
 - **Keystroke timing**: Capture uses `event.timeStamp` (DOMHighResTimeStamp),
   never `performance.now()` read inside the handler — per-digraph latency
   measurement is the core differentiator and depends on timing precision. Served
@@ -138,4 +155,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-20 after Phase 6*
+*Last updated: 2026-09-20 after v1.1 milestone*
