@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fetchRepoTree, resetGithubCache } from './client'
+import { fetchGithubBlob, fetchRepoTree, resetGithubCache } from './client'
 import {
   EmptyRepoError,
   GithubHttpError,
   RateLimitedError,
   RepoNotFoundError,
 } from './errors'
+import { CorpusTooLargeError } from '../ingestion/errors'
 import type { GitTreeEntry } from './types'
 
 const ACCEPT = { Accept: 'application/vnd.github+json' } as const
@@ -180,6 +181,148 @@ describe('fetchRepoTree', () => {
     const treeUrl = String(mockedFetch().mock.calls[1]?.[0])
     expect(treeUrl).toBe(
       'https://api.github.com/repos/o/r/git/trees/feature%2Ffoo?recursive=1',
+    )
+  })
+})
+
+const BLOB_SHA = 'deadbeef'
+const BLOB_PAYLOAD = 'const x = 1\n'
+const BLOB_B64 = Buffer.from(BLOB_PAYLOAD, 'utf8').toString('base64')
+const WRAPPED_B64 = BLOB_B64.replace(/(.{8})/g, '$1\n').replace(/\n$/, '')
+
+function stubBlob(
+  body: {
+    content?: string
+    encoding?: string
+    size?: number | null
+    sha?: string
+  } = {},
+  status = 200,
+  headers: Record<string, string> = {},
+): void {
+  mockedFetch().mockResolvedValueOnce(
+    jsonRes(
+      {
+        content: body.content ?? BLOB_B64,
+        encoding: body.encoding ?? 'base64',
+        size: body.size === undefined ? BLOB_PAYLOAD.length : body.size,
+        sha: body.sha ?? BLOB_SHA,
+      },
+      status,
+      headers,
+    ) as Response,
+  )
+}
+
+describe('fetchGithubBlob', () => {
+  it('GETs the git blob with the same Accept/cors/omit headers as the tree', async () => {
+    stubBlob()
+    const result = await fetchGithubBlob(REF, BLOB_SHA)
+    const mock = mockedFetch()
+    expect(mock).toHaveBeenCalledTimes(1)
+    const call = mock.mock.calls[0] ?? []
+    expect(String(call[0])).toBe(
+      'https://api.github.com/repos/o/r/git/blobs/deadbeef',
+    )
+    assertListingFetch(call)
+    expect(result.sha).toBe(BLOB_SHA)
+    expect(Buffer.from(result.bytes).toString('utf8')).toBe(BLOB_PAYLOAD)
+  })
+
+  it('decodes GitHub-wrapped base64 (newlines in content) to the original bytes', async () => {
+    stubBlob({ content: WRAPPED_B64, size: BLOB_PAYLOAD.length })
+    const result = await fetchGithubBlob(REF, BLOB_SHA)
+    expect(Buffer.from(result.bytes).toString('utf8')).toBe(BLOB_PAYLOAD)
+  })
+
+  it('throws CorpusTooLargeError for JSON size 100001 before atob', async () => {
+    stubBlob({ content: '!!!not-valid-base64!!!', size: 100_001 })
+    const err = await fetchGithubBlob(REF, BLOB_SHA).catch((e: unknown) => e)
+    expect(err).toBeInstanceOf(CorpusTooLargeError)
+    expect(err).toMatchObject({ sizeBytes: 100_001 })
+  })
+
+  it('accepts JSON size 100000 with 100000 decoded bytes', async () => {
+    const bytes = Buffer.alloc(100_000, 0x61)
+    stubBlob({
+      content: bytes.toString('base64'),
+      size: 100_000,
+      sha: BLOB_SHA,
+    })
+    const result = await fetchGithubBlob(REF, BLOB_SHA)
+    expect(result.bytes.byteLength).toBe(100_000)
+    expect(result.size).toBe(100_000)
+  })
+
+  it('throws CorpusTooLargeError when size is null and decoded byteLength exceeds MAX_BYTES', async () => {
+    const bytes = Buffer.alloc(100_001, 0x61)
+    stubBlob({
+      content: bytes.toString('base64'),
+      size: null,
+      sha: BLOB_SHA,
+    })
+    await expect(fetchGithubBlob(REF, BLOB_SHA)).rejects.toMatchObject({
+      name: 'CorpusTooLargeError',
+      sizeBytes: 100_001,
+    })
+  })
+
+  it('does not call fetch again for a second request of the same sha', async () => {
+    stubBlob()
+    await fetchGithubBlob(REF, BLOB_SHA)
+    await fetchGithubBlob(REF, BLOB_SHA)
+    expect(mockedFetch()).toHaveBeenCalledTimes(1)
+  })
+
+  it('shares one GET for overlapping cold calls of the same sha', async () => {
+    stubBlob()
+    const [first, second] = await Promise.all([
+      fetchGithubBlob(REF, BLOB_SHA),
+      fetchGithubBlob(REF, BLOB_SHA),
+    ])
+    expect(mockedFetch()).toHaveBeenCalledTimes(1)
+    expect(first.bytes).toEqual(second.bytes)
+  })
+
+  it('hits fetch again after resetGithubCache', async () => {
+    stubBlob()
+    await fetchGithubBlob(REF, BLOB_SHA)
+    resetGithubCache()
+    stubBlob()
+    await fetchGithubBlob(REF, BLOB_SHA)
+    expect(mockedFetch()).toHaveBeenCalledTimes(2)
+  })
+
+  it('maps 404 to RepoNotFoundError', async () => {
+    mockedFetch().mockResolvedValueOnce(jsonRes({}, 404) as Response)
+    await expect(fetchGithubBlob(REF, BLOB_SHA)).rejects.toBeInstanceOf(
+      RepoNotFoundError,
+    )
+  })
+
+  it('maps 429 to RateLimitedError', async () => {
+    mockedFetch().mockResolvedValueOnce(
+      jsonRes({}, 429, { 'x-ratelimit-reset': '1700000000' }) as Response,
+    )
+    const err = await fetchGithubBlob(REF, BLOB_SHA).catch((e: unknown) => e)
+    expect(err).toBeInstanceOf(RateLimitedError)
+    expect(err).toMatchObject({ remaining: 0, resetEpochS: 1_700_000_000 })
+  })
+
+  it('throws GithubHttpError 422 when content is missing on 200', async () => {
+    mockedFetch().mockResolvedValueOnce(
+      jsonRes({ encoding: 'base64', size: 4, sha: BLOB_SHA }) as Response,
+    )
+    const err = await fetchGithubBlob(REF, BLOB_SHA).catch((e: unknown) => e)
+    expect(err).toBeInstanceOf(GithubHttpError)
+    expect(err).toMatchObject({ status: 422 })
+  })
+
+  it('encodes owner, repo, and sha in the blob URL', async () => {
+    stubBlob({ sha: 'dead/beef' })
+    await fetchGithubBlob({ owner: 'o o', repo: 'r/r' }, 'dead/beef')
+    expect(String(mockedFetch().mock.calls[0]?.[0])).toBe(
+      'https://api.github.com/repos/o%20o/r%2Fr/git/blobs/dead%2Fbeef',
     )
   })
 })
