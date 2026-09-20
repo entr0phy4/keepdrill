@@ -6,15 +6,15 @@ current_phase: 08
 current_phase_name: parse-dependency-units
 status: executing
 stopped_at: Completed 08-02-PLAN.md
-last_updated: "2026-09-20T23:34:17.665Z"
+last_updated: "2026-09-20T23:34:42.139Z"
 last_activity: 2026-09-20
-last_activity_desc: Completed 08-01 WASM ABI pin
+last_activity_desc: Completed 08-02 blob fetch and corpus tag
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 7
   completed_plans: 5
-  percent: 33
+  percent: 71
 ---
 
 # Project State
@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-09-20 after Phase 7)
 Phase: 08 (parse-dependency-units) — EXECUTING
 Plan: 3 of 4
 Status: Ready to execute
-Last activity: 2026-09-20 — Completed 08-01 WASM ABI pin
+Last activity: 2026-09-20 — Completed 08-02 blob fetch and corpus tag
 
 Progress: [███████░░░] 71%
 
@@ -86,6 +86,9 @@ Recent decisions affecting current work:
 - [Phase 08]: Pin web-tree-sitter@0.27.0 — Language.load of tree-sitter-typescript@0.23.2 typescript and tsx wasm succeeded in Node (abiVersion 14); 0.25.10 and tree-sitter-cli were not needed
 - [Phase 08]: locateFile scriptName is web-tree-sitter.wasm; copy that basename to public/
 - [Phase 08]: cli_rebuild false; do not install tree-sitter-javascript or tree-sitter-cli
+- [Phase 08]: sourceRef for github is owner/repo:path (colon separator, no blob sha) — FILE-02 / RESEARCH A2; History must not show blob sha
+- [Phase 08]: blob cache/inflight keyed by sha only; resetGithubCache clears tree and blob maps — content-addressed cache; overlapping clicks share one GET
+- [Phase 08]: missing blob content on HTTP 200 throws GithubHttpError(422) — plan action: prefer 422 when content is absent on 200
 
 ### Pending Todos
 
