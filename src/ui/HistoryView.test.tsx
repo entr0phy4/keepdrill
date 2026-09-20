@@ -187,3 +187,30 @@ describe('HistoryView — ordering (PERS-02)', () => {
     expect(rows[1]?.textContent).toContain('first.ts')
   })
 })
+
+describe('HistoryView — github source label (FILE-02)', () => {
+  it('shows sourceRef for a github row and does not show Pasted snippet', async () => {
+    await saveSession(
+      buildInput({
+        session: {
+          exercise: {
+            ...baseExercise,
+            language: 'typescript',
+            sourceType: 'github',
+            sourceRef: 'o/r:src/App.tsx',
+          },
+        },
+      }),
+    )
+
+    act(() => {
+      root.render(<HistoryView />)
+    })
+    await waitForLiveQuery()
+
+    const row = container.querySelector('.history-row')
+    expect(row).not.toBeNull()
+    expect(row!.textContent).toContain('o/r:src/App.tsx')
+    expect(row!.textContent).not.toContain('Pasted snippet')
+  })
+})
