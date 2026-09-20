@@ -38,10 +38,15 @@ is useful for a week of daily self-use, the project is worth continuing.
 - ✓ User's completed session (full raw log) automatically persists to local IndexedDB with no explicit save action, and survives a page reload — Phase 4
 - ✓ User can view a list of past sessions (date, WPM, accuracy), newest first — Phase 4
 - ✓ User sees a non-blocking notice if a session fails to persist; the results screen is never blocked or delayed by the save — Phase 4
+- ✓ User sees a symbol-density-adjusted WPM as a companion next to net WPM on results and in history — Phase 5
+- ✓ User can pick or confirm the language of a pasted exercise so sessions are tagged instead of stuck as plaintext — Phase 5
+- ✓ User can view a ranked table of their slowest digraphs across persisted sessions, with a minimum-sample gate — Phase 6
+- ✓ User can view a US-ANSI keyboard heatmap of physical-key median latency across session history — Phase 6
+- ✓ User can view a per-language WPM/accuracy profile, with plaintext kept as its own bucket — Phase 6
 
 ### Active
 
-- [ ] Scoping in progress for v1.1 remainder — see Current Milestone above (digraph/trigraph latency, keyboard heatmap, per-language profile, symbol-adjusted WPM). REQ-IDs in REQUIREMENTS.md (ANLY-01..05).
+- (none for v1.1 — remaining analytics items ANLY-06 trigraph, ANLY-07 session drill-down, ANLY-08 language filter are in REQUIREMENTS.md Future Requirements)
 
 ### Out of Scope
 
@@ -104,6 +109,10 @@ is useful for a week of daily self-use, the project is worth continuing.
 | Persist full raw `Session` + cached `MetricsResult` snapshot, not just derived summary numbers | Every historical session stays fully recomputable when a formula improves — Phase 5/6 analytics apply retroactively with zero data migration | ✓ Good — Phase 4 |
 | Hide (display:none), never unmount, the trainer subtree when switching to History | Preserves in-progress capture state (caret, per-char coloring, IME) across a view switch with no confirm dialog or lost progress | ✓ Good — Phase 4, verified in happy-dom + real-browser human-check |
 | `persistence/db.ts` is the sole module importing `dexie`; `repository.ts` is the only seam other modules touch | Keeps Dexie as an isolated platform seam, matching the Phase 1 pure-core/platform-seam/hot-path split | ✓ Good — Phase 4 |
+| `symbolAdjustedWpm` is an additive companion on `MetricsResult`; net WPM stays primary | Assumption-delta: add-alongside, never a silent replacement of WPM | ✓ Good — Phase 5 |
+| `gatedMedian` owns the exclusive (25ms, 1000ms) window and both sample gates; `DIGRAPH_MIN_SAMPLES = 5` | Digraph ranking and heatmap cannot bury 5 as a magic number | ✓ Good — Phase 6 |
+| Language profile is the unweighted mean of per-session `resolveMetrics`; heatmap IKI skips modifiers and `isRepeat` | RESEARCH A2 / A1; plaintext is a normal map key | ✓ Good — Phase 6 |
+| Analytics is a third header sibling; trainer stays hide-not-unmount; heatmap fill via `--kb-fill` color-mix | Extends Phase 4 D-08; sequential amber, not score colors; inert keys | ✓ Good — Phase 6 |
 
 ## Success Criteria
 
@@ -129,4 +138,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-12 — Phase 4 (session-persistence-history) complete*
+*Last updated: 2026-09-20 after Phase 6*

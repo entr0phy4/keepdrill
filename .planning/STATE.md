@@ -4,11 +4,11 @@ milestone: v1.1
 milestone_name: Persistencia y Analíticas
 current_phase: 06
 current_phase_name: Cross-Session Analytics
-status: verifying
-stopped_at: Completed 06-03-PLAN.md
-last_updated: "2026-09-20T18:29:40.985Z"
+status: complete
+stopped_at: Phase 06 UAT complete (6/6); v1.1 last phase sealed. Phase 5 ROADMAP checkbox still open.
+last_updated: "2026-09-20T18:49:06.200Z"
 last_activity: 2026-09-20
-last_activity_desc: Phase 06 execution started
+last_activity_desc: Phase 06 UAT passed, security verified, marked complete
 progress:
   total_phases: 3
   completed_phases: 3
@@ -21,25 +21,25 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-09-12)
+See: .planning/PROJECT.md (updated 2026-09-20)
 
 **Core value:** The user can paste or upload a real code/text file, type it with keystroke capture, and see WPM, accuracy, and their five slowest keys — useful enough for a week of daily self-use.
-**Current focus:** Phase 06 — Cross-Session Analytics
+**Current focus:** v1.1 milestone close (Phase 06 complete; Phase 5 ROADMAP seal outstanding)
 
 ## Current Position
 
-Phase: 06 (Cross-Session Analytics) — EXECUTING
+Phase: 06 (Cross-Session Analytics) — COMPLETE
 Plan: 3 of 3
-Status: Phase complete — ready for verification
-Last activity: 2026-09-20 — Phase 06 execution started
+Status: Phase complete — v1.1 last phase sealed
+Last activity: 2026-09-20 — Phase 06 UAT passed (6/6), security verified
 
-Progress: [██████████] 100%
+Progress: [████████████████████] 7/7 plans (100%)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 10
+- Total plans completed: 13
 - Average duration: ~13 min
 - Total execution time: ~1.7 hours
 
@@ -51,8 +51,8 @@ Progress: [██████████] 100%
 | 02 | 3 | - | - |
 | 03 | 2 | - | - |
 | 04 | 2 | - | - |
-| 05 | TBD | - | - |
-| 06 | TBD | - | - |
+| 05 | 2 | 11 min | ~5.5 min |
+| 06 | 3 | 19 min | ~6 min |
 
 **Recent Trend:**
 
@@ -113,8 +113,8 @@ None yet.
 
 [Issues that affect future work]
 
-- [Roadmap v1.1]: Phase 5's symbol-adjusted WPM weighting formula (which characters count as "symbol," linear vs. non-linear) has no external standard — resolve as a phase-discussion decision, not an implementation-time judgment call.
-- [Roadmap v1.1]: Phase 6's digraph/trigraph minimum-sample threshold likely needs to be higher than the existing single-char `MIN_SAMPLES = 3` — pick provisionally, revisit once real accumulated data exists.
+- [Phase 5] ROADMAP checkbox still open even though 05-UAT.md is `complete` (2026-09-13) and ANLY-01/02 are checked — seal before `/gsd-complete-milestone v1.1`.
+- [Future] ANLY-06 trigraph latency still needs more accumulated session volume than digraphs; tracked in REQUIREMENTS.md Future Requirements.
 
 ## Deferred Items
 
@@ -126,11 +126,12 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-20T18:29:40.976Z
-Stopped at: Completed 06-03-PLAN.md
+Last session: 2026-09-20T18:49:00Z
+Stopped at: Phase 06 complete, ready to close milestone v1.1 (Phase 5 ROADMAP seal outstanding)
 Resume file: None
 
 ## Operator Next Steps
 
-- Run `/gsd-execute-phase 06` to execute Cross-Session Analytics
-- Or `/gsd-review --phase 06 --all` to peer-review plans first
+- `/gsd-complete-milestone v1.1` — after sealing Phase 5 in ROADMAP
+- `/gsd-ui-review 06` — visual quality audit (frontend files were modified)
+- `/gsd-progress` — see roadmap status

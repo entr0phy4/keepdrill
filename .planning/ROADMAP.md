@@ -24,7 +24,7 @@ Full detail archived to `.planning/milestones/v1.0-ROADMAP.md`.
 
 - [x] **Phase 4: Session Persistence & History** - Sessions save automatically to IndexedDB and appear in a newest-first history list (completed 2026-09-12)
 - [ ] **Phase 5: Symbol-Adjusted WPM & Language Tagging** - Results show a symbol-density-aware WPM and pasted exercises can be tagged with a real language
-- [ ] **Phase 6: Cross-Session Analytics** - Digraph latency, keyboard heatmap, and per-language profile computed across accumulated session history
+- [x] **Phase 6: Cross-Session Analytics** - Digraph latency, keyboard heatmap, and per-language profile computed across accumulated session history (completed 2026-09-20)
 
 ## Phase Details
 
@@ -75,7 +75,7 @@ Full detail archived to `.planning/milestones/v1.0-ROADMAP.md`.
   2. The user can view a keyboard heatmap highlighting which physical keys have the highest median latency across their session history.
   3. The user can view a per-language profile showing WPM and accuracy grouped by tagged language, with untagged/plaintext sessions kept in their own distinct bucket rather than mixed into a real language.
 
-**Plans:** 3/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 **Wave 1**
@@ -104,4 +104,4 @@ Phases execute in numeric order: 4 → 5 → 6
 | 3. Session Metrics | v1.0 | 2/2 | Complete | 2026-09-05 |
 | 4. Session Persistence & History | v1.1 | 2/2 | Complete    | 2026-09-12 |
 | 5. Symbol-Adjusted WPM & Language Tagging | v1.1 | 2/2 | In Progress|  |
-| 6. Cross-Session Analytics | v1.1 | 3/3 | In Progress|  |
+| 6. Cross-Session Analytics | v1.1 | 3/3 | Complete    | 2026-09-20 |
