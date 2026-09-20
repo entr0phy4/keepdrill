@@ -23,16 +23,18 @@ The paste/type/metrics loop from v1.0 now persists every completed session to In
 
 Closeout was `override_closeout`: Phase 5 UAT passed (10/10) and ANLY-01/02 shipped, but `05-VERIFICATION.md` was never written. See `.planning/MILESTONES.md` Known Gaps.
 
-## Next Milestone Goals
+## Current Milestone: v2.0 Katas desde GitHub
 
-Not yet planned. Candidates carried from v1.1 Future Requirements:
+**Goal:** The user can paste a public GitHub URL, browse the repo as a file tree, open a TypeScript/JavaScript file, and type it in-place as a scaffolded exercise that proceeds function-by-function in dependency order until the file is complete.
 
-- Trigraph (3-character) latency once enough history exists to clear a sample gate (ANLY-06)
-- Drill-down into a single past session's own metrics from its persisted raw log (ANLY-07)
-- Filter heatmap / digraph table by language (ANLY-08)
-- Automatic language detection for pasted exercises (ANLY-09)
-
-Start with `/gsd-new-milestone`.
+**Target features:**
+- Import a public GitHub repository by URL (`owner/repo` or `github.com/...`), default branch
+- Browse the repo as a filesystem tree (all files visible)
+- Click a `.ts` / `.tsx` / `.js` / `.jsx` file to load it as a scaffolded exercise
+- Other files stay visible in the tree; clicking one shows a notice that they cannot be split yet and does not load
+- Full file is visible, including future units; only the current syntactic unit is typeable
+- Units ordered by dependencies: leaf / indispensable functions first, then dependents, until the file is complete
+- Parser: tree-sitter (WASM) for TypeScript and JavaScript only
 
 ## Requirements
 
@@ -54,21 +56,27 @@ Start with `/gsd-new-milestone`.
 
 ### Active
 
-- [ ] Trigraph latency across persisted sessions, gated so sparse triples are not ranked (ANLY-06)
-- [ ] Drill-down into a single past session's own slowest-5 / digraph breakdown from its raw log (ANLY-07)
-- [ ] Filter keyboard heatmap or digraph table by language (ANLY-08)
-- [ ] Automatic language detection for pasted exercises (ANLY-09)
+- [ ] User can import a public GitHub repository by URL and browse it as a filesystem tree
+- [ ] User can click a TypeScript/JavaScript file in that tree to load a scaffolded exercise
+- [ ] User sees the full file; only the current syntactic unit is typeable; future units remain visible but locked
+- [ ] Units are ordered by dependencies so the user completes indispensable/leaf functions first, then dependents, until the file is done
+- [ ] Clicking a non-TS/JS file in the tree shows a blocked notice and does not load an exercise
+- [ ] Paste and upload remain available as the existing corpus path (fallback for other languages and ad-hoc snippets)
 
 ### Out of Scope
 
-- User accounts / authentication — not needed for single-user self-validation in v1
+- User accounts / authentication — not needed for single-user self-validation
 - Multiplayer / competitive modes — not core to the training value
 - Gamification (streaks, badges, XP) — deferred until the core loop proves useful
-- Rich evolution charts / trend visualizations over the session history — v1.1 covers a basic session list plus per-metric analytics (digraph latency, heatmap); charted trend lines are a later phase
-- Syntactic chunking with tree-sitter (function/YAML-block boundaries) — later phase; v1 uses whole pasted/uploaded content
-- Adaptive drill generation from detected weaknesses — later phase
-- Repo ingestion (local/remote Git), docs mode, shell-history mode — later phases
-- Non-US-ANSI keyboard layout support — deferred; v1 assumes US ANSI
+- Rich evolution charts / trend visualizations over the session history — v1.1 covers a basic session list plus per-metric analytics; charted trend lines are a later phase
+- Syntactic chunking for languages other than TypeScript/JavaScript (Python, YAML, Go, etc.) — v2.0 parser is TS/JS only
+- Range/line selection or auto-split into timed 15–60s katas without an AST — v2.0 splits by functions/dependencies
+- Local Git checkouts, GitLab/self-hosted remotes, isomorphic-git clone of arbitrary hosts — v2.0 is GitHub public API only; Tauri remains the later native path
+- Docs mode and shell-history mode — later phases
+- Adaptive drill generation from heatmap/digraph weaknesses — later phase
+- Private GitHub repositories / authentication with GitHub — public only
+- Trigraph latency, per-session analytics drill-down, language-filtered heatmap, auto language detection (ANLY-06..09) — deferred; v2.0 is repo katas, not more analytics
+- Non-US-ANSI keyboard layout support — deferred; still US ANSI
 - Self-hosted deployment, Docker/Traefik packaging — later phase
 
 ## Context
@@ -99,11 +107,14 @@ Start with `/gsd-new-milestone`.
 ## Constraints
 
 - **Scope**: v1.0 was the minimal paste/type/metrics loop. v1.1 added local
-  persistence and cross-session analytics; still no accounts, sync, or charts.
+  persistence and cross-session analytics. v2.0 adds public GitHub repo
+  ingestion and TS/JS scaffolded katas; still no accounts, sync, charts, or
+  native filesystem.
 - **Tech stack**: Local-first browser SPA (Vite 8 + React 19 + TypeScript, pnpm),
   no backend. Persistence is Dexie 4.4.4 isolated behind `persistence/db.ts`.
-  No FastAPI/PostgreSQL, no TUI. Tauri v2 remains the evolution path if native
-  filesystem/Git access is needed later.
+  v2.0 talks to the public GitHub API from the browser and parses TS/JS with
+  tree-sitter WASM — no FastAPI/PostgreSQL, no TUI, no Tauri yet. Tauri remains
+  the evolution path if native filesystem / local Git access is needed later.
 - **Keystroke timing**: Capture uses `event.timeStamp` (DOMHighResTimeStamp),
   never `performance.now()` read inside the handler — per-digraph latency
   measurement is the core differentiator and depends on timing precision. Served
@@ -130,6 +141,9 @@ Start with `/gsd-new-milestone`.
 | `gatedMedian` owns the exclusive (25ms, 1000ms) window and both sample gates; `DIGRAPH_MIN_SAMPLES = 5` | Digraph ranking and heatmap cannot bury 5 as a magic number | ✓ Good — Phase 6 |
 | Language profile is the unweighted mean of per-session `resolveMetrics`; heatmap IKI skips modifiers and `isRepeat` | RESEARCH A2 / A1; plaintext is a normal map key | ✓ Good — Phase 6 |
 | Analytics is a third header sibling; trainer stays hide-not-unmount; heatmap fill via `--kb-fill` color-mix | Extends Phase 4 D-08; sequential amber, not score colors; inert keys | ✓ Good — Phase 6 |
+| v2.0 corpus source = public GitHub API (URL → tree → blob), not Tauri and not generic git clone | Browser SPA constraint; GitHub-only keeps CORS/auth surface small | — Pending |
+| Scaffolded file: full text visible, only the current AST unit is typeable | User asked to see the whole file while typing indispensable units first | — Pending |
+| Parser = tree-sitter WASM for TypeScript/JavaScript only | Real function/dependency split; other languages stay blocked in the tree | — Pending |
 
 ## Success Criteria
 
@@ -155,4 +169,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-20 after v1.1 milestone*
+*Last updated: 2026-09-20 after starting milestone v2.0*

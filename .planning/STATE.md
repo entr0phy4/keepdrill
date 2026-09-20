@@ -1,20 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: Persistencia y Analíticas
-status: Awaiting next milestone
-stopped_at: Milestone v1.1 archived (override_closeout)
-last_updated: "2026-09-20T18:55:22.464Z"
+milestone: v2.0
+milestone_name: Katas desde GitHub
+status: planning
+last_updated: "2026-09-20T20:26:27.982Z"
 last_activity: 2026-09-20
-last_activity_desc: Milestone v1.1 completed and archived
 progress:
-  total_phases: 3
-  completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
-  percent: 100
-current_phase: 06
-current_phase_name: Cross-Session Analytics
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -28,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-09-20 after v1.1)
 
 ## Current Position
 
-Phase: Milestone v1.1 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-09-20 — Milestone v1.1 completed and archived
+Status: Defining requirements
+Last activity: 2026-09-20 — Milestone v2.0 started
 
 ## Performance Metrics
 
