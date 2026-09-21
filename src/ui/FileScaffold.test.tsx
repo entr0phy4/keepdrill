@@ -43,7 +43,7 @@ beforeEach(() => {
   resetCapture()
   mockMatchMedia(false)
   scrollIntoView = vi.fn()
-  HTMLElement.prototype.scrollIntoView = scrollIntoView
+  HTMLElement.prototype.scrollIntoView = scrollIntoView as typeof HTMLElement.prototype.scrollIntoView
   container = document.createElement('div')
   document.body.appendChild(container)
   root = createRoot(container)

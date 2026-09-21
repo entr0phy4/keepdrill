@@ -2,13 +2,14 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Exercise } from '../ingestion/types'
 import type { FilePlan, PlanUnit } from '../parse/types'
 import type { Session } from '../capture/types'
-import { buildSession } from '../session'
+import { buildSession, assembleSessionFromLogs } from '../session'
 import { readCrossOriginIsolated, probeTimerResolutionUs } from '../platform/isolation'
-import { resetCapture } from '../capture/capture'
+import { resetCapture, getEvents, getCharLog, getMarkers } from '../capture/capture'
 import { computeSessionMetrics } from '../metrics/metrics'
 import type { MetricsResult } from '../metrics/metrics'
 import { saveSession } from '../persistence/repository'
-import type { UnitSnapshot } from '../scaffold/flatten'
+import { flattenSnapshots, type UnitSnapshot } from '../scaffold/flatten'
+import { joinUnitSlices } from '../scaffold/slice'
 import { Banners } from './Banners'
 import { CorpusInput } from './CorpusInput'
 import { RepoBrowser } from './RepoBrowser'
@@ -47,6 +48,12 @@ export function App() {
   const [unitIndex, setUnitIndex] = useState(0)
   const [scaffoldComplete, setScaffoldComplete] = useState(false)
   const snapshotsRef = useRef<UnitSnapshot[]>([])
+  const curriculumRef = useRef(curriculum)
+  const unitIndexRef = useRef(unitIndex)
+  const scaffoldCompleteRef = useRef(scaffoldComplete)
+  curriculumRef.current = curriculum
+  unitIndexRef.current = unitIndex
+  scaffoldCompleteRef.current = scaffoldComplete
   // CR-02: a monotonic token, not exercise content, so CaptureSurface remounts
   // on every load — including loading the *same* text/file twice in a row,
   // which a content-derived key would miss. The remount discards the stale
@@ -120,13 +127,43 @@ export function App() {
   // (session.ts's CR-01) rather than reading the interval-refreshed
   // sessionRef, since completion can happen between refresh ticks.
   const handleComplete = (completedAt: number) => {
+    const units = curriculumRef.current
+    if (units !== null) {
+      if (scaffoldCompleteRef.current) return
+      snapshotsRef.current.push({
+        events: getEvents(),
+        charLog: getCharLog(),
+        markers: getMarkers(),
+      })
+      resetCapture()
+      const idx = unitIndexRef.current
+      if (idx < units.length - 1) {
+        setUnitIndex(idx + 1)
+        setLoadToken((token) => token + 1)
+        return
+      }
+      const current = loadRef.current
+      if (!current) return
+      const logs = flattenSnapshots(snapshotsRef.current)
+      const session = assembleSessionFromLogs(current.exercise, logs, current.startedAt)
+      const typedTarget = joinUnitSlices(current.exercise.text, units)
+      const result = computeSessionMetrics(typedTarget, session.charLog, session.markers, completedAt)
+      setMetrics(result)
+      setSaveFailed(false)
+      setScaffoldComplete(true)
+      scaffoldCompleteRef.current = true
+      void saveSession({ session, completedAt, metricsSnapshot: result }).catch((err: unknown) => {
+        console.warn('[keebdrill] session not persisted:', err)
+        setSaveFailed(true)
+      })
+      return
+    }
+
     const current = loadRef.current
     if (!current) return
     const session = buildSession(current.exercise, current.startedAt)
     const result = computeSessionMetrics(current.exercise.text, session.charLog, session.markers, completedAt)
     setMetrics(result)
-    // D-04/PERS-03: fire-and-forget, AFTER setMetrics, never awaited — the
-    // results screen renders synchronously regardless of write outcome.
     setSaveFailed(false)
     void saveSession({ session, completedAt, metricsSnapshot: result }).catch((err: unknown) => {
       console.warn('[keebdrill] session not persisted:', err)
@@ -134,18 +171,20 @@ export function App() {
     })
   }
 
-  // D-08: Restart keeps the SAME loaded exercise content — only the session
-  // state resets. Never calls setExercise; only resetCapture() + a loadToken
-  // bump (remounting CaptureSurface to discard stale DOM/IME state) plus a
-  // fresh startedAt for the session snapshot, mirroring handleLoad's shape
-  // without loading new content.
   const handleRestart = () => {
     const current = loadRef.current
     if (!current) return
+    if (curriculumRef.current !== null) {
+      if (scaffoldCompleteRef.current) return
+      resetCapture()
+      setLoadToken((token) => token + 1)
+      setSaveFailed(false)
+      return
+    }
     resetCapture()
     setLoadToken((token) => token + 1)
-    setMetrics(null) // discard the just-computed metrics (D-06)
-    setSaveFailed(false) // a stale save-failure notice never survives a restart
+    setMetrics(null)
+    setSaveFailed(false)
     const startedAt = Date.now()
     loadRef.current = { exercise: current.exercise, startedAt }
     const session = buildSession(current.exercise, startedAt)

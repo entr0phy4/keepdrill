@@ -666,7 +666,7 @@ describe('App — startScaffold onPlanned (D-07, D-09, D-10, SCAF-01, SCAF-05)',
     act(() => {
       capturedOnPlanned!(fallbackGithubPlan())
     })
-    const capture = container.querySelector('#capture-surface')!
+    const capture = container.querySelector<HTMLTextAreaElement>('#capture-surface')!
     expect(capture.hasAttribute('hidden')).toBe(false)
 
     const historyButton = Array.from(container.querySelectorAll('nav button')).find(
