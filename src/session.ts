@@ -26,3 +26,22 @@ export function buildSession(exercise: Exercise, startedAt: number): Session {
     startedAt,
   }
 }
+
+/** File-complete persist from concatenated unit snapshots. Does not read live
+ *  capture getters — those only hold the last unit after resetCapture (D-14).
+ *  `exercise` stays the full file; metrics typedTarget is joined elsewhere. */
+export function assembleSessionFromLogs(
+  exercise: Exercise,
+  logs: Pick<Session, 'events' | 'charLog' | 'markers'>,
+  startedAt: number,
+): Session {
+  return {
+    exercise,
+    events: logs.events,
+    charLog: logs.charLog,
+    markers: logs.markers,
+    timingResolutionUs: probeTimerResolutionUs(),
+    crossOriginIsolated: readCrossOriginIsolated(),
+    startedAt,
+  }
+}
