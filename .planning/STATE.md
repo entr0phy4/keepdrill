@@ -5,10 +5,10 @@ milestone_name: Katas desde GitHub
 current_phase: 08
 current_phase_name: parse-dependency-units
 status: verifying
-stopped_at: Completed 08-05-PLAN.md
-last_updated: "2026-09-21T00:43:23.094Z"
-last_activity: 2026-09-20
-last_activity_desc: Phase 08 execution started
+stopped_at: Human verification required (08-UAT.md)
+last_updated: "2026-09-21T00:51:51.000Z"
+last_activity: 2026-09-21
+last_activity_desc: Last-wins gap closed; awaiting human UAT
 progress:
   total_phases: 3
   completed_phases: 2
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-09-20 after Phase 7)
 
 ## Current Position
 
-Phase: 08 (parse-dependency-units) — EXECUTING
-Plan: 5 of 5
-Status: All plans complete — ready for verification
-Last activity: 2026-09-20 — Phase 08 execution started
+Phase: 08 (parse-dependency-units) — VERIFYING (human_needed)
+Plan: 5 of 5 executed
+Status: Last-wins gap closed; 4 UAT items pending
+Last activity: 2026-09-21 — Re-verification after 08-05; 08-UAT.md persisted
 
 Progress: [██████████] 100%
 
@@ -121,6 +121,6 @@ Items acknowledged and deferred at milestone close on 2026-09-20:
 
 ## Session Continuity
 
-Last session: 2026-09-21T00:42:33.818Z
-Stopped at: Completed 08-05-PLAN.md
+Last session: 2026-09-21T00:51:51.000Z
+Stopped at: Human verification required (08-UAT.md)
 Resume file: None
