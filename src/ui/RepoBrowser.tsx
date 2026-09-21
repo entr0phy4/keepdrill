@@ -114,19 +114,20 @@ export function RepoBrowser({ onPlanned }: { onPlanned?: (plan: FilePlan) => voi
   const [caption, setCaption] = useState('')
   const [nodes, setNodes] = useState<TreeNode[] | null>(null)
   const [importedRef, setImportedRef] = useState<RepoRef | null>(null)
-  const tokenRef = useRef(0)
+  const clickGenRef = useRef(0)
+  const importGenRef = useRef(0)
 
   const onFileClick = async (node: FileNode) => {
+    const token = ++clickGenRef.current
     if (node.entryType === 'commit' || !isLoadablePath(node.path)) {
       setStatus({ kind: 'status', text: COPY.blocked })
       return
     }
 
-    const token = ++tokenRef.current
     setStatus({ kind: 'status', text: COPY.loading.replace('{path}', node.path) })
 
     if ((node.size ?? 0) > MAX_BYTES) {
-      if (tokenRef.current !== token) return
+      if (clickGenRef.current !== token) return
       setStatus({ kind: 'alert', text: COPY.errTooLarge })
       return
     }
@@ -136,7 +137,7 @@ export function RepoBrowser({ onPlanned }: { onPlanned?: (plan: FilePlan) => voi
 
     try {
       const blob = await fetchGithubBlob(ref, node.sha)
-      if (tokenRef.current !== token) return
+      if (clickGenRef.current !== token) return
 
       const exercise = fromGithubBlob(blob.bytes, {
         owner: ref.owner,
@@ -156,7 +157,7 @@ export function RepoBrowser({ onPlanned }: { onPlanned?: (plan: FilePlan) => voi
         plan = fallbackPlan(exercise, COPY.fallback.replace('{path}', node.path))
       }
 
-      if (tokenRef.current !== token) return
+      if (clickGenRef.current !== token) return
       onPlanned?.(plan)
       const count = plan.units.length
       const text = plan.fallback
@@ -166,7 +167,7 @@ export function RepoBrowser({ onPlanned }: { onPlanned?: (plan: FilePlan) => voi
           : COPY.plannedMany.replace('{count}', String(count)).replace('{path}', node.path)
       setStatus({ kind: 'status', text })
     } catch (err) {
-      if (tokenRef.current !== token) return
+      if (clickGenRef.current !== token) return
       if (err instanceof CorpusTooLargeError) {
         setStatus({ kind: 'alert', text: COPY.errTooLarge })
       } else if (err instanceof NonUtf8Error) {
@@ -186,7 +187,8 @@ export function RepoBrowser({ onPlanned }: { onPlanned?: (plan: FilePlan) => voi
   }
 
   const onImport = async () => {
-    const token = ++tokenRef.current
+    const importToken = ++importGenRef.current
+    ++clickGenRef.current
     setBusy(true)
     setStatus(null)
 
@@ -195,7 +197,7 @@ export function RepoBrowser({ onPlanned }: { onPlanned?: (plan: FilePlan) => voi
       try {
         ref = parseGithubRef(url)
       } catch (err) {
-        if (tokenRef.current !== token) return
+        if (importGenRef.current !== importToken) return
         if (err instanceof InvalidGithubUrlError) {
           setStatus({ kind: 'alert', text: COPY.invalidUrl, invalidUrl: true })
           return
@@ -204,7 +206,7 @@ export function RepoBrowser({ onPlanned }: { onPlanned?: (plan: FilePlan) => voi
       }
 
       const result = await fetchRepoTree(ref)
-      if (tokenRef.current !== token) return
+      if (importGenRef.current !== importToken) return
 
       setImportedRef({ owner: result.owner, repo: result.repo })
       setCaption(formatCaption(result.owner, result.repo, result.defaultBranch))
@@ -216,7 +218,7 @@ export function RepoBrowser({ onPlanned }: { onPlanned?: (plan: FilePlan) => voi
         setStatus(result.truncated ? { kind: 'status', text: COPY.truncated } : null)
       }
     } catch (err) {
-      if (tokenRef.current !== token) return
+      if (importGenRef.current !== importToken) return
 
       if (err instanceof EmptyRepoError) {
         setCaption(formatCaption(err.owner, err.repo, err.defaultBranch))
@@ -234,7 +236,7 @@ export function RepoBrowser({ onPlanned }: { onPlanned?: (plan: FilePlan) => voi
         throw err
       }
     } finally {
-      if (tokenRef.current === token) setBusy(false)
+      if (importGenRef.current === importToken) setBusy(false)
     }
   }
 
