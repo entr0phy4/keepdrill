@@ -571,6 +571,129 @@ describe('RepoBrowser — loadable click plans units', () => {
     expect(statusRegion().textContent).toBe('Planned 2 units from src/nested/util.ts.')
   })
 
+  it('last-wins overlapping clicks: slow first loadable cannot overwrite a later blocked README click', async () => {
+    const onPlanned = vi.fn()
+    let resolveFirst!: (value: GithubBlobResult) => void
+    const first = new Promise<GithubBlobResult>((resolve) => {
+      resolveFirst = resolve
+    })
+    fetchRepoTree.mockResolvedValue(treeResult())
+    fetchGithubBlob.mockReturnValueOnce(first)
+    renderBrowser(onPlanned)
+    await importValue('o/r')
+
+    const app = Array.from(container.querySelectorAll('.repo-tree button')).find(
+      (b) => b.textContent === 'App.tsx',
+    )!
+    const readme = Array.from(container.querySelectorAll('.repo-tree button')).find(
+      (b) => b.textContent === 'README.md',
+    )!
+    await act(async () => {
+      app.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await Promise.resolve()
+    })
+    await act(async () => {
+      readme.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await Promise.resolve()
+    })
+
+    expect(statusRegion().textContent).toBe(COPY.blocked)
+    expect(fetchGithubBlob).toHaveBeenCalledTimes(1)
+    expect(onPlanned).not.toHaveBeenCalled()
+
+    await act(async () => {
+      resolveFirst(blobResult('def'))
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    expect(statusRegion().textContent).toBe(COPY.blocked)
+    expect(fetchGithubBlob).toHaveBeenCalledTimes(1)
+    expect(onPlanned).not.toHaveBeenCalled()
+  })
+
+  it('last-wins overlapping clicks: slow first loadable cannot overwrite a later commit mod.ts click', async () => {
+    const onPlanned = vi.fn()
+    let resolveFirst!: (value: GithubBlobResult) => void
+    const first = new Promise<GithubBlobResult>((resolve) => {
+      resolveFirst = resolve
+    })
+    fetchRepoTree.mockResolvedValue(treeResult())
+    fetchGithubBlob.mockReturnValueOnce(first)
+    renderBrowser(onPlanned)
+    await importValue('o/r')
+
+    const app = Array.from(container.querySelectorAll('.repo-tree button')).find(
+      (b) => b.textContent === 'App.tsx',
+    )!
+    const mod = Array.from(container.querySelectorAll('.repo-tree button')).find(
+      (b) => b.textContent === 'mod.ts',
+    )!
+    await act(async () => {
+      app.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await Promise.resolve()
+    })
+    await act(async () => {
+      mod.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await Promise.resolve()
+    })
+
+    expect(statusRegion().textContent).toBe(COPY.blocked)
+    expect(fetchGithubBlob).toHaveBeenCalledTimes(1)
+    expect(onPlanned).not.toHaveBeenCalled()
+
+    await act(async () => {
+      resolveFirst(blobResult('def'))
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    expect(statusRegion().textContent).toBe(COPY.blocked)
+    expect(fetchGithubBlob).toHaveBeenCalledTimes(1)
+    expect(onPlanned).not.toHaveBeenCalled()
+  })
+
+  it('file click during Import still re-enables Import when the tree fetch resolves', async () => {
+    fetchRepoTree.mockResolvedValueOnce(treeResult())
+    renderBrowser()
+    await importValue('o/r')
+
+    let resolveTree!: (value: RepoTreeResult) => void
+    fetchRepoTree.mockReturnValue(
+      new Promise<RepoTreeResult>((resolve) => {
+        resolveTree = resolve
+      }),
+    )
+    fetchGithubBlob.mockReturnValue(
+      new Promise<GithubBlobResult>(() => {
+        /* hang so the loadable click stays in-flight */
+      }),
+    )
+
+    await importValue('o/r')
+    const submit = container.querySelector<HTMLButtonElement>('button[type="submit"]')!
+    expect(submit.textContent).toBe('Importing…')
+    expect(submit.disabled).toBe(true)
+
+    const app = Array.from(container.querySelectorAll('.repo-tree button')).find(
+      (b) => b.textContent === 'App.tsx',
+    )!
+    await act(async () => {
+      app.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await Promise.resolve()
+    })
+
+    await act(async () => {
+      resolveTree(treeResult())
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(submit.disabled).toBe(false)
+    expect(submit.textContent).toBe('Import')
+  })
+
   it('refuses a 100001-byte node with the too-large alert and skips the blob GET', async () => {
     const onPlanned = vi.fn()
     fetchRepoTree.mockResolvedValue(treeResult())
