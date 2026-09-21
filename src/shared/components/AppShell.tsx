@@ -35,7 +35,7 @@ export function AppShell({ banners, children }: AppShellProps) {
           </SidebarGroup>
         </SidebarContent>
       </Sidebar>
-      <SidebarInset>
+      <SidebarInset className="peer-data-[variant=inset]:bg-[var(--color-bg)]">
         <header className="flex h-12 shrink-0 items-center gap-2 px-3">
           <SidebarTrigger />
         </header>
