@@ -646,9 +646,18 @@ describe('App — startScaffold onPlanned (D-07, D-09, D-10, SCAF-01, SCAF-05)',
       historyButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
 
-    const wrapper = capture.closest('div[style]') as HTMLElement
-    expect(wrapper.style.display).toBe('none')
-    expect(wrapper.hasAttribute('hidden')).toBe(false)
+    let el: HTMLElement | null = capture
+    let hiddenWrapper: HTMLElement | null = null
+    while (el) {
+      if (el.style.display === 'none') {
+        hiddenWrapper = el
+        break
+      }
+      el = el.parentElement
+    }
+    expect(hiddenWrapper).not.toBeNull()
+    expect(hiddenWrapper!.hasAttribute('hidden')).toBe(false)
     expect(container.querySelector('#capture-surface')).toBe(capture)
+    expect(document.body.querySelector('[hidden]')).toBeNull()
   })
 })

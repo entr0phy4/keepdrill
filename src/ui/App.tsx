@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Exercise } from '../ingestion/types'
-import type { FilePlan } from '../parse/types'
+import type { FilePlan, PlanUnit } from '../parse/types'
 import type { Session } from '../capture/types'
 import { buildSession } from '../session'
 import { readCrossOriginIsolated, probeTimerResolutionUs } from '../platform/isolation'
@@ -8,14 +8,24 @@ import { resetCapture } from '../capture/capture'
 import { computeSessionMetrics } from '../metrics/metrics'
 import type { MetricsResult } from '../metrics/metrics'
 import { saveSession } from '../persistence/repository'
+import type { UnitSnapshot } from '../scaffold/flatten'
 import { Banners } from './Banners'
 import { CorpusInput } from './CorpusInput'
 import { RepoBrowser } from './RepoBrowser'
 import { CaptureSurface } from './CaptureSurface'
+import { FileScaffold } from './FileScaffold'
 import { ResultsView } from './ResultsView'
 import { SaveFailedNotice } from './SaveFailedNotice'
 import { HistoryView } from './HistoryView'
 import { AnalyticsDashboard } from './AnalyticsDashboard'
+
+const COPY = {
+  emptyHeading: 'No exercise loaded',
+  emptyBody:
+    'Paste code or text and choose Load exercise, or import a GitHub repo and click a TypeScript or JavaScript file to begin.',
+  restartExercise: 'Restart exercise',
+  restartUnit: 'Restart unit',
+} as const
 
 declare global {
   interface Window {
@@ -33,6 +43,10 @@ const SESSION_REFRESH_MS = 250
 export function App() {
   const [exercise, setExercise] = useState<Exercise | null>(null)
   const [filePlan, setFilePlan] = useState<FilePlan | null>(null)
+  const [curriculum, setCurriculum] = useState<PlanUnit[] | null>(null)
+  const [unitIndex, setUnitIndex] = useState(0)
+  const [scaffoldComplete, setScaffoldComplete] = useState(false)
+  const snapshotsRef = useRef<UnitSnapshot[]>([])
   // CR-02: a monotonic token, not exercise content, so CaptureSurface remounts
   // on every load — including loading the *same* text/file twice in a row,
   // which a content-derived key would miss. The remount discards the stale
@@ -64,6 +78,11 @@ export function App() {
   const [corpusTab, setCorpusTab] = useState<'paste' | 'github'>('paste')
 
   const handleLoad = (loaded: Exercise) => {
+    snapshotsRef.current = []
+    setCurriculum(null)
+    setUnitIndex(0)
+    setFilePlan(null)
+    setScaffoldComplete(false)
     resetCapture() // fresh buffer per exercise
     setExercise(loaded)
     setLoadToken((token) => token + 1)
@@ -77,6 +96,22 @@ export function App() {
     if (import.meta.env.DEV) {
       window.__keebdrillSession = session
     }
+  }
+
+  const startScaffold = (plan: FilePlan) => {
+    snapshotsRef.current = []
+    resetCapture()
+    setFilePlan(plan)
+    setExercise(plan.exercise)
+    setCurriculum(plan.units)
+    setUnitIndex(0)
+    setScaffoldComplete(false)
+    setLoadToken((token) => token + 1)
+    setMetrics(null)
+    setSaveFailed(false)
+    const startedAt = Date.now()
+    loadRef.current = { exercise: plan.exercise, startedAt }
+    sessionRef.current = null
   }
 
   // Computes a fresh MetricsResult the instant CaptureSurface reports
@@ -126,7 +161,7 @@ export function App() {
   // staying frozen at the empty buffer captured the instant the exercise
   // loaded (CR-01). Cleared on unmount / when the exercise changes.
   useEffect(() => {
-    if (exercise === null) return
+    if (exercise === null || curriculum !== null) return
     const id = setInterval(() => {
       const current = loadRef.current
       if (!current) return
@@ -138,7 +173,7 @@ export function App() {
       }
     }, SESSION_REFRESH_MS)
     return () => clearInterval(id)
-  }, [exercise])
+  }, [exercise, curriculum])
 
   return (
     <main style={{ display: 'grid', gap: 'var(--space-lg)' }}>
@@ -222,18 +257,15 @@ export function App() {
           data-file-plan={filePlan !== null ? 'true' : undefined}
           style={{ display: corpusTab === 'github' ? 'grid' : 'none' }}
         >
-          <RepoBrowser onPlanned={setFilePlan} />
+          <RepoBrowser onPlanned={startScaffold} />
         </div>
       </div>
 
       {exercise === null ? (
         view === 'trainer' && (
           <section>
-            <h2>No exercise loaded</h2>
-            <p className="text-muted">
-              Paste code or text below, or upload a file, then choose{' '}
-              <strong>Load exercise</strong> to begin.
-            </p>
+            <h2>{COPY.emptyHeading}</h2>
+            <p className="text-muted">{COPY.emptyBody}</p>
           </section>
         )
       ) : (
@@ -252,19 +284,33 @@ export function App() {
         // lift the capture buffer into a React ref that survives a
         // CaptureSurface remount and let the trainer unmount instead.
         <div style={{ display: view === 'trainer' ? 'grid' : 'none', gap: 'var(--space-md)' }}>
-          <CaptureSurface
-            key={loadToken}
-            text={exercise.text}
-            onRestartRequested={handleRestart}
-            onComplete={handleComplete}
-          />
+          {curriculum !== null ? (
+            <FileScaffold
+              text={exercise.text}
+              units={curriculum}
+              unitIndex={unitIndex}
+              loadToken={loadToken}
+              complete={scaffoldComplete}
+              onRestartRequested={handleRestart}
+              onComplete={handleComplete}
+            />
+          ) : (
+            <CaptureSurface
+              key={loadToken}
+              text={exercise.text}
+              onRestartRequested={handleRestart}
+              onComplete={handleComplete}
+            />
+          )}
           {metrics !== null && <ResultsView metrics={metrics} />}
           {metrics !== null && saveFailed && (
             <SaveFailedNotice onDismiss={() => setSaveFailed(false)} />
           )}
-          <button type="button" className="primary" onClick={handleRestart}>
-            Restart exercise
-          </button>
+          {!scaffoldComplete && (
+            <button type="button" className="primary" onClick={handleRestart}>
+              {curriculum !== null ? COPY.restartUnit : COPY.restartExercise}
+            </button>
+          )}
         </div>
       )}
       {view === 'history' && <HistoryView />}
