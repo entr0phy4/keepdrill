@@ -115,10 +115,10 @@ describe('FileScaffold — source-order chrome (D-01, D-02, D-04)', () => {
     const currentIdx = kids.findIndex((el) => el.hasAttribute('data-scaffold-current'))
     expect(futureIdx).toBeGreaterThanOrEqual(0)
     expect(currentIdx).toBeGreaterThan(futureIdx)
-    expect(kids[futureIdx]?.textContent).toContain('function a')
+    expect(kids[futureIdx]?.textContent).toContain('function·a')
     const overlay = kids[currentIdx]?.querySelector('.trainer-rendered-layer')
-    expect(overlay?.textContent).toContain('function b')
-    expect(overlay?.textContent).not.toContain('function a')
+    expect(overlay?.textContent).toContain('function·b')
+    expect(overlay?.textContent).not.toContain('function·a')
   })
 
   it('passes CaptureSurface the current unit slice, never the full multi-unit file', () => {
@@ -135,8 +135,8 @@ describe('FileScaffold — source-order chrome (D-01, D-02, D-04)', () => {
     })
 
     const overlay = container.querySelector('[data-scaffold-current] .trainer-rendered-layer')
-    expect(overlay?.textContent).toContain('function b() {}')
-    expect(overlay?.textContent).not.toContain('function a() {}')
+    expect(overlay?.textContent).toContain('function·b()·{}')
+    expect(overlay?.textContent).not.toContain('function·a()·{}')
     expect(TWO_UNIT_TEXT).toContain('function a() {}')
     expect(TWO_UNIT_TEXT).toContain('function b() {}')
   })
@@ -160,7 +160,9 @@ describe('FileScaffold — untrusted corpus as characters (D-06)', () => {
 
     expect(container.querySelector('img')).toBeNull()
     const future = container.querySelector('[data-scaffold-role="future"]')
-    expect(future?.textContent).toContain(payload)
+    expect(future?.textContent).toContain('<img')
+    expect(future?.textContent).toContain('onerror=alert(1)>')
+    expect(future?.innerHTML).not.toContain('<img src')
   })
 })
 
