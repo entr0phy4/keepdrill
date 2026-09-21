@@ -4,7 +4,7 @@ verified: 2026-09-21T00:51:51Z
 status: passed
 score: 35/37 must-haves verified
 behavior_unverified: 0
-overrides_applied: 0
+overrides_applied: 1
 re_verification:
   previous_status: gaps_found
   previous_score: 33/36
@@ -37,8 +37,9 @@ human_verification:
 
 **Phase Goal:** The user's clicked TypeScript/JavaScript file becomes a planned, dependency-ordered set of syntactic units (or a labeled whole-file fallback), tagged as GitHub corpus — still not a click-to-type-the-whole-file path.
 **Verified:** 2026-09-21T00:51:51Z
-**Status:** human_needed
+**Status:** passed
 **Re-verification:** Yes — after gap-closure plan 08-05
+**Closeout override:** UAT test 2 (FILE-02 History `sourceRef`) skipped — github sessions are not persisted until Phase 9. Operator chose to complete Phase 8 anyway on 2026-09-21.
 
 The previous `gaps_found` (33/36) had one failed truth: last-wins skipped `++tokenRef` on blocked/commit clicks and shared the counter with Import. 08-05 replaced `tokenRef` with `clickGenRef` (every file click, first statement) and `importGenRef` (Import busy only). Named UI tests for loadable-then-blocked, loadable-then-commit, and Import isolation all pass. Roadmap success criteria 1–5 still hold. Two `verification: backstop` truths and flagged must-NOTs remain human-only; they do not reopen `gaps_found`.
 
@@ -237,6 +238,10 @@ No remaining automated gaps. The phase goal holds in code: a TS/JS click fetches
 Human backstops (CSP wasm, extra sourceRef shapes, live click-to-plan, flagged must-NOTs) are unchanged and out of 08-05 scope.
 
 Confirmation-bias notes (not extra gaps): (1) REQUIREMENTS PLAN-02 says “User types those units” — typing is Phase 9. (2) Last-wins tests now click blocked/commit second and resolve the hung blob. (3) `atob` failure is still an uncovered error path that can stick on Loading….
+
+## Acknowledged Gaps
+
+Operator closeout override 2026-09-21: UAT test 2 (FILE-02 History `sourceRef` / never Pasted snippet) remains skipped. Github sessions are not persisted until Phase 9 SCAF-03, so there is no History row to inspect. The locked `owner/repo:path` shape is covered by goldens and `HistoryView` sourceLabel. Phase 8 completes with this human check deferred.
 
 ---
 

@@ -39,7 +39,7 @@ Full detail archived to `.planning/milestones/v1.1-ROADMAP.md`.
 **Milestone Goal:** The user can paste a public GitHub URL, browse the repo as a file tree, open a TypeScript/JavaScript file, and type it in-place as a scaffolded exercise that proceeds function-by-function in dependency order until the file is complete.
 
 - [x] **Phase 7: GitHub URL & Repo Tree** - Import a public repo by URL and browse the default-branch filesystem; non-TS/JS files are blocked; TS/JS clicks do not start a whole-file exercise (completed 2026-09-20)
-- [ ] **Phase 8: Parse & Dependency Units** - Clicking a TS/JS file fetches the blob, splits it into non-overlapping syntactic units, and orders them leaves-first (whole-file fallback with a notice)
+- [x] **Phase 8: Parse & Dependency Units** - Clicking a TS/JS file fetches the blob, splits it into non-overlapping syntactic units, and orders them leaves-first (whole-file fallback with a notice) (completed 2026-09-20)
 - [ ] **Phase 9: Scaffolded Trainer** - Type the file in place: full text visible, current unit only typeable, advance until complete; paste/upload remain whole-file
 
 ## Phase Details
@@ -129,5 +129,5 @@ Plans:
 | 5. Symbol-Adjusted WPM & Language Tagging | v1.1 | 2/2 | Complete | 2026-09-13 |
 | 6. Cross-Session Analytics | v1.1 | 3/3 | Complete | 2026-09-20 |
 | 7. GitHub URL & Repo Tree | v2.0 | 3/3 | Complete    | 2026-09-20 |
-| 8. Parse & Dependency Units | v2.0 | 5/5 | In Progress|  |
+| 8. Parse & Dependency Units | v2.0 | 5/5 | Complete    | 2026-09-20 |
 | 9. Scaffolded Trainer | v2.0 | 0/? | Not started | - |

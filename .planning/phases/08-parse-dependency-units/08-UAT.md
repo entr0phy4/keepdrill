@@ -39,3 +39,13 @@ skipped: 1
 blocked: 0
 
 ## Gaps
+
+## Acknowledged Gaps
+
+- test: 2
+  truth: "History github rows show owner/repo:path and never Pasted snippet"
+  status: skipped
+  reason: "Persist of github sessions is Phase 9; no History row to inspect"
+  override: closeout
+  overridden_by: operator
+  overridden_at: 2026-09-21

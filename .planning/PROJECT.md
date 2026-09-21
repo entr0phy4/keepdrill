@@ -17,9 +17,9 @@ is useful for a week of daily self-use, the project is worth continuing.
 
 ## Current State
 
-**Shipped: v2.0 Phase 7 GitHub URL & Repo Tree** (2026-09-20)
+**Shipped: v2.0 Phase 8 Parse & Dependency Units** (2026-09-20)
 
-Trainer has a Paste | GitHub switch. The user can import a public GitHub repository by URL or `owner/repo`, browse the default-branch filesystem tree, and see locked blocked / not-yet / 404 / rate-limit copy. File clicks never start a typing session. Paste/upload remain the whole-file path.
+Trainer has a Paste | GitHub switch. The user can import a public GitHub repository, browse the tree, and click a `.ts` / `.tsx` / `.js` / `.jsx` file to fetch the blob, tag it `sourceType: github`, and split it into non-overlapping leaves-first syntactic units (or a labeled whole-file fallback). The trainer stays idle — click-to-type is Phase 9. Paste/upload remain the whole-file path.
 
 ## Current Milestone: v2.0 Katas desde GitHub
 
@@ -53,11 +53,13 @@ Trainer has a Paste | GitHub switch. The user can import a public GitHub reposit
 - ✓ User can view a per-language WPM/accuracy profile, with plaintext kept as its own bucket — Phase 6
 - ✓ User can import a public GitHub repository by URL and browse it as a filesystem tree — Phase 7
 - ✓ Clicking a non-TS/JS file in the tree shows a blocked notice and does not load an exercise — Phase 7
+- ✓ Clicking a TS/JS file fetches the blob as corpus (100 KB + UTF-8), tags `sourceType: github`, and plans non-overlapping leaves-first units or a labeled whole-file fallback — Phase 8
+- ✓ A tree click does not start a whole-file typing session; FilePlan is held idle — Phase 8
 
 ### Active
 
-- [ ] User can click a TypeScript/JavaScript file in that tree to load a scaffolded exercise
 - [ ] User sees the full file; only the current syntactic unit is typeable; future units remain visible but locked
+- [ ] User who completes the current unit advances to the next until the file is done
 - [ ] Units are ordered by dependencies so the user completes indispensable/leaf functions first, then dependents, until the file is done
 - [ ] Paste and upload remain available as the existing corpus path (fallback for other languages and ad-hoc snippets)
 
@@ -139,9 +141,9 @@ Trainer has a Paste | GitHub switch. The user can import a public GitHub reposit
 | `gatedMedian` owns the exclusive (25ms, 1000ms) window and both sample gates; `DIGRAPH_MIN_SAMPLES = 5` | Digraph ranking and heatmap cannot bury 5 as a magic number | ✓ Good — Phase 6 |
 | Language profile is the unweighted mean of per-session `resolveMetrics`; heatmap IKI skips modifiers and `isRepeat` | RESEARCH A2 / A1; plaintext is a normal map key | ✓ Good — Phase 6 |
 | Analytics is a third header sibling; trainer stays hide-not-unmount; heatmap fill via `--kb-fill` color-mix | Extends Phase 4 D-08; sequential amber, not score colors; inert keys | ✓ Good — Phase 6 |
-| v2.0 corpus source = public GitHub API (URL → tree → blob), not Tauri and not generic git clone | Browser SPA constraint; GitHub-only keeps CORS/auth surface small | ✓ Good — Phase 7 listing (blob still Phase 8) |
-| Scaffolded file: full text visible, only the current AST unit is typeable | User asked to see the whole file while typing indispensable units first | — Pending |
-| Parser = tree-sitter WASM for TypeScript/JavaScript only | Real function/dependency split; other languages stay blocked in the tree | — Pending |
+| v2.0 corpus source = public GitHub API (URL → tree → blob), not Tauri and not generic git clone | Browser SPA constraint; GitHub-only keeps CORS/auth surface small | ✓ Good — Phase 7 listing, Phase 8 blob |
+| Scaffolded file: full text visible, only the current AST unit is typeable | User asked to see the whole file while typing indispensable units first | — Pending — Phase 9 |
+| Parser = tree-sitter WASM for TypeScript/JavaScript only | Real function/dependency split; other languages stay blocked in the tree | ✓ Good — Phase 8 (`web-tree-sitter@0.27.0`, `clickGenRef`/`importGenRef` last-wins) |
 
 ## Success Criteria
 
@@ -167,4 +169,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-20 after Phase 7*
+*Last updated: 2026-09-20 after Phase 8*
