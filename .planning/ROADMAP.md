@@ -86,7 +86,7 @@ Plans:
   4. Those units are ordered by in-file dependencies: indispensable/leaf units first, then units that depend on them.
   5. User still gets an exercise if the file cannot be split: the whole file is the single unit, with a notice — never a silent no-op.
 
-**Plans**: 4/5 plans executed
+**Plans**: 5/5 plans executed
 Plans:
 **Wave 1**
 
@@ -100,7 +100,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 08-05-PLAN.md — Last-wins click generation for blocked/commit; Import busy isolation
+- [x] 08-05-PLAN.md — Last-wins click generation for blocked/commit; Import busy isolation
 
 ### Phase 9: Scaffolded Trainer
 
@@ -129,5 +129,5 @@ Plans:
 | 5. Symbol-Adjusted WPM & Language Tagging | v1.1 | 2/2 | Complete | 2026-09-13 |
 | 6. Cross-Session Analytics | v1.1 | 3/3 | Complete | 2026-09-20 |
 | 7. GitHub URL & Repo Tree | v2.0 | 3/3 | Complete    | 2026-09-20 |
-| 8. Parse & Dependency Units | v2.0 | 4/5 | In Progress|  |
+| 8. Parse & Dependency Units | v2.0 | 5/5 | In Progress|  |
 | 9. Scaffolded Trainer | v2.0 | 0/? | Not started | - |
