@@ -4,9 +4,9 @@ milestone: v2.0
 milestone_name: Katas desde GitHub
 current_phase: 08
 current_phase_name: parse-dependency-units
-status: executing
+status: verifying
 stopped_at: Completed 08-05-PLAN.md
-last_updated: "2026-09-21T00:42:33.827Z"
+last_updated: "2026-09-21T00:43:23.094Z"
 last_activity: 2026-09-20
 last_activity_desc: Phase 08 execution started
 progress:
@@ -29,8 +29,8 @@ See: .planning/PROJECT.md (updated 2026-09-20 after Phase 7)
 ## Current Position
 
 Phase: 08 (parse-dependency-units) — EXECUTING
-Plan: 2 of 5
-Status: Ready to execute
+Plan: 5 of 5
+Status: All plans complete — ready for verification
 Last activity: 2026-09-20 — Phase 08 execution started
 
 Progress: [██████████] 100%
@@ -98,6 +98,8 @@ Recent decisions affecting current work:
 - [Phase 08]: wasm.ts is the only WASM runtime importer; locateFile returns /${scriptName}
 - [Phase 08]: Clicks share Import's tokenRef so last-wins holds across overlapping blob GETs
 - [Phase 08]: App holds FilePlan in memory via onPlanned; plan.exercise is never passed to handleLoad
+- [Phase 08]: Split shared tokenRef into clickGenRef (every file click) and importGenRef (Import busy only) — Sharing one counter let a loadable click skip onImport setBusy(false) and left blocked/commit clicks without a generation bump.
+- [Phase 08]: onImport increments clickGenRef at start so a slower in-flight loadable cannot overwrite Import status or fire stale onPlanned — T-08-05-02: Import must invalidate in-flight file clicks without sharing the busy counter.
 
 ### Pending Todos
 

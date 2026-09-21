@@ -102,7 +102,7 @@ Each task was committed atomically:
 1. **Task 1: Failing last-wins tests for blocked, commit, and Import isolation** - `48d621e` (test)
 2. **Task 2: Split clickGenRef and importGenRef; bump generation before setStatus** - `c793079` (feat)
 
-**Plan metadata:** pending `docs(08-05)` commit
+**Plan metadata:** `f35677b` (docs: complete plan)
 
 _Note: TDD RED → GREEN. No REFACTOR commit — implementation matched the plan with no cleanup needed._
 
