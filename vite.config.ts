@@ -2,9 +2,23 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vitest/config'
+import { defineConfig, type ViteUserConfig } from 'vitest/config'
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url))
+
+const srcAlias = {
+  '@': path.resolve(rootDir, './src'),
+} as const
+
+type TestProjectOptions = NonNullable<NonNullable<ViteUserConfig['test']>['projects']>[number]
+
+function testProject(test: Extract<TestProjectOptions, { test?: object }>['test']): TestProjectOptions {
+  return {
+    plugins: [react(), tailwindcss()],
+    resolve: { alias: srcAlias },
+    test,
+  }
+}
 
 // COOP/COEP unlock cross-origin isolation -> high-resolution timers (D-15, D-16).
 // server.headers and preview.headers are INDEPENDENT Vite options and are NOT
@@ -14,49 +28,38 @@ const crossOriginIsolation = {
   'Cross-Origin-Embedder-Policy': 'require-corp',
 } as const
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
-    alias: {
-      '@': path.resolve(rootDir, './src'),
-    },
+    alias: srcAlias,
   },
   server: { headers: crossOriginIsolation },
   preview: { headers: crossOriginIsolation },
   test: {
     projects: [
-      {
-        test: {
-          name: 'unit',
-          environment: 'node',
-          include: ['src/**/*.test.ts'],
-          exclude: ['src/capture/**', 'src/persistence/**'],
-        },
-      },
-      {
-        test: {
-          name: 'persistence',
-          environment: 'node',
-          include: ['src/persistence/**/*.test.ts'],
-          setupFiles: ['./src/test/setup-fake-indexeddb.ts'],
-        },
-      },
-      {
-        test: {
-          name: 'dom',
-          environment: 'happy-dom',
-          include: ['src/capture/**/*.test.ts'],
-        },
-      },
-      {
-        test: {
-          name: 'ui',
-          environment: 'happy-dom',
-          include: ['src/ui/**/*.test.tsx'],
-          setupFiles: ['./src/test/setup-fake-indexeddb.ts'],
-        },
-      },
+      testProject({
+        name: 'unit',
+        environment: 'node',
+        include: ['src/**/*.test.ts'],
+        exclude: ['src/capture/**', 'src/persistence/**'],
+      }),
+      testProject({
+        name: 'persistence',
+        environment: 'node',
+        include: ['src/persistence/**/*.test.ts'],
+        setupFiles: ['./src/test/setup-fake-indexeddb.ts'],
+      }),
+      testProject({
+        name: 'dom',
+        environment: 'happy-dom',
+        include: ['src/capture/**/*.test.ts'],
+      }),
+      testProject({
+        name: 'ui',
+        environment: 'happy-dom',
+        include: ['src/**/*.test.tsx'],
+        setupFiles: ['./src/test/setup-fake-indexeddb.ts'],
+      }),
     ],
   },
 })

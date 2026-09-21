@@ -1,14 +1,18 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
-import { App } from './ui/App'
+import { App, ErrorBoundary, FluidProviders, syncColorScheme } from './app'
 import { warnIfNonAnsiLayout } from './platform/layout'
 
-// Fire-and-forget — never awaited, never blocks first paint (D-17).
+syncColorScheme()
 void warnIfNonAnsiLayout()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <FluidProviders>
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+    </FluidProviders>
   </StrictMode>,
 )
