@@ -54,9 +54,43 @@ function nextFrame(): Promise<void> {
 let container: HTMLDivElement
 let root: Root
 
+function fallbackGithubPlan(): FilePlan {
+  return {
+    exercise: {
+      text: 'function a() {}\n',
+      language: 'typescript',
+      sourceType: 'github',
+      sourceRef: 'o/r:src/App.tsx',
+    },
+    units: [{ id: 'file', kind: 'file', start: 0, end: 16, dependsOn: [] }],
+    fallback: true,
+  }
+}
+
+function twoUnitGithubPlan(sourceRef = 'o/r:src/a.ts'): FilePlan {
+  const text = 'function a() {}\nfunction b() {}\n'
+  return {
+    exercise: {
+      text,
+      language: 'typescript',
+      sourceType: 'github',
+      sourceRef,
+    },
+    units: [
+      { id: 'b', kind: 'function', name: 'b', start: 16, end: 32, dependsOn: [] },
+      { id: 'a', kind: 'function', name: 'a', start: 0, end: 16, dependsOn: [] },
+    ],
+    fallback: false,
+  }
+}
+
+const EMPTY_BODY =
+  'Paste code or text and choose Load exercise, or import a GitHub repo and click a TypeScript or JavaScript file to begin.'
+
 beforeEach(async () => {
   capturedOnPlanned = undefined
   resetCapture()
+  HTMLElement.prototype.scrollIntoView = vi.fn()
   await db.delete()
   await db.open()
   container = document.createElement('div')
@@ -479,30 +513,142 @@ describe('App — Trainer-only Paste | GitHub corpus shell (D-01..D-04)', () => 
     expect(container.textContent).toContain('Load exercise')
   })
 
-  it('holds onPlanned FilePlan in memory without starting the trainer', () => {
+  it('empty state names the GitHub door verbatim', () => {
+    act(() => {
+      root.render(<App />)
+    })
+    expect(container.querySelector('h2')?.textContent).toBe('No exercise loaded')
+    expect(container.textContent).toContain(EMPTY_BODY)
+  })
+})
+
+describe('App — startScaffold onPlanned (D-07, D-09, D-10, SCAF-01, SCAF-05)', () => {
+  it('starts typing immediately on a fallback FilePlan with a 1 / 1 landmark', () => {
     act(() => {
       root.render(<App />)
     })
     expect(typeof capturedOnPlanned).toBe('function')
 
     act(() => {
-      capturedOnPlanned!({
-        exercise: {
-          text: 'function a() {}\n',
-          language: 'typescript',
-          sourceType: 'github',
-          sourceRef: 'o/r:src/App.tsx',
-        },
-        units: [{ id: 'file', kind: 'file', start: 0, end: 16, dependsOn: [] }],
-        fallback: true,
-      })
+      capturedOnPlanned!(fallbackGithubPlan())
     })
 
-    expect(container.querySelector('#capture-surface')).toBeNull()
-    expect(container.textContent).toContain('Paste code')
-    expect(container.textContent).toContain('Load exercise')
+    expect(container.querySelector('#capture-surface')).not.toBeNull()
+    expect(container.textContent).toContain('1 / 1')
+    expect(container.textContent).not.toContain(EMPTY_BODY)
     expect(container.querySelector('#corpus-panel-github')?.getAttribute('data-file-plan')).toBe(
       'true',
     )
+  })
+
+  it('puts the first curriculum slice into CaptureSurface, not the full two-unit file', () => {
+    act(() => {
+      root.render(<App />)
+    })
+    act(() => {
+      capturedOnPlanned!(twoUnitGithubPlan())
+    })
+
+    const overlay = container.querySelector('[data-scaffold-current] .trainer-rendered-layer')
+    expect(overlay?.textContent).toContain('function·b()·{}')
+    expect(overlay?.textContent).not.toContain('function·a()·{}')
+    expect(container.textContent).toContain('1 / 2')
+  })
+
+  it('handleLoad after a scaffold unmounts FileScaffold and mounts whole-file CaptureSurface', async () => {
+    act(() => {
+      root.render(<App />)
+    })
+    act(() => {
+      capturedOnPlanned!(twoUnitGithubPlan())
+    })
+    expect(container.querySelector('[data-scaffold-current]')).not.toBeNull()
+
+    act(() => {
+      container
+        .querySelector('#corpus-tab-paste')!
+        .dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    const pasteArea = container.querySelector<HTMLTextAreaElement>('#corpus-paste')!
+    act(() => {
+      setControlledTextareaValue(pasteArea, 'hello')
+    })
+    const loadButton = Array.from(container.querySelectorAll('button')).find(
+      (b) => b.textContent === 'Load exercise',
+    )!
+    await act(async () => {
+      loadButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await nextFrame()
+    })
+
+    expect(container.querySelector('[data-scaffold-current]')).toBeNull()
+    expect(container.querySelector('#capture-surface')).not.toBeNull()
+    const overlay = container.querySelector('.trainer-rendered-layer')
+    expect(overlay?.textContent).toContain('hello')
+    expect(overlay?.textContent).not.toContain('function·b')
+  })
+
+  it('switching Paste | GitHub tabs does not clear an in-progress scaffold', () => {
+    act(() => {
+      root.render(<App />)
+    })
+    act(() => {
+      capturedOnPlanned!(fallbackGithubPlan())
+    })
+    expect(container.querySelector('#capture-surface')).not.toBeNull()
+
+    act(() => {
+      container
+        .querySelector('#corpus-tab-paste')!
+        .dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    act(() => {
+      container
+        .querySelector('#corpus-tab-github')!
+        .dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(container.querySelector('#capture-surface')).not.toBeNull()
+    expect(container.textContent).toContain('1 / 1')
+  })
+
+  it('a second onPlanned replaces the first: landmark returns to 1 / M of the new plan', () => {
+    act(() => {
+      root.render(<App />)
+    })
+    act(() => {
+      capturedOnPlanned!(twoUnitGithubPlan())
+    })
+    expect(container.textContent).toContain('1 / 2')
+
+    act(() => {
+      capturedOnPlanned!(fallbackGithubPlan())
+    })
+
+    expect(container.textContent).toContain('1 / 1')
+    expect(container.textContent).not.toContain('1 / 2')
+  })
+
+  it('hides the trainer with display none on History, never the hidden attribute', () => {
+    act(() => {
+      root.render(<App />)
+    })
+    act(() => {
+      capturedOnPlanned!(fallbackGithubPlan())
+    })
+    const capture = container.querySelector('#capture-surface')!
+    expect(capture.hasAttribute('hidden')).toBe(false)
+
+    const historyButton = Array.from(container.querySelectorAll('nav button')).find(
+      (b) => b.textContent === 'History',
+    )!
+    act(() => {
+      historyButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    const wrapper = capture.closest('div[style]') as HTMLElement
+    expect(wrapper.style.display).toBe('none')
+    expect(wrapper.hasAttribute('hidden')).toBe(false)
+    expect(container.querySelector('#capture-surface')).toBe(capture)
   })
 })
