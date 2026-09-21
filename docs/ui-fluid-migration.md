@@ -52,7 +52,7 @@ Cada feature exporta un `index.ts`. Los contenedores (smart) viven en la raíz d
 - Tokens shadcn/Fluid (`--background`, `--primary`, `--destructive`, `--border`) apuntan a la paleta keebdrill. Chrome usa Geist (self-hosted, compatible con COEP); el trainer sigue en `--font-mono`.
 - Botones globales de 44px se eliminaron para no pisar la escala Fluid (36px). Acciones nativas (`.control`, árbol del repo) conservan sus hit targets.
 - History y Analytics se cargan con `React.lazy` (chunks `history-*.js` / `insights-*.js`) en las rutas `/history` y `/analytics`. El trainer **no** se desmonta al cambiar de ruta (D-08); se oculta con `display`.
-- El chrome usa `Sidebar` de @fluid (`variant="inset"`, `peek="hover"`). El atajo `[` no captura teclas dentro de `textarea`/`input`.
+- El chrome usa `Sidebar` de @fluid (`variant="inset"`). El peek hover está desactivado para no tapar el trigger; el atajo `[` no captura teclas dentro de `textarea`/`input`.
 - `src/ui/` desaparece. Imports: `@/features/...`, `@/app`, `@/shared/components`.
 - Card de Fluid importaba `next/link`; en este repo Vite se sustituyó por `<a>`.
 

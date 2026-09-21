@@ -19,7 +19,7 @@ export interface AppShellProps {
 
 export function AppShell({ banners, children }: AppShellProps) {
   return (
-    <SidebarProvider peek="hover" className="font-sans">
+    <SidebarProvider peek="none" className="font-sans">
       <Sidebar variant="inset" collapsible="offcanvas">
         <SidebarHeader>
           <div className="flex items-center px-2 py-1.5">
