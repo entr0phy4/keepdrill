@@ -5,10 +5,10 @@ milestone_name: Katas desde GitHub
 current_phase: 9
 current_phase_name: Scaffolded Trainer
 status: planning
-stopped_at: Phase 9 UI-SPEC written
-last_updated: "2026-09-21T01:35:00.000Z"
+stopped_at: Phase 9 plans written
+last_updated: "2026-09-21T01:50:00.000Z"
 last_activity: 2026-09-20
-last_activity_desc: Phase 9 UI design contract written (09-UI-SPEC.md)
+last_activity_desc: Phase 9 PLAN.md files created (09-01 slice/cover/flatten, 09-02 FileScaffold+App)
 progress:
   total_phases: 3
   completed_phases: 2
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-09-20 after Phase 8)
 ## Current Position
 
 Phase: 9 — Scaffolded Trainer
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-09-20 — Phase 9 UI-SPEC written (`09-UI-SPEC.md`)
+Plan: 2 plans ready (09-01, 09-02)
+Status: Ready to execute
+Last activity: 2026-09-20 — Phase 9 plans written
 
 Progress: [██████░░░░] 67%
 
@@ -109,6 +109,6 @@ Items acknowledged and deferred at milestone close on 2026-09-20:
 
 ## Session Continuity
 
-Last session: 2026-09-21T01:35:00.000Z
-Stopped at: Phase 9 UI-SPEC written
-Resume file: .planning/phases/09-scaffolded-trainer/09-UI-SPEC.md
+Last session: 2026-09-21T01:50:00.000Z
+Stopped at: Phase 9 plans written
+Resume file: .planning/phases/09-scaffolded-trainer/09-01-PLAN.md
