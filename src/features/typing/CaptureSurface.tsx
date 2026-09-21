@@ -126,18 +126,18 @@ export function CaptureSurface({
   // "select" events fired by ArrowLeft/Right/Home/End/click, which don't
   // change `cursor` and so schedule no re-render on their own — this is
   // the actual fix for 02-VERIFICATION.md gap #1 / 02-REVIEW.md WR-1).
-  const resyncCaret = () => {
+  const resyncCaret = useCallback(() => {
     const el = ref.current
     if (!el) return
     if (el.selectionStart !== cursor || el.selectionEnd !== cursor) {
       el.selectionStart = cursor
       el.selectionEnd = cursor
     }
-  }
+  }, [cursor])
 
   useLayoutEffect(() => {
     resyncCaret()
-  }, [cursor])
+  }, [resyncCaret])
 
   const reclaimFocus = () => ref.current?.focus()
 
@@ -150,7 +150,14 @@ export function CaptureSurface({
   const nodes: ReactNode[] = []
   for (let i = 0; i < textChars.length; i++) {
     if (i === cursor) {
-      nodes.push(<span key={`caret-${i}`} className="trainer-caret" data-active={isActive} aria-hidden="true" />)
+      nodes.push(
+        <span
+          key={`caret-${i}`}
+          className="trainer-caret"
+          data-active={isActive}
+          aria-hidden="true"
+        />,
+      )
     }
     const targetChar = textChars[i] ?? ''
     const isWhitespaceGlyph = targetChar === ' ' || targetChar === '\n'
@@ -161,7 +168,9 @@ export function CaptureSurface({
     )
   }
   if (cursor >= textChars.length) {
-    nodes.push(<span key="caret-end" className="trainer-caret" data-active={isActive} aria-hidden="true" />)
+    nodes.push(
+      <span key="caret-end" className="trainer-caret" data-active={isActive} aria-hidden="true" />,
+    )
   }
 
   return (

@@ -18,14 +18,16 @@ export function ResultsView({ metrics }: ResultsViewProps) {
           {Math.round(metrics.accuracy * 100)}% <span className="results-stat-label">accuracy</span>
         </div>
         <div className="results-stat">
-          {Math.round(metrics.symbolAdjustedWpm)} <span className="results-stat-label">adj. wpm</span>
+          {Math.round(metrics.symbolAdjustedWpm)}{' '}
+          <span className="results-stat-label">adj. wpm</span>
         </div>
       </div>
       <div className="results-slowest">
         <span className="text-label text-muted">Slowest keys</span>
         {metrics.slowest5.length === 0 ? (
           <p className="text-muted">
-            Not enough repeated characters in this exercise to measure yet. Try a longer or more varied exercise.
+            Not enough repeated characters in this exercise to measure yet. Try a longer or more
+            varied exercise.
           </p>
         ) : (
           <ol className="results-slowest-list">

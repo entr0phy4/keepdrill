@@ -59,7 +59,9 @@ const baseMetrics: MetricsResult = {
   symbolAdjustedWpm: 78.2,
 }
 
-function buildInput(overrides: { session?: Partial<Session>; metricsSnapshot?: MetricsResult } = {}): NewSession {
+function buildInput(
+  overrides: { session?: Partial<Session>; metricsSnapshot?: MetricsResult } = {},
+): NewSession {
   const session: Session = {
     exercise: baseExercise,
     events: [],
@@ -159,7 +161,13 @@ describe('DigraphLatencyView', () => {
 describe('LanguageProfileView', () => {
   it('renders plaintext as a raw key-chip and rounded companion metrics', () => {
     const rows: LanguageProfileRow[] = [
-      { language: 'plaintext', wpm: 62.4, symbolAdjustedWpm: 78.2, accuracy: 0.9432, sessionCount: 3 },
+      {
+        language: 'plaintext',
+        wpm: 62.4,
+        symbolAdjustedWpm: 78.2,
+        accuracy: 0.9432,
+        sessionCount: 3,
+      },
       { language: 'rust', wpm: 40, symbolAdjustedWpm: 55.4, accuracy: 0.9, sessionCount: 1 },
     ]
     act(() => {

@@ -17,16 +17,15 @@ export function Banners({ crossOriginIsolated, timingResolutionUs }: BannersProp
     <div className="banners grid gap-2">
       {crossOriginIsolated !== true && (
         <p className="banner banner--warning" role="status">
-          <span className="banner-lead">Heads up</span> — High-resolution timing
-          isn&rsquo;t available here, so keystroke measurements may be less precise.
-          Open the deployed site over a cross-origin-isolated connection for best
-          results.
+          <span className="banner-lead">Heads up</span> — High-resolution timing isn&rsquo;t
+          available here, so keystroke measurements may be less precise. Open the deployed site over
+          a cross-origin-isolated connection for best results.
         </p>
       )}
 
       <p className="banner" role="note">
-        <span className="banner-lead">Notice</span> — Built and tested for the{' '}
-        US ANSI keyboard layout. Other layouts may mismatch on symbol keys.
+        <span className="banner-lead">Notice</span> — Built and tested for the US ANSI keyboard
+        layout. Other layouts may mismatch on symbol keys.
       </p>
 
       <p className="text-muted" style={{ margin: 0, whiteSpace: 'nowrap' }}>

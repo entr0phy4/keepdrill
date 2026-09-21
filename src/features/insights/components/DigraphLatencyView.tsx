@@ -1,6 +1,13 @@
 import { glyphFor } from '@/trainer/state'
 import type { DigraphEntry } from '@/analytics/types'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { KeyChip } from '@/shared/components'
 
 function digraphGlyph(pair: string): string {
@@ -15,7 +22,8 @@ export function DigraphLatencyView({ rows }: { rows: DigraphEntry[] }) {
       <h3 className="text-label text-muted">Slowest digraphs</h3>
       {rows.length === 0 ? (
         <p className="text-muted">
-          Not enough digraph samples yet. Pairs need at least 5 in-window observations across your history.
+          Not enough digraph samples yet. Pairs need at least 5 in-window observations across your
+          history.
         </p>
       ) : (
         <Table className="analytics-table">

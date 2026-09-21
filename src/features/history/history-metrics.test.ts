@@ -48,7 +48,10 @@ describe('resolveMetrics', () => {
     const mockedCompute = computeSessionMetrics as unknown as ReturnType<typeof vi.fn>
     mockedCompute.mockClear()
 
-    const staleSnapshot: MetricsResult = { ...baseSnapshot, schemaVersion: METRICS_SCHEMA_VERSION + 1 }
+    const staleSnapshot: MetricsResult = {
+      ...baseSnapshot,
+      schemaVersion: METRICS_SCHEMA_VERSION + 1,
+    }
     const s = makeStoredSession({ metricsSnapshot: staleSnapshot, completedAtTMs: 9_999 })
 
     const result = resolveMetrics(s)

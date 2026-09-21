@@ -56,7 +56,9 @@ const baseMetrics: MetricsResult = {
   symbolAdjustedWpm: 78,
 }
 
-function buildInput(overrides: { session?: Partial<Session>; metricsSnapshot?: MetricsResult } = {}): NewSession {
+function buildInput(
+  overrides: { session?: Partial<Session>; metricsSnapshot?: MetricsResult } = {},
+): NewSession {
   const session: Session = {
     exercise: baseExercise,
     events: [],
@@ -90,7 +92,9 @@ describe('HistoryView — loading and empty states (Pitfall 5)', () => {
     })
     await waitForLiveQuery()
     expect(container.querySelector('h2')?.textContent).toBe('History')
-    expect(container.textContent).toContain('No sessions yet — finish a typing exercise and it’ll show up here.')
+    expect(container.textContent).toContain(
+      'No sessions yet — finish a typing exercise and it’ll show up here.',
+    )
   })
 })
 
@@ -166,12 +170,18 @@ describe('HistoryView — ordering (PERS-02)', () => {
     const startedAt = Date.now() - 10_000
     const id1 = await saveSession(
       buildInput({
-        session: { startedAt, exercise: { ...baseExercise, sourceRef: 'first.ts', sourceType: 'upload' } },
+        session: {
+          startedAt,
+          exercise: { ...baseExercise, sourceRef: 'first.ts', sourceType: 'upload' },
+        },
       }),
     )
     const id2 = await saveSession(
       buildInput({
-        session: { startedAt, exercise: { ...baseExercise, sourceRef: 'second.ts', sourceType: 'upload' } },
+        session: {
+          startedAt,
+          exercise: { ...baseExercise, sourceRef: 'second.ts', sourceType: 'upload' },
+        },
       }),
     )
     expect(id2).toBeGreaterThan(id1)

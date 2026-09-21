@@ -301,9 +301,9 @@ describe('App — D-08 hide-not-unmount contract across a view switch', () => {
     await waitForHeading('History')
     expect(document.querySelector('#corpus-paste')).not.toBeNull()
     expect(document.querySelector('#github-url')).not.toBeNull()
-    expect((container.querySelector('#corpus-panel-paste') as HTMLElement).parentElement!.style.display).toBe(
-      'none',
-    )
+    expect(
+      (container.querySelector('#corpus-panel-paste') as HTMLElement).parentElement!.style.display,
+    ).toBe('none')
 
     const trainerButton = Array.from(container.querySelectorAll('nav button')).find(
       (b) => b.textContent === 'Trainer',
@@ -383,9 +383,9 @@ describe('App — D-08 hide-not-unmount contract across a view switch', () => {
     await waitForHeading('Analytics')
     expect(document.querySelector('#corpus-paste')).not.toBeNull()
     expect(document.querySelector('#github-url')).not.toBeNull()
-    expect((container.querySelector('#corpus-panel-paste') as HTMLElement).parentElement!.style.display).toBe(
-      'none',
-    )
+    expect(
+      (container.querySelector('#corpus-panel-paste') as HTMLElement).parentElement!.style.display,
+    ).toBe('none')
 
     const trainerButton = Array.from(container.querySelectorAll('nav button')).find(
       (b) => b.textContent === 'Trainer',
@@ -466,8 +466,12 @@ describe('App — Trainer-only Paste | GitHub corpus shell (D-01..D-04)', () => 
     expect(pasteTab?.getAttribute('aria-selected')).toBe('true')
     expect(githubTab?.getAttribute('aria-selected')).toBe('false')
     expect(container.querySelector('#corpus-panel-paste #corpus-paste')).not.toBeNull()
-    expect((container.querySelector('#corpus-panel-paste') as HTMLElement).style.display).toBe('grid')
-    expect((container.querySelector('#corpus-panel-github') as HTMLElement).style.display).toBe('none')
+    expect((container.querySelector('#corpus-panel-paste') as HTMLElement).style.display).toBe(
+      'grid',
+    )
+    expect((container.querySelector('#corpus-panel-github') as HTMLElement).style.display).toBe(
+      'none',
+    )
   })
 
   it('reveals #github-url on the GitHub tab and hides the Paste panel', () => {
@@ -481,11 +485,19 @@ describe('App — Trainer-only Paste | GitHub corpus shell (D-01..D-04)', () => 
         .dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
 
-    expect((container.querySelector('#corpus-panel-paste') as HTMLElement).style.display).toBe('none')
-    expect((container.querySelector('#corpus-panel-github') as HTMLElement).style.display).toBe('grid')
+    expect((container.querySelector('#corpus-panel-paste') as HTMLElement).style.display).toBe(
+      'none',
+    )
+    expect((container.querySelector('#corpus-panel-github') as HTMLElement).style.display).toBe(
+      'grid',
+    )
     expect(container.querySelector('#github-url')).not.toBeNull()
-    expect(container.querySelector('#corpus-tab-github')?.getAttribute('aria-selected')).toBe('true')
-    expect(container.querySelector('#corpus-tab-paste')?.getAttribute('aria-selected')).toBe('false')
+    expect(container.querySelector('#corpus-tab-github')?.getAttribute('aria-selected')).toBe(
+      'true',
+    )
+    expect(container.querySelector('#corpus-tab-paste')?.getAttribute('aria-selected')).toBe(
+      'false',
+    )
   })
 
   it('keeps paste text when switching to GitHub and back', () => {
@@ -532,9 +544,9 @@ describe('App — Trainer-only Paste | GitHub corpus shell (D-01..D-04)', () => 
 
     expect(localStorage.getItem('corpus-tab')).toBeNull()
     expect(localStorage.getItem('corpusTab')).toBeNull()
-    const tabKeys = Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i)).filter(
-      (key) => key !== null && /corpus/i.test(key),
-    )
+    const tabKeys = Array.from({ length: localStorage.length }, (_, i) =>
+      localStorage.key(i),
+    ).filter((key) => key !== null && /corpus/i.test(key))
     expect(tabKeys).toEqual([])
     expect(document.cookie).not.toMatch(/corpus/i)
   })
@@ -787,8 +799,16 @@ describe('App — unit advance, persist, restart (D-12, D-14, D-16, D-18, SCAF-0
 
     expect(container.querySelector('.results-panel')).not.toBeNull()
     expect(container.querySelector('#capture-surface')).toBeNull()
-    expect(Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Restart unit')).toBeUndefined()
-    expect(Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Restart exercise')).toBeUndefined()
+    expect(
+      Array.from(container.querySelectorAll('button')).find(
+        (b) => b.textContent === 'Restart unit',
+      ),
+    ).toBeUndefined()
+    expect(
+      Array.from(container.querySelectorAll('button')).find(
+        (b) => b.textContent === 'Restart exercise',
+      ),
+    ).toBeUndefined()
 
     const rows = await listNewestFirst()
     expect(rows).toHaveLength(1)
@@ -845,7 +865,9 @@ describe('App — unit advance, persist, restart (D-12, D-14, D-16, D-18, SCAF-0
     expect(await listNewestFirst()).toHaveLength(1)
     expect(container.querySelector('.results-panel')).not.toBeNull()
     expect(
-      Array.from(container.querySelectorAll('button')).some((b) => b.textContent === 'Restart exercise'),
+      Array.from(container.querySelectorAll('button')).some(
+        (b) => b.textContent === 'Restart exercise',
+      ),
     ).toBe(true)
   })
 })

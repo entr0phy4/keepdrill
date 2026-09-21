@@ -46,9 +46,13 @@ export function useTrainerSession(): TrainerSession {
   const curriculumRef = useRef(curriculum)
   const unitIndexRef = useRef(unitIndex)
   const scaffoldCompleteRef = useRef(scaffoldComplete)
+  // Mirror into refs during render so handleComplete (fired from a child effect
+  // in the same commit) reads this paint's curriculum/index, not a stale effect.
+  /* eslint-disable react-hooks/refs -- last-wins snapshot for completion handlers */
   curriculumRef.current = curriculum
   unitIndexRef.current = unitIndex
   scaffoldCompleteRef.current = scaffoldComplete
+  /* eslint-enable react-hooks/refs */
   const [loadToken, setLoadToken] = useState(0)
 
   const crossOriginIsolated = useMemo(() => readCrossOriginIsolated(), [])
@@ -117,7 +121,12 @@ export function useTrainerSession(): TrainerSession {
       const logs = flattenSnapshots(snapshotsRef.current)
       const session = assembleSessionFromLogs(current.exercise, logs, current.startedAt)
       const typedTarget = joinUnitSlices(current.exercise.text, units)
-      const result = computeSessionMetrics(typedTarget, session.charLog, session.markers, completedAt)
+      const result = computeSessionMetrics(
+        typedTarget,
+        session.charLog,
+        session.markers,
+        completedAt,
+      )
       setMetrics(result)
       setSaveFailed(false)
       setScaffoldComplete(true)
@@ -132,7 +141,12 @@ export function useTrainerSession(): TrainerSession {
     const current = loadRef.current
     if (!current) return
     const session = buildSession(current.exercise, current.startedAt)
-    const result = computeSessionMetrics(current.exercise.text, session.charLog, session.markers, completedAt)
+    const result = computeSessionMetrics(
+      current.exercise.text,
+      session.charLog,
+      session.markers,
+      completedAt,
+    )
     setMetrics(result)
     setSaveFailed(false)
     void saveSession({ session, completedAt, metricsSnapshot: result }).catch((err: unknown) => {

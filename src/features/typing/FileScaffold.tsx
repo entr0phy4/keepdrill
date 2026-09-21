@@ -122,7 +122,11 @@ export function FileScaffold({
         {segments.map((seg) => {
           if (seg.kind === 'gap') {
             return (
-              <pre key={`gap-${seg.start}-${seg.end}`} data-scaffold-role="gap" style={staticPreStyle}>
+              <pre
+                key={`gap-${seg.start}-${seg.end}`}
+                data-scaffold-role="gap"
+                style={staticPreStyle}
+              >
                 {renderGlyphs(sliceUnit(text, seg.start, seg.end))}
               </pre>
             )

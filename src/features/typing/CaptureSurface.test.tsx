@@ -248,7 +248,9 @@ describe('CaptureSurface — Tab no-op + Escape restart + caret active state (TY
     // defaults isTrusted to false — exactly what an untrusted-event
     // regression test needs, with no new helper required.
     act(() => {
-      textarea.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }))
+      textarea.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }),
+      )
     })
 
     expect(calls).toBe(0)
@@ -393,7 +395,13 @@ describe('CaptureSurface — caret resync on selection drift (gap closure, T-02-
 // local ResultsView mount, proving the whole architecture (completion signal
 // -> pure fold over the capture log -> auto-revealed display) end-to-end
 // without depending on App.tsx's other concerns.
-function MetricsHarness({ text, onCompleteCalled }: { text: string; onCompleteCalled?: () => void }) {
+function MetricsHarness({
+  text,
+  onCompleteCalled,
+}: {
+  text: string
+  onCompleteCalled?: () => void
+}) {
   const [metrics, setMetrics] = useState<MetricsResult | null>(null)
   const handleComplete = (completedAt: number) => {
     onCompleteCalled?.()

@@ -6,13 +6,7 @@ export interface RepoTreeProps {
   onFileClick: (node: FileNode) => void
 }
 
-function FileLi({
-  node,
-  onFileClick,
-}: {
-  node: FileNode
-  onFileClick: (node: FileNode) => void
-}) {
+function FileLi({ node, onFileClick }: { node: FileNode; onFileClick: (node: FileNode) => void }) {
   return (
     <li>
       <button

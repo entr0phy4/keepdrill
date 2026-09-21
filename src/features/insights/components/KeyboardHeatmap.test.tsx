@@ -79,9 +79,15 @@ describe('KeyboardHeatmap', () => {
 
     expect(container.textContent).not.toContain('No keys have 5 samples yet.')
 
-    const sampledA = container.querySelector('[aria-label="A, 100 milliseconds"]') as HTMLElement | null
-    const sampledS = container.querySelector('[aria-label="S, 201 milliseconds"]') as HTMLElement | null
-    const unused = container.querySelector('[aria-label="D, not enough samples"]') as HTMLElement | null
+    const sampledA = container.querySelector(
+      '[aria-label="A, 100 milliseconds"]',
+    ) as HTMLElement | null
+    const sampledS = container.querySelector(
+      '[aria-label="S, 201 milliseconds"]',
+    ) as HTMLElement | null
+    const unused = container.querySelector(
+      '[aria-label="D, not enough samples"]',
+    ) as HTMLElement | null
 
     expect(sampledA).not.toBeNull()
     expect(sampledS).not.toBeNull()
@@ -117,7 +123,9 @@ describe('KeyboardHeatmap', () => {
       )
     })
 
-    const sampled = container.querySelector('[aria-label="A, 150 milliseconds"]') as HTMLElement | null
+    const sampled = container.querySelector(
+      '[aria-label="A, 150 milliseconds"]',
+    ) as HTMLElement | null
     expect(sampled?.getAttribute('style')).toContain(
       '--kb-fill: color-mix(in srgb, var(--heatmap-hi) 50%, var(--heatmap-lo))',
     )

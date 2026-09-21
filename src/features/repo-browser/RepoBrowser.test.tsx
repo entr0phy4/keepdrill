@@ -179,7 +179,11 @@ describe('RepoBrowser — import form and locked copy', () => {
   it('shows invalid-URL alert and does not call fetchRepoTree for gist, gitlab, or whitespace', async () => {
     renderBrowser()
 
-    for (const value of ['https://gist.github.com/owner/abc', 'https://gitlab.com/owner/repo', '   ']) {
+    for (const value of [
+      'https://gist.github.com/owner/abc',
+      'https://gitlab.com/owner/repo',
+      '   ',
+    ]) {
       fetchRepoTree.mockClear()
       await importValue(value)
       const alert = container.querySelector('[role="alert"]')
@@ -195,14 +199,14 @@ describe('RepoBrowser — import form and locked copy', () => {
     await importValue('o/r')
 
     expect(container.querySelector('.repo-caption')?.textContent).toBe('o/r@main')
-    const srcDetails = Array.from(container.querySelectorAll('details')).find((el) =>
-      el.querySelector('summary')?.textContent === 'src',
+    const srcDetails = Array.from(container.querySelectorAll('details')).find(
+      (el) => el.querySelector('summary')?.textContent === 'src',
     )
     expect(srcDetails).toBeDefined()
     expect(srcDetails?.hasAttribute('open')).toBe(true)
 
-    const nestedDetails = Array.from(container.querySelectorAll('details')).find((el) =>
-      el.querySelector('summary')?.textContent === 'nested',
+    const nestedDetails = Array.from(container.querySelectorAll('details')).find(
+      (el) => el.querySelector('summary')?.textContent === 'nested',
     )
     expect(nestedDetails).toBeDefined()
     expect(nestedDetails?.hasAttribute('open')).toBe(false)
@@ -278,7 +282,13 @@ describe('RepoBrowser — import form and locked copy', () => {
 
   it('maps tree [] RepoTreeResult the same as empty-repo success', async () => {
     fetchRepoTree.mockResolvedValue(
-      treeResult({ owner: 'z', repo: 'none', defaultBranch: 'main', entries: [], truncated: false }),
+      treeResult({
+        owner: 'z',
+        repo: 'none',
+        defaultBranch: 'main',
+        entries: [],
+        truncated: false,
+      }),
     )
     renderBrowser()
     await importValue('z/none')
@@ -313,7 +323,9 @@ describe('RepoBrowser — import form and locked copy', () => {
       minute: '2-digit',
     })
     expect(statusRegion().getAttribute('role')).toBe('alert')
-    expect(statusRegion().textContent).toBe(`GitHub rate-limited this browser. Try again after ${time}.`)
+    expect(statusRegion().textContent).toBe(
+      `GitHub rate-limited this browser. Try again after ${time}.`,
+    )
   })
 
   it('uses the unknown-reset string when RateLimitedError has no resetEpochS', async () => {
@@ -349,9 +361,9 @@ describe('RepoBrowser — import form and locked copy', () => {
     const first = new Promise<RepoTreeResult>((resolve) => {
       resolveFirst = resolve
     })
-    fetchRepoTree.mockReturnValueOnce(first).mockResolvedValueOnce(
-      treeResult({ owner: 'second', repo: 'win', defaultBranch: 'main' }),
-    )
+    fetchRepoTree
+      .mockReturnValueOnce(first)
+      .mockResolvedValueOnce(treeResult({ owner: 'second', repo: 'win', defaultBranch: 'main' }))
     renderBrowser()
 
     await importValue('o/r')
@@ -443,7 +455,9 @@ describe('RepoBrowser — import form and locked copy', () => {
       setControlledInputValue(urlInput(), 'o/r')
     })
     await act(async () => {
-      urlInput().closest('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      urlInput()
+        .closest('form')!
+        .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
       await Promise.resolve()
     })
 

@@ -1,5 +1,12 @@
 import type { LanguageProfileRow } from '@/analytics/types'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { KeyChip } from '@/shared/components'
 
 export function LanguageProfileView({ rows }: { rows: LanguageProfileRow[] }) {

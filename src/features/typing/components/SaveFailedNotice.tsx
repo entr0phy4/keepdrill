@@ -8,8 +8,8 @@ export function SaveFailedNotice({ onDismiss }: SaveFailedNoticeProps) {
   return (
     <p className="banner banner--warning save-failed-notice" role="status">
       <span>
-        <span className="banner-lead">Heads up</span> — This session couldn&rsquo;t be saved to
-        your history.
+        <span className="banner-lead">Heads up</span> — This session couldn&rsquo;t be saved to your
+        history.
       </span>
       <Button
         type="button"
