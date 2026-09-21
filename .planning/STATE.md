@@ -4,11 +4,11 @@ milestone: v2.0
 milestone_name: Katas desde GitHub
 current_phase: 08
 current_phase_name: parse-dependency-units
-status: verifying
-stopped_at: Completed 08-04-PLAN.md
-last_updated: "2026-09-20T23:59:07.508Z"
-last_activity: 2026-09-20
-last_activity_desc: Completed 08-04 click-to-plan WASM seam
+status: planning
+stopped_at: Created 08-05-PLAN.md gap closure
+last_updated: "2026-09-21T00:30:00.000Z"
+last_activity: 2026-09-21
+last_activity_desc: Planned 08-05 last-wins click-generation gap closure
 progress:
   total_phases: 3
   completed_phases: 2
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-09-20 after Phase 7)
 
 ## Current Position
 
-Phase: 08 (parse-dependency-units) — EXECUTING
-Plan: 4 of 4
-Status: Phase complete — ready for verification
-Last activity: 2026-09-20 — Completed 08-04 click-to-plan WASM seam
+Phase: 08 (parse-dependency-units) — PLANNING (gap closure)
+Plan: 4 of 5 executed; 08-05 ready
+Status: Gap closure planned — last-wins click generation (blocked/commit + Import busy)
+Last activity: 2026-09-21 — Created 08-05-PLAN.md
 
 Progress: [██████████] 100%
 
