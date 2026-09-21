@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState, type ReactNode } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router'
 import { Button } from '@/components/ui/button'
-import { AppShell, ViewNav } from '@/shared/components'
+import { AppShell } from '@/shared/components'
 import { CorpusInput, CorpusSourceTabs, type CorpusTab } from '@/features/corpus'
 import { RepoBrowser } from '@/features/repo-browser'
 import {
@@ -47,8 +47,6 @@ export function App() {
 
   return (
     <AppShell
-      title="keebdrill"
-      nav={<ViewNav />}
       banners={
         <Banners
           crossOriginIsolated={session.crossOriginIsolated}

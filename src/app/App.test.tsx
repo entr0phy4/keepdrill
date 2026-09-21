@@ -7,6 +7,7 @@ import { db } from '@/persistence/db'
 import { listNewestFirst } from '@/persistence/repository'
 import type { FilePlan } from '@/parse/types'
 import { App } from './App'
+import { FluidProviders } from './providers'
 
 let capturedOnPlanned: ((plan: FilePlan) => void) | undefined
 
@@ -92,9 +93,11 @@ async function waitForHeading(text: string): Promise<void> {
 
 function appTree(initialEntries: string[] = ['/']) {
   return (
-    <MemoryRouter initialEntries={initialEntries} useTransitions={false}>
-      <App />
-    </MemoryRouter>
+    <FluidProviders>
+      <MemoryRouter initialEntries={initialEntries} useTransitions={false}>
+        <App />
+      </MemoryRouter>
+    </FluidProviders>
   )
 }
 
@@ -102,8 +105,12 @@ function primaryNavItems(): HTMLAnchorElement[] {
   return Array.from(container.querySelectorAll('nav[aria-label="Primary"] a'))
 }
 
+function navLabel(el: Element): string | undefined {
+  return ['Trainer', 'History', 'Analytics'].find((label) => el.textContent?.includes(label))
+}
+
 function primaryNav(label: string): HTMLAnchorElement {
-  const item = primaryNavItems().find((el) => el.textContent === label)
+  const item = primaryNavItems().find((el) => navLabel(el) === label)
   if (item === undefined) throw new Error(`missing primary nav "${label}"`)
   return item
 }
@@ -227,7 +234,7 @@ describe('App — view toggle single-active invariant (04-UI-SPEC.md H1)', () =>
     })
 
     const links = primaryNavItems()
-    expect(links.map((el) => el.textContent)).toEqual(['Trainer', 'History', 'Analytics'])
+    expect(links.map((el) => navLabel(el))).toEqual(['Trainer', 'History', 'Analytics'])
 
     const trainerLink = links[0]!
     const historyLink = links[1]!
@@ -914,5 +921,14 @@ describe('App — client routes', () => {
     })
     expect(primaryNav('Trainer').getAttribute('aria-current')).toBe('page')
     expect(container.querySelector('#corpus-paste')).not.toBeNull()
+  })
+
+  it('renders the Fluid sidebar rail and inset trigger', () => {
+    act(() => {
+      root.render(appTree())
+    })
+    expect(container.querySelector('[data-sidebar="sidebar"]')).not.toBeNull()
+    expect(container.querySelector('[data-sidebar="trigger"]')).not.toBeNull()
+    expect(container.querySelector('[data-slot="sidebar-inset"]')).not.toBeNull()
   })
 })
