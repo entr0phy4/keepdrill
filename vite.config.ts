@@ -1,5 +1,10 @@
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vitest/config'
+
+const rootDir = path.dirname(fileURLToPath(import.meta.url))
 
 // COOP/COEP unlock cross-origin isolation -> high-resolution timers (D-15, D-16).
 // server.headers and preview.headers are INDEPENDENT Vite options and are NOT
@@ -11,7 +16,12 @@ const crossOriginIsolation = {
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: {
+      '@': path.resolve(rootDir, './src'),
+    },
+  },
   server: { headers: crossOriginIsolation },
   preview: { headers: crossOriginIsolation },
   test: {
