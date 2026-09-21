@@ -5,10 +5,10 @@ milestone_name: Katas desde GitHub
 current_phase: 09
 current_phase_name: scaffolded-trainer
 status: verifying
-stopped_at: Completed 09-02-PLAN.md
-last_updated: "2026-09-21T02:14:39.815Z"
-last_activity: 2026-09-20
-last_activity_desc: Phase 09 execution started
+stopped_at: Phase 09 verification human_needed
+last_updated: "2026-09-21T02:30:04Z"
+last_activity: 2026-09-21
+last_activity_desc: Phase 09 UAT persisted (5 Chromium items)
 progress:
   total_phases: 3
   completed_phases: 3
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-09-20 after Phase 8)
 
 ## Current Position
 
-Phase: 09 (scaffolded-trainer) — EXECUTING
+Phase: 09 (scaffolded-trainer) — VERIFYING
 Plan: 2 of 2
-Status: Phase complete — ready for verification
-Last activity: 2026-09-20 — Phase 09 execution started
+Status: Verification human_needed — 34/35 must-haves verified; Chromium UAT remaining
+Last activity: 2026-09-21 — Wrote 09-UAT.md from verification human checks
 
 Progress: [██████████] 100%
 
