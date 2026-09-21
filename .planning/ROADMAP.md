@@ -115,7 +115,7 @@ Plans:
   4. User who presses Escape restarts the current unit, not the entire file.
   5. User can still paste text or upload a file as the corpus path for ad-hoc and non-TS/JS drills; that path stays a whole-file exercise.
 
-**Plans**: 1/2 plans executed
+**Plans**: 2/2 plans executed
 Plans:
 **Wave 1**
 
@@ -123,7 +123,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 09-02-PLAN.md — FileScaffold chrome + App curriculum, persist, unit restart
+- [x] 09-02-PLAN.md — FileScaffold chrome + App curriculum, persist, unit restart
 
 **UI hint**: yes
 
@@ -139,4 +139,4 @@ Plans:
 | 6. Cross-Session Analytics | v1.1 | 3/3 | Complete | 2026-09-20 |
 | 7. GitHub URL & Repo Tree | v2.0 | 3/3 | Complete    | 2026-09-20 |
 | 8. Parse & Dependency Units | v2.0 | 5/5 | Complete    | 2026-09-20 |
-| 9. Scaffolded Trainer | v2.0 | 1/2 | In Progress|  |
+| 9. Scaffolded Trainer | v2.0 | 2/2 | In Progress|  |
