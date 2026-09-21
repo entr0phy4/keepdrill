@@ -49,6 +49,36 @@ function nextFrame(): Promise<void> {
   return new Promise((resolve) => requestAnimationFrame(() => resolve()))
 }
 
+function trustedKeyEvent(type: string, init: Partial<KeyboardEventInit> = {}): KeyboardEvent {
+  const evt = new KeyboardEvent(type, { bubbles: true, cancelable: true, ...init })
+  Object.defineProperty(evt, 'isTrusted', { value: true, configurable: true })
+  return evt
+}
+
+async function typeSlice(el: HTMLTextAreaElement, target: string, t0: number): Promise<void> {
+  const chars = Array.from(target)
+  for (let i = 0; i < chars.length; i++) {
+    const ch = chars[i]!
+    if (ch === '\n') {
+      beforeInputAt(el, { inputType: 'insertLineBreak', data: '\n' }, t0 + i * 20)
+    } else {
+      beforeInputAt(el, { inputType: 'insertText', data: ch }, t0 + i * 20)
+    }
+    await act(async () => {
+      await nextFrame()
+    })
+  }
+}
+
+async function waitForLiveQuery(): Promise<void> {
+  for (let i = 0; i < 10; i++) {
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      await nextFrame()
+    })
+  }
+}
+
 ;(globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
 let container: HTMLDivElement
@@ -659,5 +689,153 @@ describe('App — startScaffold onPlanned (D-07, D-09, D-10, SCAF-01, SCAF-05)',
     expect(hiddenWrapper!.hasAttribute('hidden')).toBe(false)
     expect(container.querySelector('#capture-surface')).toBe(capture)
     expect(document.body.querySelector('[hidden]')).toBeNull()
+  })
+})
+
+const UNIT_B = 'function b() {}\n'
+const UNIT_A = 'function a() {}\n'
+const TWO_UNIT_FILE = 'function a() {}\nfunction b() {}\n'
+
+describe('App — unit advance, persist, restart (D-12, D-14, D-16, D-18, SCAF-02..04)', () => {
+  it('completing unit 0 does not persist or show results; landmark becomes 2 / 2', async () => {
+    act(() => {
+      root.render(<App />)
+    })
+    act(() => {
+      capturedOnPlanned!(twoUnitGithubPlan())
+    })
+    expect(container.textContent).toContain('Restart unit')
+
+    await typeSlice(container.querySelector<HTMLTextAreaElement>('#capture-surface')!, UNIT_B, 0)
+
+    expect(await listNewestFirst()).toHaveLength(0)
+    expect(container.querySelector('.results-panel')).toBeNull()
+    expect(container.textContent).toContain('2 / 2')
+    const overlay = container.querySelector('[data-scaffold-current] .trainer-rendered-layer')
+    expect(overlay?.textContent).toContain('function·a()·{}')
+    expect(overlay?.textContent).not.toContain('function·b()·{}')
+  })
+
+  it('Escape after unit 0 keeps unitIndex at 1 and does not persist', async () => {
+    act(() => {
+      root.render(<App />)
+    })
+    act(() => {
+      capturedOnPlanned!(twoUnitGithubPlan())
+    })
+    await typeSlice(container.querySelector<HTMLTextAreaElement>('#capture-surface')!, UNIT_B, 0)
+
+    const capture = container.querySelector<HTMLTextAreaElement>('#capture-surface')!
+    act(() => {
+      capture.dispatchEvent(trustedKeyEvent('keydown', { key: 'Escape' }))
+    })
+    await act(async () => {
+      await nextFrame()
+    })
+
+    expect(container.textContent).toContain('2 / 2')
+    const overlay = container.querySelector('[data-scaffold-current] .trainer-rendered-layer')
+    expect(overlay?.textContent).toContain('function·a()·{}')
+    expect(overlay?.textContent).not.toContain('function·b()·{}')
+    expect(await listNewestFirst()).toHaveLength(0)
+  })
+
+  it('Restart unit remounts the current slice and keeps completed snapshots', async () => {
+    act(() => {
+      root.render(<App />)
+    })
+    act(() => {
+      capturedOnPlanned!(twoUnitGithubPlan())
+    })
+    await typeSlice(container.querySelector<HTMLTextAreaElement>('#capture-surface')!, UNIT_B, 0)
+
+    const restart = Array.from(container.querySelectorAll('button')).find(
+      (b) => b.textContent === 'Restart unit',
+    )!
+    act(() => {
+      restart.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    await act(async () => {
+      await nextFrame()
+    })
+
+    expect(container.textContent).toContain('2 / 2')
+    const overlay = container.querySelector('[data-scaffold-current] .trainer-rendered-layer')
+    expect(overlay?.textContent).toContain('function·a()·{}')
+    expect(await listNewestFirst()).toHaveLength(0)
+  })
+
+  it('last unit persist writes one github History row with full file text and both slices', async () => {
+    act(() => {
+      root.render(<App />)
+    })
+    act(() => {
+      capturedOnPlanned!(twoUnitGithubPlan('o/r:src/a.ts'))
+    })
+    await typeSlice(container.querySelector<HTMLTextAreaElement>('#capture-surface')!, UNIT_B, 0)
+    await typeSlice(container.querySelector<HTMLTextAreaElement>('#capture-surface')!, UNIT_A, 400)
+
+    expect(container.querySelector('.results-panel')).not.toBeNull()
+    expect(container.querySelector('#capture-surface')).toBeNull()
+    expect(Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Restart unit')).toBeUndefined()
+    expect(Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Restart exercise')).toBeUndefined()
+
+    const rows = await listNewestFirst()
+    expect(rows).toHaveLength(1)
+    expect(rows[0]?.exercise.text).toBe(TWO_UNIT_FILE)
+    expect(rows[0]?.exercise.sourceType).toBe('github')
+    expect(rows[0]?.exercise.sourceRef).toBe('o/r:src/a.ts')
+    const datas = (rows[0]?.charLog ?? []).map((c) => c.data).join('')
+    expect(datas).toContain('b')
+    expect(datas).toContain('a')
+  })
+
+  it('after scaffold persist, History shows sourceRef and not Pasted snippet', async () => {
+    act(() => {
+      root.render(<App />)
+    })
+    act(() => {
+      capturedOnPlanned!(twoUnitGithubPlan('o/r:src/a.ts'))
+    })
+    await typeSlice(container.querySelector<HTMLTextAreaElement>('#capture-surface')!, UNIT_B, 0)
+    await typeSlice(container.querySelector<HTMLTextAreaElement>('#capture-surface')!, UNIT_A, 400)
+
+    const historyButton = Array.from(container.querySelectorAll('nav button')).find(
+      (b) => b.textContent === 'History',
+    )!
+    act(() => {
+      historyButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    await waitForLiveQuery()
+
+    expect(container.textContent).toContain('o/r:src/a.ts')
+    expect(container.textContent).not.toContain('Pasted snippet')
+  })
+
+  it('does not write a second History row after last-unit persist', async () => {
+    act(() => {
+      root.render(<App />)
+    })
+    act(() => {
+      capturedOnPlanned!(twoUnitGithubPlan())
+    })
+    await typeSlice(container.querySelector<HTMLTextAreaElement>('#capture-surface')!, UNIT_B, 0)
+    await typeSlice(container.querySelector<HTMLTextAreaElement>('#capture-surface')!, UNIT_A, 400)
+
+    expect(await listNewestFirst()).toHaveLength(1)
+    document.body.dispatchEvent(trustedKeyEvent('keydown', { key: 'Escape' }))
+    await act(async () => {
+      await nextFrame()
+    })
+    expect(await listNewestFirst()).toHaveLength(1)
+  })
+
+  it('paste path still persists one row and shows Restart exercise', async () => {
+    await loadAndCompleteExercise()
+    expect(await listNewestFirst()).toHaveLength(1)
+    expect(container.querySelector('.results-panel')).not.toBeNull()
+    expect(
+      Array.from(container.querySelectorAll('button')).some((b) => b.textContent === 'Restart exercise'),
+    ).toBe(true)
   })
 })
