@@ -6,7 +6,7 @@ current_phase: 09
 current_phase_name: scaffolded-trainer
 status: verifying
 stopped_at: Completed 09-02-PLAN.md
-last_updated: "2026-09-21T02:14:14.303Z"
+last_updated: "2026-09-21T02:14:39.815Z"
 last_activity: 2026-09-20
 last_activity_desc: Phase 09 execution started
 progress:
@@ -94,6 +94,8 @@ Recent decisions affecting current work:
 - [Phase 09]: joinUnitSlices is the metrics typedTarget (curriculum order); Session.exercise.text stays the source-order file — SCAF-03 encoding; resolve-metrics fallback trap documented, Dexie unchanged
 - [Phase 09]: coverFile sorts a copy by start, fills trivia as gap segments with no role, all-done when unitIndex >= length — D-01 source-order chrome vs leaves-first curriculum
 - [Phase 09]: flattenSnapshots remaps seq onto new objects; assembleSessionFromLogs is a sibling of unchanged buildSession — D-14/D-15/D-20 — no capture.ts restore API
+- [Phase 09]: startScaffold mounts FileScaffold immediately including 1-unit fallback; never handleLoad(plan.exercise) — D-07/D-08/D-09 click-to-type is the GitHub door; paste stays whole-file
+- [Phase 09]: After last-unit persist, scaffoldComplete hides Restart and unmounts CaptureSurface so Escape cannot arm a second saveSession — Pitfall 11 option a / D-18 — one History row per GitHub file
 
 ### Pending Todos
 
