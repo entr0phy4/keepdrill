@@ -5,10 +5,10 @@ milestone_name: Katas desde GitHub
 current_phase: 9
 current_phase_name: Scaffolded Trainer
 status: planning
-stopped_at: Phase 9 context gathered
-last_updated: "2026-09-21T01:20:32.728Z"
+stopped_at: Phase 9 research complete
+last_updated: "2026-09-21T01:28:00.000Z"
 last_activity: 2026-09-20
-last_activity_desc: Phase 08 complete, transitioned to Phase 9
+last_activity_desc: Phase 9 research written (09-RESEARCH.md)
 progress:
   total_phases: 3
   completed_phases: 2
@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-09-20 after Phase 8)
 Phase: 9 — Scaffolded Trainer
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-09-20 — Phase 08 complete, transitioned to Phase 9
+Last activity: 2026-09-20 — Phase 9 research complete (`09-RESEARCH.md`)
 
 Progress: [██████░░░░] 67%
 
@@ -109,6 +109,6 @@ Items acknowledged and deferred at milestone close on 2026-09-20:
 
 ## Session Continuity
 
-Last session: 2026-09-21T01:20:32.718Z
-Stopped at: Phase 9 context gathered
-Resume file: .planning/phases/09-scaffolded-trainer/09-CONTEXT.md
+Last session: 2026-09-21T01:28:00.000Z
+Stopped at: Phase 9 research complete
+Resume file: .planning/phases/09-scaffolded-trainer/09-RESEARCH.md
