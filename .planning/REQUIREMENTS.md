@@ -26,9 +26,9 @@
 
 ### Scaffold
 
-- [ ] **SCAF-01**: User sees the full file, including future units; only the current unit is typeable
+- [x] **SCAF-01**: User sees the full file, including future units; only the current unit is typeable
 - [ ] **SCAF-02**: User who completes the current unit advances to the next until the file is done
-- [ ] **SCAF-03**: User who finishes the last unit sees the existing results screen and gets one persisted session for the whole file (full `Exercise.text`)
+- [x] **SCAF-03**: User who finishes the last unit sees the existing results screen and gets one persisted session for the whole file (full `Exercise.text`)
 - [ ] **SCAF-04**: User who presses Escape restarts the current unit, not the entire file
 - [ ] **SCAF-05**: User can still paste text or upload a file as the corpus path for ad-hoc and non-TS/JS drills; that path stays a whole-file exercise
 
@@ -84,9 +84,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PLAN-01 | Phase 8 | Complete |
 | PLAN-02 | Phase 8 | Complete |
 | PLAN-03 | Phase 8 | Complete |
-| SCAF-01 | Phase 9 | Pending |
+| SCAF-01 | Phase 9 | Complete |
 | SCAF-02 | Phase 9 | Pending |
-| SCAF-03 | Phase 9 | Pending |
+| SCAF-03 | Phase 9 | Complete |
 | SCAF-04 | Phase 9 | Pending |
 | SCAF-05 | Phase 9 | Pending |
 

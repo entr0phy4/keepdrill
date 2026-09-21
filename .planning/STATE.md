@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Katas desde GitHub
-current_phase: 9
-current_phase_name: Scaffolded Trainer
-status: planning
-stopped_at: Phase 9 plans written
-last_updated: "2026-09-21T01:50:00.000Z"
+current_phase: 09
+current_phase_name: scaffolded-trainer
+status: executing
+stopped_at: Completed 09-01-PLAN.md
+last_updated: "2026-09-21T02:01:58.845Z"
 last_activity: 2026-09-20
-last_activity_desc: Phase 9 PLAN.md files created (09-01 slice/cover/flatten, 09-02 FileScaffold+App)
+last_activity_desc: Phase 09 execution started
 progress:
   total_phases: 3
   completed_phases: 2
-  total_plans: 8
-  completed_plans: 8
+  total_plans: 10
+  completed_plans: 9
   percent: 67
 ---
 
@@ -24,16 +24,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-20 after Phase 8)
 
 **Core value:** The user can paste or upload a real code/text file, type it with keystroke capture, and see WPM, accuracy, and their five slowest keys — useful enough for a week of daily self-use.
-**Current focus:** Phase 9 — Scaffolded Trainer
+**Current focus:** Phase 09 — scaffolded-trainer
 
 ## Current Position
 
-Phase: 9 — Scaffolded Trainer
-Plan: 2 plans ready (09-01, 09-02)
+Phase: 09 (scaffolded-trainer) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
-Last activity: 2026-09-20 — Phase 9 plans written
+Last activity: 2026-09-20 — Phase 09 execution started
 
-Progress: [██████░░░░] 67%
+Progress: [█████████░] 90%
 
 ## Performance Metrics
 
@@ -74,6 +74,7 @@ Progress: [██████░░░░] 67%
 | Phase 08 P03 | 8 min | 3 tasks | 5 files |
 | Phase 08 P04 | 8 min | 3 tasks | 5 files |
 | Phase 08 P05 | 3 min | 2 tasks | 2 files |
+| Phase 09 P01 | 5 min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -88,6 +89,10 @@ Recent decisions affecting current work:
 - [Phase 08]: sourceRef for github is owner/repo:path (colon separator, no blob sha) — History label deferred until Phase 9 persist (UAT test 2 skip, closeout override).
 - [Phase 08]: Split shared tokenRef into clickGenRef (every file click) and importGenRef (Import busy only).
 - [Phase 08]: App holds FilePlan in memory via onPlanned; plan.exercise is never passed to handleLoad.
+- [Phase 09]: sliceUnit walks Array.from then slice then join; UTF-16 String.slice is the wrong extractor on supplementary-plane characters — D-19 / Phase 3 uncompletable-exercise bug
+- [Phase 09]: joinUnitSlices is the metrics typedTarget (curriculum order); Session.exercise.text stays the source-order file — SCAF-03 encoding; resolve-metrics fallback trap documented, Dexie unchanged
+- [Phase 09]: coverFile sorts a copy by start, fills trivia as gap segments with no role, all-done when unitIndex >= length — D-01 source-order chrome vs leaves-first curriculum
+- [Phase 09]: flattenSnapshots remaps seq onto new objects; assembleSessionFromLogs is a sibling of unchanged buildSession — D-14/D-15/D-20 — no capture.ts restore API
 
 ### Pending Todos
 
@@ -109,6 +114,6 @@ Items acknowledged and deferred at milestone close on 2026-09-20:
 
 ## Session Continuity
 
-Last session: 2026-09-21T01:50:00.000Z
-Stopped at: Phase 9 plans written
-Resume file: .planning/phases/09-scaffolded-trainer/09-01-PLAN.md
+Last session: 2026-09-21T02:01:41.112Z
+Stopped at: Completed 09-01-PLAN.md
+Resume file: None
