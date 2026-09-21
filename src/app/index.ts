@@ -1,3 +1,5 @@
 export { App } from './App'
 export { ErrorBoundary } from './ErrorBoundary'
 export { FluidProviders, syncColorScheme } from './providers'
+export { ROUTES, viewFromPathname } from './routes'
+export type { AppView } from './routes'

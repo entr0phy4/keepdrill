@@ -1,5 +1,6 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
+import { MemoryRouter } from 'react-router'
 import { beforeEach, afterEach, describe, it, expect, vi } from 'vitest'
 import { resetCapture, getCharLog } from '@/capture/capture'
 import { db } from '@/persistence/db'
@@ -89,6 +90,28 @@ async function waitForHeading(text: string): Promise<void> {
   }
 }
 
+function appTree(initialEntries: string[] = ['/']) {
+  return (
+    <MemoryRouter initialEntries={initialEntries} useTransitions={false}>
+      <App />
+    </MemoryRouter>
+  )
+}
+
+function primaryNavItems(): HTMLAnchorElement[] {
+  return Array.from(container.querySelectorAll('nav[aria-label="Primary"] a'))
+}
+
+function primaryNav(label: string): HTMLAnchorElement {
+  const item = primaryNavItems().find((el) => el.textContent === label)
+  if (item === undefined) throw new Error(`missing primary nav "${label}"`)
+  return item
+}
+
+function click(el: Element): void {
+  el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+}
+
 ;(globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
 let container: HTMLDivElement
@@ -147,7 +170,7 @@ afterEach(() => {
 
 async function loadAndCompleteExercise(): Promise<void> {
   act(() => {
-    root.render(<App />)
+    root.render(appTree())
   })
 
   const pasteArea = container.querySelector<HTMLTextAreaElement>('#corpus-paste')!
@@ -198,52 +221,52 @@ describe('App — completion persists exactly one row (PERS-01)', () => {
 })
 
 describe('App — view toggle single-active invariant (04-UI-SPEC.md H1)', () => {
-  it('exactly one of three nav buttons carries aria-current="page"; Analytics takes it when clicked', () => {
+  it('exactly one of three nav links carries aria-current="page"; Analytics takes it when clicked', () => {
     act(() => {
-      root.render(<App />)
+      root.render(appTree())
     })
 
-    const navButtons = Array.from(container.querySelectorAll('nav button'))
-    expect(navButtons.map((b) => b.textContent)).toEqual(['Trainer', 'History', 'Analytics'])
+    const links = primaryNavItems()
+    expect(links.map((el) => el.textContent)).toEqual(['Trainer', 'History', 'Analytics'])
 
-    const trainerButton = navButtons[0]!
-    const historyButton = navButtons[1]!
-    const analyticsButton = navButtons[2]!
+    const trainerLink = links[0]!
+    const historyLink = links[1]!
+    const analyticsLink = links[2]!
 
-    expect(trainerButton.getAttribute('aria-current')).toBe('page')
-    expect(historyButton.getAttribute('aria-current')).toBeNull()
-    expect(analyticsButton.getAttribute('aria-current')).toBeNull()
-
-    act(() => {
-      historyButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    })
-
-    expect(historyButton.getAttribute('aria-current')).toBe('page')
-    expect(trainerButton.getAttribute('aria-current')).toBeNull()
-    expect(analyticsButton.getAttribute('aria-current')).toBeNull()
+    expect(trainerLink.getAttribute('aria-current')).toBe('page')
+    expect(historyLink.getAttribute('aria-current')).toBeNull()
+    expect(analyticsLink.getAttribute('aria-current')).toBeNull()
 
     act(() => {
-      analyticsButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      click(historyLink)
     })
 
-    expect(analyticsButton.getAttribute('aria-current')).toBe('page')
-    expect(trainerButton.getAttribute('aria-current')).toBeNull()
-    expect(historyButton.getAttribute('aria-current')).toBeNull()
+    expect(historyLink.getAttribute('aria-current')).toBe('page')
+    expect(trainerLink.getAttribute('aria-current')).toBeNull()
+    expect(analyticsLink.getAttribute('aria-current')).toBeNull()
 
     act(() => {
-      trainerButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      click(analyticsLink)
     })
 
-    expect(trainerButton.getAttribute('aria-current')).toBe('page')
-    expect(historyButton.getAttribute('aria-current')).toBeNull()
-    expect(analyticsButton.getAttribute('aria-current')).toBeNull()
+    expect(analyticsLink.getAttribute('aria-current')).toBe('page')
+    expect(trainerLink.getAttribute('aria-current')).toBeNull()
+    expect(historyLink.getAttribute('aria-current')).toBeNull()
+
+    act(() => {
+      click(trainerLink)
+    })
+
+    expect(trainerLink.getAttribute('aria-current')).toBe('page')
+    expect(historyLink.getAttribute('aria-current')).toBeNull()
+    expect(analyticsLink.getAttribute('aria-current')).toBeNull()
   })
 })
 
 describe('App — D-08 hide-not-unmount contract across a view switch', () => {
   it('typing, switching to History, then back to Trainer preserves charLog length, per-char status, textarea identity, and caret index', async () => {
     act(() => {
-      root.render(<App />)
+      root.render(appTree())
     })
 
     const pasteArea = container.querySelector<HTMLTextAreaElement>('#corpus-paste')!
@@ -288,11 +311,8 @@ describe('App — D-08 hide-not-unmount contract across a view switch', () => {
       container.querySelectorAll('.trainer-rendered-layer > *'),
     ).findIndex((el) => el.classList.contains('trainer-caret'))
 
-    const historyButton = Array.from(container.querySelectorAll('nav button')).find(
-      (b) => b.textContent === 'History',
-    )!
     act(() => {
-      historyButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      click(primaryNav('History'))
     })
 
     // The wrapper's computed display is 'none'; HistoryView markup is present.
@@ -305,11 +325,8 @@ describe('App — D-08 hide-not-unmount contract across a view switch', () => {
       (container.querySelector('#corpus-panel-paste') as HTMLElement).parentElement!.style.display,
     ).toBe('none')
 
-    const trainerButton = Array.from(container.querySelectorAll('nav button')).find(
-      (b) => b.textContent === 'Trainer',
-    )!
     act(() => {
-      trainerButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      click(primaryNav('Trainer'))
     })
 
     const captureAreaAfter = container.querySelector<HTMLTextAreaElement>('#capture-surface')!
@@ -328,7 +345,7 @@ describe('App — D-08 hide-not-unmount contract across a view switch', () => {
 
   it('typing, switching to Analytics, then back to Trainer preserves textarea identity and caret; CorpusInput stays mounted', async () => {
     act(() => {
-      root.render(<App />)
+      root.render(appTree())
     })
 
     const pasteArea = container.querySelector<HTMLTextAreaElement>('#corpus-paste')!
@@ -371,11 +388,8 @@ describe('App — D-08 hide-not-unmount contract across a view switch', () => {
       container.querySelectorAll('.trainer-rendered-layer > *'),
     ).findIndex((el) => el.classList.contains('trainer-caret'))
 
-    const analyticsButton = Array.from(container.querySelectorAll('nav button')).find(
-      (b) => b.textContent === 'Analytics',
-    )!
     act(() => {
-      analyticsButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      click(primaryNav('Analytics'))
     })
 
     const wrapper = captureAreaBefore.closest('div[style]') as HTMLElement
@@ -387,11 +401,8 @@ describe('App — D-08 hide-not-unmount contract across a view switch', () => {
       (container.querySelector('#corpus-panel-paste') as HTMLElement).parentElement!.style.display,
     ).toBe('none')
 
-    const trainerButton = Array.from(container.querySelectorAll('nav button')).find(
-      (b) => b.textContent === 'Trainer',
-    )!
     act(() => {
-      trainerButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      click(primaryNav('Trainer'))
     })
 
     const captureAreaAfter = container.querySelector<HTMLTextAreaElement>('#capture-surface')!
@@ -458,7 +469,7 @@ describe('App — save-failure notice (PERS-03, D-15/D-16/D-17)', () => {
 describe('App — Trainer-only Paste | GitHub corpus shell (D-01..D-04)', () => {
   it('selects Paste on first paint and keeps #corpus-paste in the Paste tabpanel', () => {
     act(() => {
-      root.render(<App />)
+      root.render(appTree())
     })
 
     const pasteTab = container.querySelector('#corpus-tab-paste')
@@ -476,7 +487,7 @@ describe('App — Trainer-only Paste | GitHub corpus shell (D-01..D-04)', () => 
 
   it('reveals #github-url on the GitHub tab and hides the Paste panel', () => {
     act(() => {
-      root.render(<App />)
+      root.render(appTree())
     })
 
     act(() => {
@@ -502,7 +513,7 @@ describe('App — Trainer-only Paste | GitHub corpus shell (D-01..D-04)', () => 
 
   it('keeps paste text when switching to GitHub and back', () => {
     act(() => {
-      root.render(<App />)
+      root.render(appTree())
     })
 
     const pasteArea = container.querySelector<HTMLTextAreaElement>('#corpus-paste')!
@@ -529,7 +540,7 @@ describe('App — Trainer-only Paste | GitHub corpus shell (D-01..D-04)', () => 
   it('does not persist the corpus tab in localStorage or cookies', () => {
     localStorage.clear()
     act(() => {
-      root.render(<App />)
+      root.render(appTree())
     })
     act(() => {
       container
@@ -553,7 +564,7 @@ describe('App — Trainer-only Paste | GitHub corpus shell (D-01..D-04)', () => 
 
   it('does not mount #capture-surface when switching to GitHub', () => {
     act(() => {
-      root.render(<App />)
+      root.render(appTree())
     })
     act(() => {
       container
@@ -567,7 +578,7 @@ describe('App — Trainer-only Paste | GitHub corpus shell (D-01..D-04)', () => 
 
   it('empty state names the GitHub door verbatim', () => {
     act(() => {
-      root.render(<App />)
+      root.render(appTree())
     })
     expect(container.querySelector('h2')?.textContent).toBe('No exercise loaded')
     expect(container.textContent).toContain(EMPTY_BODY)
@@ -577,7 +588,7 @@ describe('App — Trainer-only Paste | GitHub corpus shell (D-01..D-04)', () => 
 describe('App — startScaffold onPlanned (D-07, D-09, D-10, SCAF-01, SCAF-05)', () => {
   it('starts typing immediately on a fallback FilePlan with a 1 / 1 landmark', () => {
     act(() => {
-      root.render(<App />)
+      root.render(appTree())
     })
     expect(typeof capturedOnPlanned).toBe('function')
 
@@ -595,7 +606,7 @@ describe('App — startScaffold onPlanned (D-07, D-09, D-10, SCAF-01, SCAF-05)',
 
   it('puts the first curriculum slice into CaptureSurface, not the full two-unit file', () => {
     act(() => {
-      root.render(<App />)
+      root.render(appTree())
     })
     act(() => {
       capturedOnPlanned!(twoUnitGithubPlan())
@@ -609,7 +620,7 @@ describe('App — startScaffold onPlanned (D-07, D-09, D-10, SCAF-01, SCAF-05)',
 
   it('handleLoad after a scaffold unmounts FileScaffold and mounts whole-file CaptureSurface', async () => {
     act(() => {
-      root.render(<App />)
+      root.render(appTree())
     })
     act(() => {
       capturedOnPlanned!(twoUnitGithubPlan())
@@ -642,7 +653,7 @@ describe('App — startScaffold onPlanned (D-07, D-09, D-10, SCAF-01, SCAF-05)',
 
   it('switching Paste | GitHub tabs does not clear an in-progress scaffold', () => {
     act(() => {
-      root.render(<App />)
+      root.render(appTree())
     })
     act(() => {
       capturedOnPlanned!(fallbackGithubPlan())
@@ -666,7 +677,7 @@ describe('App — startScaffold onPlanned (D-07, D-09, D-10, SCAF-01, SCAF-05)',
 
   it('a second onPlanned replaces the first: landmark returns to 1 / M of the new plan', () => {
     act(() => {
-      root.render(<App />)
+      root.render(appTree())
     })
     act(() => {
       capturedOnPlanned!(twoUnitGithubPlan())
@@ -683,7 +694,7 @@ describe('App — startScaffold onPlanned (D-07, D-09, D-10, SCAF-01, SCAF-05)',
 
   it('hides the trainer with display none on History, never the hidden attribute', () => {
     act(() => {
-      root.render(<App />)
+      root.render(appTree())
     })
     act(() => {
       capturedOnPlanned!(fallbackGithubPlan())
@@ -691,11 +702,8 @@ describe('App — startScaffold onPlanned (D-07, D-09, D-10, SCAF-01, SCAF-05)',
     const capture = container.querySelector<HTMLTextAreaElement>('#capture-surface')!
     expect(capture.hasAttribute('hidden')).toBe(false)
 
-    const historyButton = Array.from(container.querySelectorAll('nav button')).find(
-      (b) => b.textContent === 'History',
-    )!
     act(() => {
-      historyButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      click(primaryNav('History'))
     })
 
     let el: HTMLElement | null = capture
@@ -721,7 +729,7 @@ const TWO_UNIT_FILE = 'function a() {}\nfunction b() {}\n'
 describe('App — unit advance, persist, restart (D-12, D-14, D-16, D-18, SCAF-02..04)', () => {
   it('completing unit 0 does not persist or show results; landmark becomes 2 / 2', async () => {
     act(() => {
-      root.render(<App />)
+      root.render(appTree())
     })
     act(() => {
       capturedOnPlanned!(twoUnitGithubPlan())
@@ -740,7 +748,7 @@ describe('App — unit advance, persist, restart (D-12, D-14, D-16, D-18, SCAF-0
 
   it('Escape after unit 0 keeps unitIndex at 1 and does not persist', async () => {
     act(() => {
-      root.render(<App />)
+      root.render(appTree())
     })
     act(() => {
       capturedOnPlanned!(twoUnitGithubPlan())
@@ -764,7 +772,7 @@ describe('App — unit advance, persist, restart (D-12, D-14, D-16, D-18, SCAF-0
 
   it('Restart unit remounts the current slice and keeps completed snapshots', async () => {
     act(() => {
-      root.render(<App />)
+      root.render(appTree())
     })
     act(() => {
       capturedOnPlanned!(twoUnitGithubPlan())
@@ -789,7 +797,7 @@ describe('App — unit advance, persist, restart (D-12, D-14, D-16, D-18, SCAF-0
 
   it('last unit persist writes one github History row with full file text and both slices', async () => {
     act(() => {
-      root.render(<App />)
+      root.render(appTree())
     })
     act(() => {
       capturedOnPlanned!(twoUnitGithubPlan('o/r:src/a.ts'))
@@ -822,7 +830,7 @@ describe('App — unit advance, persist, restart (D-12, D-14, D-16, D-18, SCAF-0
 
   it('after scaffold persist, History shows sourceRef and not Pasted snippet', async () => {
     act(() => {
-      root.render(<App />)
+      root.render(appTree())
     })
     act(() => {
       capturedOnPlanned!(twoUnitGithubPlan('o/r:src/a.ts'))
@@ -830,11 +838,8 @@ describe('App — unit advance, persist, restart (D-12, D-14, D-16, D-18, SCAF-0
     await typeSlice(container.querySelector<HTMLTextAreaElement>('#capture-surface')!, UNIT_B, 0)
     await typeSlice(container.querySelector<HTMLTextAreaElement>('#capture-surface')!, UNIT_A, 400)
 
-    const historyButton = Array.from(container.querySelectorAll('nav button')).find(
-      (b) => b.textContent === 'History',
-    )!
     act(() => {
-      historyButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      click(primaryNav('History'))
     })
     await waitForLiveQuery()
 
@@ -844,7 +849,7 @@ describe('App — unit advance, persist, restart (D-12, D-14, D-16, D-18, SCAF-0
 
   it('does not write a second History row after last-unit persist', async () => {
     act(() => {
-      root.render(<App />)
+      root.render(appTree())
     })
     act(() => {
       capturedOnPlanned!(twoUnitGithubPlan())
@@ -869,5 +874,45 @@ describe('App — unit advance, persist, restart (D-12, D-14, D-16, D-18, SCAF-0
         (b) => b.textContent === 'Restart exercise',
       ),
     ).toBe(true)
+  })
+})
+
+describe('App — client routes', () => {
+  it('opens History from the URL without clicking nav', async () => {
+    act(() => {
+      root.render(appTree(['/history']))
+    })
+
+    await waitForHeading('History')
+    expect(primaryNav('History').getAttribute('aria-current')).toBe('page')
+    expect(primaryNav('Trainer').getAttribute('aria-current')).toBeNull()
+    expect(
+      (container.querySelector('#corpus-panel-paste') as HTMLElement).parentElement!.style.display,
+    ).toBe('none')
+    expect(container.querySelector('#corpus-paste')).not.toBeNull()
+  })
+
+  it('opens Analytics from the URL without clicking nav', async () => {
+    act(() => {
+      root.render(appTree(['/analytics']))
+    })
+
+    await waitForHeading('Analytics')
+    expect(primaryNav('Analytics').getAttribute('aria-current')).toBe('page')
+    expect(container.querySelector('#corpus-paste')).not.toBeNull()
+  })
+
+  it('redirects /trainer and unknown paths to the trainer', () => {
+    act(() => {
+      root.render(appTree(['/trainer']))
+    })
+    expect(primaryNav('Trainer').getAttribute('aria-current')).toBe('page')
+    expect(container.querySelector('#corpus-paste')).not.toBeNull()
+
+    act(() => {
+      root.render(appTree(['/does-not-exist']))
+    })
+    expect(primaryNav('Trainer').getAttribute('aria-current')).toBe('page')
+    expect(container.querySelector('#corpus-paste')).not.toBeNull()
   })
 })

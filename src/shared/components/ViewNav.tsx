@@ -1,31 +1,25 @@
+import { NavLink, useLocation } from 'react-router'
 import { Button } from '@/components/ui/button'
+import { ROUTES, viewFromPathname, type AppView } from '@/app/routes'
 
-export type AppView = 'trainer' | 'history' | 'analytics'
+export type { AppView }
 
-const VIEWS: readonly { id: AppView; label: string }[] = [
-  { id: 'trainer', label: 'Trainer' },
-  { id: 'history', label: 'History' },
-  { id: 'analytics', label: 'Analytics' },
+const VIEWS: readonly { id: AppView; label: string; to: string; end?: boolean }[] = [
+  { id: 'trainer', label: 'Trainer', to: ROUTES.trainer, end: true },
+  { id: 'history', label: 'History', to: ROUTES.history },
+  { id: 'analytics', label: 'Analytics', to: ROUTES.analytics },
 ]
 
-export interface ViewNavProps {
-  view: AppView
-  onViewChange: (view: AppView) => void
-}
+export function ViewNav() {
+  const view = viewFromPathname(useLocation().pathname)
 
-export function ViewNav({ view, onViewChange }: ViewNavProps) {
   return (
     <nav className="inline-flex gap-1" aria-label="Primary">
       {VIEWS.map((item) => (
-        <Button
-          key={item.id}
-          type="button"
-          variant="ghost"
-          active={view === item.id}
-          aria-current={view === item.id ? 'page' : undefined}
-          onClick={() => onViewChange(item.id)}
-        >
-          {item.label}
+        <Button key={item.id} asChild variant="ghost" active={view === item.id}>
+          <NavLink to={item.to} end={item.end}>
+            {item.label}
+          </NavLink>
         </Button>
       ))}
     </nav>

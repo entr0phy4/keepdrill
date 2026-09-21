@@ -1,6 +1,7 @@
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useState, type ReactNode } from 'react'
+import { Navigate, Route, Routes, useLocation } from 'react-router'
 import { Button } from '@/components/ui/button'
-import { AppShell, ViewNav, type AppView } from '@/shared/components'
+import { AppShell, ViewNav } from '@/shared/components'
 import { CorpusInput, CorpusSourceTabs, type CorpusTab } from '@/features/corpus'
 import { RepoBrowser } from '@/features/repo-browser'
 import {
@@ -13,6 +14,7 @@ import {
 } from '@/features/typing'
 import { Banners } from '@/features/status'
 import { ErrorBoundary } from './ErrorBoundary'
+import { ROUTES, viewFromPathname } from './routes'
 
 const HistoryView = lazy(async () => {
   const mod = await import('@/features/history')
@@ -29,15 +31,24 @@ const COPY = {
   restartUnit: 'Restart unit',
 } as const
 
+function LazyRoute({ children, fallback }: { children: ReactNode; fallback: string }) {
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<p className="text-muted">{fallback}</p>}>{children}</Suspense>
+    </ErrorBoundary>
+  )
+}
+
 export function App() {
   const session = useTrainerSession()
-  const [view, setView] = useState<AppView>('trainer')
+  const pathname = useLocation().pathname
+  const view = viewFromPathname(pathname)
   const [corpusTab, setCorpusTab] = useState<CorpusTab>('paste')
 
   return (
     <AppShell
       title="keebdrill"
-      nav={<ViewNav view={view} onViewChange={setView} />}
+      nav={<ViewNav />}
       banners={
         <Banners
           crossOriginIsolated={session.crossOriginIsolated}
@@ -45,6 +56,7 @@ export function App() {
         />
       }
     >
+      {/* D-08: trainer stays mounted across routes; hide with display, never unmount. */}
       <div style={{ display: view === 'trainer' ? 'grid' : 'none' }} className="gap-4">
         <CorpusSourceTabs tab={corpusTab} onTabChange={setCorpusTab} />
         <div
@@ -100,20 +112,27 @@ export function App() {
         </div>
       )}
 
-      {view === 'history' && (
-        <ErrorBoundary>
-          <Suspense fallback={<p className="text-muted">Loading history…</p>}>
-            <HistoryView />
-          </Suspense>
-        </ErrorBoundary>
-      )}
-      {view === 'analytics' && (
-        <ErrorBoundary>
-          <Suspense fallback={<p className="text-muted">Loading analytics…</p>}>
-            <AnalyticsDashboard />
-          </Suspense>
-        </ErrorBoundary>
-      )}
+      <Routes>
+        <Route path={ROUTES.trainer} element={null} />
+        <Route path="/trainer" element={<Navigate to={ROUTES.trainer} replace />} />
+        <Route
+          path={ROUTES.history}
+          element={
+            <LazyRoute fallback="Loading history…">
+              <HistoryView />
+            </LazyRoute>
+          }
+        />
+        <Route
+          path={ROUTES.analytics}
+          element={
+            <LazyRoute fallback="Loading analytics…">
+              <AnalyticsDashboard />
+            </LazyRoute>
+          }
+        />
+        <Route path="*" element={<Navigate to={ROUTES.trainer} replace />} />
+      </Routes>
     </AppShell>
   )
 }

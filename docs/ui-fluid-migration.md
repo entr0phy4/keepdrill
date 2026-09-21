@@ -25,7 +25,7 @@ Cada feature exporta un `index.ts`. Los contenedores (smart) viven en la raíz d
 
 | Superficie | Primitivo @fluid | Notas |
 | --- | --- | --- |
-| Nav Trainer / History / Analytics | `Button` ghost + `active` | `aria-current="page"` se mantiene |
+| Nav Trainer / History / Analytics | `Button` ghost + `NavLink` | rutas `/`, `/history`, `/analytics`; `aria-current="page"` lo pone el router |
 | Tabs Paste \| GitHub | `Button` role=tab | Ver pendientes: TabsSubtle |
 | Load / Import / Restart | `Button` primary | `loading` mientras busy |
 | Dismiss save-failed | `Button` ghost icon | clase `.save-failed-dismiss` para tests |
@@ -51,7 +51,7 @@ Cada feature exporta un `index.ts`. Los contenedores (smart) viven en la raíz d
 
 - Tokens shadcn/Fluid (`--background`, `--primary`, `--destructive`, `--border`) apuntan a la paleta keebdrill. Chrome usa Geist (self-hosted, compatible con COEP); el trainer sigue en `--font-mono`.
 - Botones globales de 44px se eliminaron para no pisar la escala Fluid (36px). Acciones nativas (`.control`, árbol del repo) conservan sus hit targets.
-- History y Analytics se cargan con `React.lazy` (chunks `history-*.js` / `insights-*.js`). El trainer **no** se desmonta al cambiar de vista (D-08).
+- History y Analytics se cargan con `React.lazy` (chunks `history-*.js` / `insights-*.js`) en las rutas `/history` y `/analytics`. El trainer **no** se desmonta al cambiar de ruta (D-08); se oculta con `display`.
 - `src/ui/` desaparece. Imports: `@/features/...`, `@/app`, `@/shared/components`.
 - Card de Fluid importaba `next/link`; en este repo Vite se sustituyó por `<a>`.
 
