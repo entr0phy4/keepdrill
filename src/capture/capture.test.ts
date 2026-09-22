@@ -336,6 +336,27 @@ describe('capture — committed-character stream (CAPT-04, Pitfall 9)', () => {
     const deletes = getCharLog().filter((entry) => entry.inputType.startsWith('delete'))
     expect(deletes).toHaveLength(1)
   })
+
+  it('still records one deletion when microtasks flush between beforeinput and input', async () => {
+    attachCapture(target)
+    const textarea = target as HTMLTextAreaElement
+    textarea.value = 'ab'
+    inputEvt(target)
+
+    textarea.value = 'a'
+    const before = trustedInputEvent('beforeinput', { inputType: 'deleteContentBackward' })
+    Object.defineProperty(before, 'timeStamp', { value: 10, configurable: true })
+    target.dispatchEvent(before)
+    // Browsers may checkpoint microtasks between beforeinput and input; the
+    // pairing flag must survive that or Backspace is recorded twice.
+    await Promise.resolve()
+    const input = trustedInputEvent('input', { inputType: 'deleteContentBackward' })
+    Object.defineProperty(input, 'timeStamp', { value: 10.4, configurable: true })
+    target.dispatchEvent(input)
+
+    const deletes = getCharLog().filter((entry) => entry.inputType.startsWith('delete'))
+    expect(deletes).toHaveLength(1)
+  })
 })
 
 describe('capture — paste/drop blocked in the capture surface (CAPT-04, T-01-08, D-04)', () => {

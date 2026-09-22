@@ -20,8 +20,11 @@ let lastValue = ''
 
 // beforeinput and input for one key often carry different timeStamps. Pair
 // them with a flag instead, or Backspace is recorded twice and the cursor
-// steps back two characters.
+// steps back two characters. Cleared from onInput and via setTimeout(0) —
+// NOT queueMicrotask: browsers can flush microtasks between beforeinput and
+// input, which would reopen the double-record path on the same key.
 let editFromBeforeInput = false
+let editFromBeforeInputClearTimer: ReturnType<typeof setTimeout> | null = null
 
 // Timer-resolution measurement tap (A10): fed from real (non-repeat) keydowns
 // via a microtask so the hot-path push above stays a single synchronous op —
@@ -95,9 +98,13 @@ function charRecordFor(e: InputEvent): { inputType: string; data: string | null 
 
 function markBeforeInput(): void {
   editFromBeforeInput = true
-  queueMicrotask(() => {
+  if (editFromBeforeInputClearTimer !== null) clearTimeout(editFromBeforeInputClearTimer)
+  // Macrotask backup for beforeinput with no following input (preventDefault,
+  // abandoned edit). Survives a microtask checkpoint between the two events.
+  editFromBeforeInputClearTimer = setTimeout(() => {
     editFromBeforeInput = false
-  })
+    editFromBeforeInputClearTimer = null
+  }, 0)
 }
 
 function onBeforeInput(e: Event): void {
@@ -128,6 +135,10 @@ function onInput(e: Event): void {
   const value = el.value
   const alreadyRecorded = editFromBeforeInput
   editFromBeforeInput = false
+  if (editFromBeforeInputClearTimer !== null) {
+    clearTimeout(editFromBeforeInputClearTimer)
+    editFromBeforeInputClearTimer = null
+  }
 
   if (!alreadyRecorded && value.length < lastValue.length) {
     // beforeinput was skipped for this deletion — value diff is ground truth.
@@ -259,6 +270,10 @@ export function resetCapture(): void {
   composing = false
   lastValue = ''
   editFromBeforeInput = false
+  if (editFromBeforeInputClearTimer !== null) {
+    clearTimeout(editFromBeforeInputClearTimer)
+    editFromBeforeInputClearTimer = null
+  }
   lastRealKeydownTMs = null
   seq = 0
 }

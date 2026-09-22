@@ -415,6 +415,38 @@ describe('CaptureSurface — caret resync on selection drift (gap closure, T-02-
     expect(textarea.selectionStart).toBe(0)
     expect(textarea.selectionEnd).toBe(0)
   })
+
+  it('does not snap selection after microtasks flush between beforeinput and selectionchange', async () => {
+    act(() => {
+      root.render(<CaptureSurface text="ab" />)
+    })
+
+    const textarea = container.querySelector('textarea')! as HTMLTextAreaElement
+    textarea.value = 'a'
+    beforeInput(textarea, { inputType: 'insertText', data: 'a' })
+
+    await act(async () => {
+      await nextFrame()
+    })
+
+    expect(textarea.selectionStart).toBe(1)
+
+    act(() => {
+      textarea.value = ''
+      beforeInput(textarea, { inputType: 'deleteContentBackward', data: null })
+    })
+    // Microtask checkpoint between beforeinput and selectionchange — mirrors
+    // browsers that flush queued microtasks mid-keystroke.
+    await Promise.resolve()
+    act(() => {
+      textarea.selectionStart = 0
+      textarea.selectionEnd = 0
+      document.dispatchEvent(new Event('selectionchange', { bubbles: true }))
+    })
+
+    expect(textarea.selectionStart).toBe(0)
+    expect(textarea.selectionEnd).toBe(0)
+  })
 })
 
 // Task 1 tracer (D-07): mirrors RestartHarness's precedent — a minimal

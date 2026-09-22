@@ -138,12 +138,15 @@ export function CaptureSurface({
   // Set for the turn that owns a beforeinput. selectionchange fires in that
   // same turn, while `cursor` is still the pre-edit value. Snapping the
   // textarea selection back then makes Chrome delete a second character.
+  // Cleared after the keystroke task (setTimeout 0) and again when `cursor`
+  // commits in layout — not via queueMicrotask, which can flush between
+  // beforeinput and selectionchange and reopen the mid-key snap.
   const suppressResyncRef = useRef(false)
   const noteEdit = () => {
     suppressResyncRef.current = true
-    queueMicrotask(() => {
+    setTimeout(() => {
       suppressResyncRef.current = false
-    })
+    }, 0)
   }
 
   const resyncCaret = useCallback(() => {
@@ -157,6 +160,7 @@ export function CaptureSurface({
   }, [cursor])
 
   useLayoutEffect(() => {
+    suppressResyncRef.current = false
     resyncCaret()
   }, [resyncCaret])
 
