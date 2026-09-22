@@ -1,5 +1,6 @@
 export { CaptureSurface } from './CaptureSurface'
 export { FileScaffold } from './FileScaffold'
+export { DrillView } from './components/DrillView'
 export { ResultsView } from './components/ResultsView'
 export type { ResultsViewProps } from './components/ResultsView'
 export { SaveFailedNotice } from './components/SaveFailedNotice'

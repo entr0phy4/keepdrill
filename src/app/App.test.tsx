@@ -106,7 +106,7 @@ function primaryNavItems(): HTMLAnchorElement[] {
 }
 
 function navLabel(el: Element): string | undefined {
-  return ['Trainer', 'History', 'Analytics'].find((label) => el.textContent?.includes(label))
+  return ['Trainer', 'Drill', 'History', 'Analytics'].find((label) => el.textContent?.includes(label))
 }
 
 function primaryNav(label: string): HTMLAnchorElement {
@@ -228,19 +228,30 @@ describe('App — completion persists exactly one row (PERS-01)', () => {
 })
 
 describe('App — view toggle single-active invariant (04-UI-SPEC.md H1)', () => {
-  it('exactly one of three nav links carries aria-current="page"; Analytics takes it when clicked', () => {
+  it('exactly one of four nav links carries aria-current="page"; Drill and Analytics take it when clicked', () => {
     act(() => {
       root.render(appTree())
     })
 
     const links = primaryNavItems()
-    expect(links.map((el) => navLabel(el))).toEqual(['Trainer', 'History', 'Analytics'])
+    expect(links.map((el) => navLabel(el))).toEqual(['Trainer', 'Drill', 'History', 'Analytics'])
 
     const trainerLink = links[0]!
-    const historyLink = links[1]!
-    const analyticsLink = links[2]!
+    const drillLink = links[1]!
+    const historyLink = links[2]!
+    const analyticsLink = links[3]!
 
     expect(trainerLink.getAttribute('aria-current')).toBe('page')
+    expect(drillLink.getAttribute('aria-current')).toBeNull()
+    expect(historyLink.getAttribute('aria-current')).toBeNull()
+    expect(analyticsLink.getAttribute('aria-current')).toBeNull()
+
+    act(() => {
+      click(drillLink)
+    })
+
+    expect(drillLink.getAttribute('aria-current')).toBe('page')
+    expect(trainerLink.getAttribute('aria-current')).toBeNull()
     expect(historyLink.getAttribute('aria-current')).toBeNull()
     expect(analyticsLink.getAttribute('aria-current')).toBeNull()
 
@@ -250,6 +261,7 @@ describe('App — view toggle single-active invariant (04-UI-SPEC.md H1)', () =>
 
     expect(historyLink.getAttribute('aria-current')).toBe('page')
     expect(trainerLink.getAttribute('aria-current')).toBeNull()
+    expect(drillLink.getAttribute('aria-current')).toBeNull()
     expect(analyticsLink.getAttribute('aria-current')).toBeNull()
 
     act(() => {
@@ -258,6 +270,7 @@ describe('App — view toggle single-active invariant (04-UI-SPEC.md H1)', () =>
 
     expect(analyticsLink.getAttribute('aria-current')).toBe('page')
     expect(trainerLink.getAttribute('aria-current')).toBeNull()
+    expect(drillLink.getAttribute('aria-current')).toBeNull()
     expect(historyLink.getAttribute('aria-current')).toBeNull()
 
     act(() => {
@@ -265,13 +278,14 @@ describe('App — view toggle single-active invariant (04-UI-SPEC.md H1)', () =>
     })
 
     expect(trainerLink.getAttribute('aria-current')).toBe('page')
+    expect(drillLink.getAttribute('aria-current')).toBeNull()
     expect(historyLink.getAttribute('aria-current')).toBeNull()
     expect(analyticsLink.getAttribute('aria-current')).toBeNull()
   })
 })
 
 describe('App — D-08 hide-not-unmount contract across a view switch', () => {
-  it('typing, switching to History, then back to Trainer preserves charLog length, per-char status, textarea identity, and caret index', async () => {
+  it('typing, switching to History, then back to Drill preserves charLog length, per-char status, textarea identity, and caret index', async () => {
     act(() => {
       root.render(appTree())
     })
@@ -333,7 +347,7 @@ describe('App — D-08 hide-not-unmount contract across a view switch', () => {
     ).toBe('none')
 
     act(() => {
-      click(primaryNav('Trainer'))
+      click(primaryNav('Drill'))
     })
 
     const captureAreaAfter = container.querySelector<HTMLTextAreaElement>('#capture-surface')!
@@ -348,9 +362,10 @@ describe('App — D-08 hide-not-unmount contract across a view switch', () => {
     expect(statusesAfter).toEqual(statusesBefore)
     expect(captureAreaAfter).toBe(captureAreaBefore) // same DOM node — no remount
     expect(caretIndexAfter).toBe(caretIndexBefore)
+    expect((captureAreaAfter.closest('div[style]') as HTMLElement).style.display).toBe('grid')
   })
 
-  it('typing, switching to Analytics, then back to Trainer preserves textarea identity and caret; CorpusInput stays mounted', async () => {
+  it('typing, switching to Analytics, then back to Drill preserves textarea identity and caret; CorpusInput stays mounted', async () => {
     act(() => {
       root.render(appTree())
     })
@@ -409,7 +424,7 @@ describe('App — D-08 hide-not-unmount contract across a view switch', () => {
     ).toBe('none')
 
     act(() => {
-      click(primaryNav('Trainer'))
+      click(primaryNav('Drill'))
     })
 
     const captureAreaAfter = container.querySelector<HTMLTextAreaElement>('#capture-surface')!
@@ -424,6 +439,7 @@ describe('App — D-08 hide-not-unmount contract across a view switch', () => {
     expect(statusesAfter).toEqual(statusesBefore)
     expect(captureAreaAfter).toBe(captureAreaBefore)
     expect(caretIndexAfter).toBe(caretIndexBefore)
+    expect((captureAreaAfter.closest('div[style]') as HTMLElement).style.display).toBe('grid')
   })
 })
 
@@ -579,16 +595,24 @@ describe('App — Trainer-only Paste | GitHub corpus shell (D-01..D-04)', () => 
         .dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
     expect(container.querySelector('#capture-surface')).toBeNull()
-    expect(container.textContent).toContain('Paste code')
     expect(container.textContent).toContain('Load exercise')
   })
 
-  it('empty state names the GitHub door verbatim', () => {
+  it('empty state names the GitHub door verbatim on Drill', () => {
     act(() => {
-      root.render(appTree())
+      root.render(appTree(['/drill']))
     })
     expect(container.querySelector('h2')?.textContent).toBe('No exercise loaded')
     expect(container.textContent).toContain(EMPTY_BODY)
+    expect(primaryNav('Drill').getAttribute('aria-current')).toBe('page')
+  })
+
+  it('does not show the empty state on Trainer before an exercise is loaded', () => {
+    act(() => {
+      root.render(appTree())
+    })
+    expect(container.querySelector('h2')?.textContent).not.toBe('No exercise loaded')
+    expect(container.querySelector('#corpus-paste')).not.toBeNull()
   })
 })
 
@@ -606,6 +630,7 @@ describe('App — startScaffold onPlanned (D-07, D-09, D-10, SCAF-01, SCAF-05)',
     expect(container.querySelector('#capture-surface')).not.toBeNull()
     expect(container.textContent).toContain('1 / 1')
     expect(container.textContent).not.toContain(EMPTY_BODY)
+    expect(primaryNav('Drill').getAttribute('aria-current')).toBe('page')
     expect(container.querySelector('#corpus-panel-github')?.getAttribute('data-file-plan')).toBe(
       'true',
     )
@@ -885,6 +910,45 @@ describe('App — unit advance, persist, restart (D-12, D-14, D-16, D-18, SCAF-0
 })
 
 describe('App — client routes', () => {
+  it('opens Drill from the URL without clicking nav', () => {
+    act(() => {
+      root.render(appTree(['/drill']))
+    })
+
+    expect(primaryNav('Drill').getAttribute('aria-current')).toBe('page')
+    expect(container.querySelector('h2')?.textContent).toBe('No exercise loaded')
+    expect(
+      (container.querySelector('#corpus-panel-paste') as HTMLElement).parentElement!.style.display,
+    ).toBe('none')
+    expect(container.querySelector('#corpus-paste')).not.toBeNull()
+  })
+
+  it('Load exercise navigates to Drill and keeps the corpus mounted', async () => {
+    act(() => {
+      root.render(appTree())
+    })
+
+    const pasteArea = container.querySelector<HTMLTextAreaElement>('#corpus-paste')!
+    act(() => {
+      setControlledTextareaValue(pasteArea, 'ab')
+    })
+    const loadButton = Array.from(container.querySelectorAll('button')).find(
+      (b) => b.textContent === 'Load exercise',
+    )!
+    await act(async () => {
+      loadButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await nextFrame()
+    })
+
+    expect(primaryNav('Drill').getAttribute('aria-current')).toBe('page')
+    expect(primaryNav('Trainer').getAttribute('aria-current')).toBeNull()
+    expect(container.querySelector('#capture-surface')).not.toBeNull()
+    expect(
+      (container.querySelector('#corpus-panel-paste') as HTMLElement).parentElement!.style.display,
+    ).toBe('none')
+    expect(container.querySelector('#corpus-paste')).not.toBeNull()
+  })
+
   it('opens History from the URL without clicking nav', async () => {
     act(() => {
       root.render(appTree(['/history']))

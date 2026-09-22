@@ -1,14 +1,16 @@
 export const ROUTES = {
   trainer: '/',
+  drill: '/drill',
   history: '/history',
   analytics: '/analytics',
 } as const
 
-export type AppView = 'trainer' | 'history' | 'analytics'
+export type AppView = 'trainer' | 'drill' | 'history' | 'analytics'
 
 const PATH_TO_VIEW = {
   [ROUTES.trainer]: 'trainer',
   '/trainer': 'trainer',
+  [ROUTES.drill]: 'drill',
   [ROUTES.history]: 'history',
   [ROUTES.analytics]: 'analytics',
 } as const satisfies Record<string, AppView>

@@ -1,17 +1,11 @@
-import { lazy, Suspense, useState, type ReactNode } from 'react'
-import { Navigate, Route, Routes, useLocation } from 'react-router'
-import { Button } from '@/components/ui/button'
+import { lazy, Suspense, useCallback, useState, type ReactNode } from 'react'
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router'
 import { AppShell } from '@/shared/components'
 import { CorpusInput, CorpusSourceTabs, type CorpusTab } from '@/features/corpus'
 import { RepoBrowser, RepoBrowserProvider, RepoSidebarTree } from '@/features/repo-browser'
-import {
-  CaptureSurface,
-  FileScaffold,
-  ResultsView,
-  SaveFailedNotice,
-  TrainerEmptyState,
-  useTrainerSession,
-} from '@/features/typing'
+import { DrillView, useTrainerSession } from '@/features/typing'
+import type { Exercise } from '@/ingestion/types'
+import type { FilePlan } from '@/parse/types'
 import { Banners } from '@/features/status'
 import { ErrorBoundary } from './ErrorBoundary'
 import { ROUTES, viewFromPathname } from './routes'
@@ -26,11 +20,6 @@ const AnalyticsDashboard = lazy(async () => {
   return { default: mod.AnalyticsDashboard }
 })
 
-const COPY = {
-  restartExercise: 'Restart exercise',
-  restartUnit: 'Restart unit',
-} as const
-
 function LazyRoute({ children, fallback }: { children: ReactNode; fallback: string }) {
   return (
     <ErrorBoundary>
@@ -41,12 +30,29 @@ function LazyRoute({ children, fallback }: { children: ReactNode; fallback: stri
 
 export function App() {
   const session = useTrainerSession()
+  const navigate = useNavigate()
   const pathname = useLocation().pathname
   const view = viewFromPathname(pathname)
   const [corpusTab, setCorpusTab] = useState<CorpusTab>('paste')
 
+  const handleLoad = useCallback(
+    (loaded: Exercise) => {
+      session.handleLoad(loaded)
+      void navigate(ROUTES.drill)
+    },
+    [navigate, session.handleLoad],
+  )
+
+  const startScaffold = useCallback(
+    (plan: FilePlan) => {
+      session.startScaffold(plan)
+      void navigate(ROUTES.drill)
+    },
+    [navigate, session.startScaffold],
+  )
+
   return (
-    <RepoBrowserProvider onPlanned={session.startScaffold}>
+    <RepoBrowserProvider onPlanned={startScaffold}>
       <AppShell
         banners={
           <Banners
@@ -56,7 +62,7 @@ export function App() {
         }
         afterNav={<RepoSidebarTree />}
       >
-        {/* D-08: trainer stays mounted across routes; hide with display, never unmount. */}
+        {/* D-08: corpus + drill stay mounted across routes; hide with display, never unmount. */}
         <div style={{ display: view === 'trainer' ? 'grid' : 'none' }} className="gap-4">
           <CorpusSourceTabs tab={corpusTab} onTabChange={setCorpusTab} />
           <div
@@ -65,7 +71,7 @@ export function App() {
             aria-labelledby="corpus-tab-paste"
             style={{ display: corpusTab === 'paste' ? 'grid' : 'none' }}
           >
-            <CorpusInput onLoad={session.handleLoad} />
+            <CorpusInput onLoad={handleLoad} />
           </div>
           <div
             id="corpus-panel-github"
@@ -78,42 +84,11 @@ export function App() {
           </div>
         </div>
 
-        {session.exercise === null ? (
-          view === 'trainer' && <TrainerEmptyState />
-        ) : (
-          <div style={{ display: view === 'trainer' ? 'grid' : 'none' }} className="gap-4">
-            {session.curriculum !== null ? (
-              <FileScaffold
-                text={session.exercise.text}
-                units={session.curriculum}
-                unitIndex={session.unitIndex}
-                loadToken={session.loadToken}
-                complete={session.scaffoldComplete}
-                onRestartRequested={session.handleRestart}
-                onComplete={session.handleComplete}
-              />
-            ) : (
-              <CaptureSurface
-                key={session.loadToken}
-                text={session.exercise.text}
-                onRestartRequested={session.handleRestart}
-                onComplete={session.handleComplete}
-              />
-            )}
-            {session.metrics !== null && <ResultsView metrics={session.metrics} />}
-            {session.metrics !== null && session.saveFailed && (
-              <SaveFailedNotice onDismiss={session.dismissSaveFailed} />
-            )}
-            {!session.scaffoldComplete && (
-              <Button type="button" variant="primary" onClick={session.handleRestart}>
-                {session.curriculum !== null ? COPY.restartUnit : COPY.restartExercise}
-              </Button>
-            )}
-          </div>
-        )}
+        <DrillView session={session} visible={view === 'drill'} />
 
         <Routes>
           <Route path={ROUTES.trainer} element={null} />
+          <Route path={ROUTES.drill} element={null} />
           <Route path="/trainer" element={<Navigate to={ROUTES.trainer} replace />} />
           <Route
             path={ROUTES.history}

@@ -1,4 +1,4 @@
-import { History, Keyboard, ChartNoAxesColumn, type LucideIcon } from 'lucide-react'
+import { History, Keyboard, ChartNoAxesColumn, FileCode, type LucideIcon } from 'lucide-react'
 import { NavLink, useLocation } from 'react-router'
 import { ROUTES, viewFromPathname, type AppView } from '@/app/routes'
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar'
@@ -12,7 +12,8 @@ const VIEWS: readonly {
   icon: LucideIcon
   end?: boolean
 }[] = [
-  { id: 'trainer', label: 'Trainer', to: ROUTES.trainer, icon: Keyboard, end: true },
+  { id: 'trainer', label: 'Trainer', to: ROUTES.trainer, icon: FileCode, end: true },
+  { id: 'drill', label: 'Drill', to: ROUTES.drill, icon: Keyboard },
   { id: 'history', label: 'History', to: ROUTES.history, icon: History },
   { id: 'analytics', label: 'Analytics', to: ROUTES.analytics, icon: ChartNoAxesColumn },
 ]
