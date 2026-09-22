@@ -181,8 +181,10 @@ export function CaptureSurface({
 
   useLayoutEffect(() => {
     if (!plain) return
-    const scroller = scrollerRef.current
-    if (!scroller) return
+    const stack = scrollerRef.current
+    if (!stack) return
+    const scroller = stack.closest('.file-source-body')
+    if (!(scroller instanceof HTMLElement)) return
     const apply = () => {
       const next = Math.max(0, Math.round(scroller.clientHeight / 2))
       const host = scroller.closest('.file-source')
@@ -197,9 +199,11 @@ export function CaptureSurface({
 
   useLayoutEffect(() => {
     if (!plain) return
-    const scroller = scrollerRef.current
+    const stack = scrollerRef.current
     const caret = caretRef.current
-    if (!scroller || !caret) return
+    if (!stack || !caret) return
+    const scroller = stack.closest('.file-source-body')
+    if (!(scroller instanceof HTMLElement)) return
     const mark = `${line}:${filePad}`
     if (placedRef.current === mark) return
     placedRef.current = mark
@@ -209,56 +213,73 @@ export function CaptureSurface({
     scroller.scrollTop += delta
   }, [plain, line, text, filePad])
 
-  const nodes: ReactNode[] = []
-  for (let i = 0; i < textChars.length; i++) {
-    if (i === cursor) {
-      nodes.push(
-        <span
-          key={`caret-${i}`}
-          ref={caretRef}
-          className="trainer-caret"
-          data-active={isActive}
-          aria-hidden="true"
-        />,
-      )
-    }
+  const caretMark = (key: string) => (
+    <span
+      key={key}
+      ref={caretRef}
+      className="trainer-caret"
+      data-active={isActive}
+      aria-hidden="true"
+    />
+  )
+
+  const charMark = (i: number) => {
     const targetChar = textChars[i] ?? ''
     const isWhitespaceGlyph = !plain && (targetChar === ' ' || targetChar === '\n')
     const token = plain ? kinds[i] : undefined
-    nodes.push(
+    return (
       <span
         key={i}
         data-status={perCharStatus[i] ?? 'pending'}
         data-token={token && token !== 'plain' ? token : undefined}
         data-caret-target={plain && i === cursor ? '' : undefined}
+        data-nl={plain && targetChar === '\n' ? '' : undefined}
       >
         {isWhitespaceGlyph ? <span className="ws-glyph">{glyphFor(targetChar)}</span> : targetChar}
-      </span>,
-    )
-  }
-  if (cursor >= textChars.length) {
-    nodes.push(
-      <span
-        key="caret-end"
-        ref={caretRef}
-        className="trainer-caret"
-        data-active={isActive}
-        aria-hidden="true"
-      />,
+      </span>
     )
   }
 
+  const nodes: ReactNode[] = []
+  if (plain) {
+    let lineNodes: ReactNode[] = []
+    let lineIdx = 0
+    const flushLine = () => {
+      const idx = lineIdx
+      nodes.push(
+        <span
+          key={`line-${idx}`}
+          className="file-line"
+          data-current-line={idx === line ? '' : undefined}
+        >
+          {lineNodes}
+        </span>,
+      )
+      lineNodes = []
+      lineIdx += 1
+    }
+    for (let i = 0; i < textChars.length; i++) {
+      if (i === cursor) lineNodes.push(caretMark(`caret-${i}`))
+      lineNodes.push(charMark(i))
+      if (textChars[i] === '\n') flushLine()
+    }
+    if (cursor >= textChars.length) lineNodes.push(caretMark('caret-end'))
+    if (lineNodes.length > 0 || textChars.length === 0) flushLine()
+  } else {
+    for (let i = 0; i < textChars.length; i++) {
+      if (i === cursor) nodes.push(caretMark(`caret-${i}`))
+      nodes.push(charMark(i))
+    }
+    if (cursor >= textChars.length) nodes.push(caretMark('caret-end'))
+  }
+
   const stack = (
-    <div
-      ref={scrollerRef}
-      className={plain ? 'trainer-stack file-source-body' : 'trainer-stack'}
-      onClick={reclaimFocus}
-    >
+    <div ref={scrollerRef} className="trainer-stack" onClick={reclaimFocus}>
       <textarea
         id="capture-surface"
         ref={ref}
         className="trainer-textarea"
-        rows={8}
+        rows={plain ? 1 : 8}
         spellCheck={false}
         autoComplete="off"
         aria-label={plain ? 'Type the file' : undefined}

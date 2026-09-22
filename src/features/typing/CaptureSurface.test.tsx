@@ -502,3 +502,38 @@ describe('CaptureSurface — tracer: completion to WPM + accuracy, auto-revealed
     expect(calls).toBe(1)
   })
 })
+
+describe('CaptureSurface — file line cue', () => {
+  it('marks the cursor line and moves the mark after a line break', async () => {
+    act(() => {
+      root.render(
+        <section className="file-source">
+          <div className="file-source-body">
+            <CaptureSurface plain text={'ab\ncd'} language="plaintext" />
+          </div>
+        </section>,
+      )
+    })
+
+    const first = container.querySelector('[data-current-line]')
+    expect(first?.textContent).toContain('ab')
+    expect(first?.textContent).not.toContain('cd')
+
+    const textarea = container.querySelector('textarea')!
+    beforeInput(textarea, { inputType: 'insertText', data: 'a' })
+    await act(async () => {
+      await nextFrame()
+    })
+    beforeInput(textarea, { inputType: 'insertText', data: 'b' })
+    await act(async () => {
+      await nextFrame()
+    })
+    beforeInput(textarea, { inputType: 'insertLineBreak', data: '\n' })
+    await act(async () => {
+      await nextFrame()
+    })
+
+    const current = container.querySelector('[data-current-line]')
+    expect(current?.textContent).toContain('cd')
+  })
+})
