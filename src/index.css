@@ -408,6 +408,55 @@ textarea {
   opacity: 0.55;
 }
 
+/* Full-file drill surface. The scaffold/capture tree stays mounted underneath. */
+.drill-suspended {
+  display: none;
+}
+
+.file-source {
+  display: grid;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.file-source-path {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.file-source-body {
+  margin: 0;
+  max-height: calc(100dvh - 8rem);
+  overflow: auto;
+}
+
+.file-source .trainer-stack > * {
+  white-space: pre;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.file-source .trainer-rendered-layer [data-status='pending'],
+.file-source .trainer-rendered-layer [data-status='correct'] {
+  color: var(--color-text);
+}
+
+.file-source .trainer-caret {
+  width: 2px;
+  height: 1.15em;
+  background: var(--color-accent);
+  border-left: 0;
+  border-radius: 1px;
+  vertical-align: text-bottom;
+  animation: none;
+  opacity: 1;
+}
+
+.file-source .trainer-rendered-layer [data-caret-target] {
+  background: color-mix(in srgb, var(--color-accent) 28%, transparent);
+  border-radius: 2px;
+}
+
 /* Results panel (03-UI-SPEC.md) — a bordered secondary-surface card, same
    visual treatment as .preview/.banner, reused rather than re-invented. */
 .results-panel {

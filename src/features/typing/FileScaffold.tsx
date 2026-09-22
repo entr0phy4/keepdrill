@@ -68,6 +68,7 @@ export function FileScaffold({
   unitIndex,
   loadToken,
   complete,
+  interactive = true,
   onRestartRequested,
   onComplete,
 }: {
@@ -76,6 +77,7 @@ export function FileScaffold({
   unitIndex: number
   loadToken: number
   complete: boolean
+  interactive?: boolean
   onRestartRequested?: () => void
   onComplete?: (completedAt: number) => void
 }) {
@@ -131,7 +133,7 @@ export function FileScaffold({
               </pre>
             )
           }
-          if (complete || seg.role !== 'current') {
+          if (complete || seg.role !== 'current' || !interactive) {
             const role = complete ? 'done' : seg.role
             return (
               <pre

@@ -636,7 +636,7 @@ describe('App — startScaffold onPlanned (D-07, D-09, D-10, SCAF-01, SCAF-05)',
     )
   })
 
-  it('puts the first curriculum slice into CaptureSurface, not the full two-unit file', () => {
+  it('renders the full file in the drill surface and keeps the unit scaffold without a second capture', () => {
     act(() => {
       root.render(appTree())
     })
@@ -644,20 +644,24 @@ describe('App — startScaffold onPlanned (D-07, D-09, D-10, SCAF-01, SCAF-05)',
       capturedOnPlanned!(twoUnitGithubPlan())
     })
 
-    const overlay = container.querySelector('[data-scaffold-current] .trainer-rendered-layer')
-    expect(overlay?.textContent).toContain('function·b()·{}')
-    expect(overlay?.textContent).not.toContain('function·a()·{}')
+    const overlay = container.querySelector('.file-source .trainer-rendered-layer')
+    expect(overlay?.textContent).toContain('function a() {}')
+    expect(overlay?.textContent).toContain('function b() {}')
+    expect(container.querySelectorAll('#capture-surface')).toHaveLength(1)
+    expect(container.querySelector('[data-scaffold-current]')).toBeNull()
     expect(container.textContent).toContain('1 / 2')
   })
 
-  it('handleLoad after a scaffold unmounts FileScaffold and mounts whole-file CaptureSurface', async () => {
+  it('handleLoad after a scaffold replaces the rendered file with the pasted exercise', async () => {
     act(() => {
       root.render(appTree())
     })
     act(() => {
       capturedOnPlanned!(twoUnitGithubPlan())
     })
-    expect(container.querySelector('[data-scaffold-current]')).not.toBeNull()
+    expect(container.querySelector('.file-source .trainer-rendered-layer')?.textContent).toContain(
+      'function a() {}',
+    )
 
     act(() => {
       container
@@ -758,8 +762,8 @@ const UNIT_B = 'function b() {}\n'
 const UNIT_A = 'function a() {}\n'
 const TWO_UNIT_FILE = 'function a() {}\nfunction b() {}\n'
 
-describe('App — unit advance, persist, restart (D-12, D-14, D-16, D-18, SCAF-02..04)', () => {
-  it('completing unit 0 does not persist or show results; landmark becomes 2 / 2', async () => {
+describe('App — rendered file typing (unit scaffold stays idle)', () => {
+  it('typing the start of the file does not persist or advance the hidden unit', async () => {
     act(() => {
       root.render(appTree())
     })
@@ -768,24 +772,27 @@ describe('App — unit advance, persist, restart (D-12, D-14, D-16, D-18, SCAF-0
     })
     expect(container.textContent).toContain('Restart unit')
 
-    await typeSlice(container.querySelector<HTMLTextAreaElement>('#capture-surface')!, UNIT_B, 0)
+    await typeSlice(container.querySelector<HTMLTextAreaElement>('#capture-surface')!, 'function', 0)
 
     expect(await listNewestFirst()).toHaveLength(0)
     expect(container.querySelector('.results-panel')).toBeNull()
-    expect(container.textContent).toContain('2 / 2')
-    const overlay = container.querySelector('[data-scaffold-current] .trainer-rendered-layer')
-    expect(overlay?.textContent).toContain('function·a()·{}')
-    expect(overlay?.textContent).not.toContain('function·b()·{}')
+    expect(container.textContent).toContain('1 / 2')
+    expect(container.textContent).not.toContain('2 / 2')
+    const statuses = container.querySelectorAll('.file-source [data-status]')
+    expect(statuses[0]?.getAttribute('data-status')).toBe('correct')
+    expect(container.querySelector('.file-source .trainer-rendered-layer')?.textContent).toContain(
+      'function b() {}',
+    )
   })
 
-  it('Escape after unit 0 keeps unitIndex at 1 and does not persist', async () => {
+  it('Escape clears rendered-file progress and does not persist', async () => {
     act(() => {
       root.render(appTree())
     })
     act(() => {
       capturedOnPlanned!(twoUnitGithubPlan())
     })
-    await typeSlice(container.querySelector<HTMLTextAreaElement>('#capture-surface')!, UNIT_B, 0)
+    await typeSlice(container.querySelector<HTMLTextAreaElement>('#capture-surface')!, 'function', 0)
 
     const capture = container.querySelector<HTMLTextAreaElement>('#capture-surface')!
     act(() => {
@@ -795,21 +802,22 @@ describe('App — unit advance, persist, restart (D-12, D-14, D-16, D-18, SCAF-0
       await nextFrame()
     })
 
-    expect(container.textContent).toContain('2 / 2')
-    const overlay = container.querySelector('[data-scaffold-current] .trainer-rendered-layer')
-    expect(overlay?.textContent).toContain('function·a()·{}')
-    expect(overlay?.textContent).not.toContain('function·b()·{}')
+    expect(container.textContent).toContain('1 / 2')
+    const statuses = container.querySelectorAll('.file-source [data-status]')
+    expect(Array.from(statuses).every((el) => el.getAttribute('data-status') === 'pending')).toBe(
+      true,
+    )
     expect(await listNewestFirst()).toHaveLength(0)
   })
 
-  it('Restart unit remounts the current slice and keeps completed snapshots', async () => {
+  it('Restart unit remounts the rendered file and does not persist', async () => {
     act(() => {
       root.render(appTree())
     })
     act(() => {
       capturedOnPlanned!(twoUnitGithubPlan())
     })
-    await typeSlice(container.querySelector<HTMLTextAreaElement>('#capture-surface')!, UNIT_B, 0)
+    await typeSlice(container.querySelector<HTMLTextAreaElement>('#capture-surface')!, 'function', 0)
 
     const restart = Array.from(container.querySelectorAll('button')).find(
       (b) => b.textContent === 'Restart unit',
@@ -821,34 +829,28 @@ describe('App — unit advance, persist, restart (D-12, D-14, D-16, D-18, SCAF-0
       await nextFrame()
     })
 
-    expect(container.textContent).toContain('2 / 2')
-    const overlay = container.querySelector('[data-scaffold-current] .trainer-rendered-layer')
-    expect(overlay?.textContent).toContain('function·a()·{}')
+    expect(container.textContent).toContain('1 / 2')
+    const statuses = container.querySelectorAll('.file-source [data-status]')
+    expect(statuses[0]?.getAttribute('data-status')).toBe('pending')
     expect(await listNewestFirst()).toHaveLength(0)
   })
 
-  it('last unit persist writes one github History row with full file text and both slices', async () => {
+  it('finishing the rendered file writes one github History row and keeps the surface', async () => {
     act(() => {
       root.render(appTree())
     })
     act(() => {
       capturedOnPlanned!(twoUnitGithubPlan('o/r:src/a.ts'))
     })
-    await typeSlice(container.querySelector<HTMLTextAreaElement>('#capture-surface')!, UNIT_B, 0)
-    await typeSlice(container.querySelector<HTMLTextAreaElement>('#capture-surface')!, UNIT_A, 400)
+    await typeSlice(
+      container.querySelector<HTMLTextAreaElement>('#capture-surface')!,
+      TWO_UNIT_FILE,
+      0,
+    )
 
     expect(container.querySelector('.results-panel')).not.toBeNull()
-    expect(container.querySelector('#capture-surface')).toBeNull()
-    expect(
-      Array.from(container.querySelectorAll('button')).find(
-        (b) => b.textContent === 'Restart unit',
-      ),
-    ).toBeUndefined()
-    expect(
-      Array.from(container.querySelectorAll('button')).find(
-        (b) => b.textContent === 'Restart exercise',
-      ),
-    ).toBeUndefined()
+    expect(container.querySelector('#capture-surface')).not.toBeNull()
+    expect(container.textContent).toContain('1 / 2')
 
     const rows = await listNewestFirst()
     expect(rows).toHaveLength(1)
@@ -856,8 +858,8 @@ describe('App — unit advance, persist, restart (D-12, D-14, D-16, D-18, SCAF-0
     expect(rows[0]?.exercise.sourceType).toBe('github')
     expect(rows[0]?.exercise.sourceRef).toBe('o/r:src/a.ts')
     const datas = (rows[0]?.charLog ?? []).map((c) => c.data).join('')
-    expect(datas).toContain('b')
-    expect(datas).toContain('a')
+    expect(datas).toContain('function a')
+    expect(datas).toContain('function b')
   })
 
   it('after scaffold persist, History shows sourceRef and not Pasted snippet', async () => {

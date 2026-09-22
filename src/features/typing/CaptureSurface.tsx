@@ -19,10 +19,13 @@ const PASTE_BLOCKED_FADE_MS = 4000
 
 export function CaptureSurface({
   text,
+  plain = false,
   onRestartRequested,
   onComplete,
 }: {
   text: string
+  /** Full source, no trainer chrome. Whitespace stays as in the file. */
+  plain?: boolean
   onRestartRequested?: () => void
   onComplete?: (completedAt: number) => void
 }) {
@@ -160,9 +163,13 @@ export function CaptureSurface({
       )
     }
     const targetChar = textChars[i] ?? ''
-    const isWhitespaceGlyph = targetChar === ' ' || targetChar === '\n'
+    const isWhitespaceGlyph = !plain && (targetChar === ' ' || targetChar === '\n')
     nodes.push(
-      <span key={i} data-status={perCharStatus[i] ?? 'pending'}>
+      <span
+        key={i}
+        data-status={perCharStatus[i] ?? 'pending'}
+        data-caret-target={plain && i === cursor ? '' : undefined}
+      >
         {isWhitespaceGlyph ? <span className="ws-glyph">{glyphFor(targetChar)}</span> : targetChar}
       </span>,
     )
@@ -173,29 +180,36 @@ export function CaptureSurface({
     )
   }
 
+  const stack = (
+    <div className={plain ? 'trainer-stack file-source-body' : 'trainer-stack'} onClick={reclaimFocus}>
+      <textarea
+        id="capture-surface"
+        ref={ref}
+        className="trainer-textarea"
+        rows={8}
+        spellCheck={false}
+        autoComplete="off"
+        aria-label={plain ? 'Type the file' : undefined}
+        aria-describedby={plain ? undefined : 'capture-count capture-paste-blocked'}
+        onKeyDown={handleKeyDown}
+        onSelect={resyncCaret}
+        onFocus={() => setIsActive(true)}
+        onBlur={() => setIsActive(false)}
+      />
+      <div className="trainer-rendered-layer" aria-hidden="true">
+        {nodes}
+      </div>
+    </div>
+  )
+
+  if (plain) return stack
+
   return (
     <section className="grid gap-2" onClick={reclaimFocus}>
       <label htmlFor="capture-surface" className="text-label">
         Type here
       </label>
-      <div className="trainer-stack">
-        <textarea
-          id="capture-surface"
-          ref={ref}
-          className="trainer-textarea"
-          rows={8}
-          spellCheck={false}
-          autoComplete="off"
-          aria-describedby="capture-count capture-paste-blocked"
-          onKeyDown={handleKeyDown}
-          onSelect={resyncCaret}
-          onFocus={() => setIsActive(true)}
-          onBlur={() => setIsActive(false)}
-        />
-        <div className="trainer-rendered-layer" aria-hidden="true">
-          {nodes}
-        </div>
-      </div>
+      {stack}
       <span id="capture-count" className="text-muted">
         {count} keystroke event{count === 1 ? '' : 's'} recorded
       </span>

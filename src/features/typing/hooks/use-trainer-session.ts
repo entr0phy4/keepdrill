@@ -32,6 +32,7 @@ export interface TrainerSession {
   handleLoad: (loaded: Exercise) => void
   startScaffold: (plan: FilePlan) => void
   handleComplete: (completedAt: number) => void
+  handleCompleteRendered: (completedAt: number) => void
   handleRestart: () => void
   dismissSaveFailed: () => void
 }
@@ -155,6 +156,24 @@ export function useTrainerSession(): TrainerSession {
     })
   }, [])
 
+  const handleCompleteRendered = useCallback((completedAt: number) => {
+    const current = loadRef.current
+    if (!current) return
+    const session = buildSession(current.exercise, current.startedAt)
+    const result = computeSessionMetrics(
+      current.exercise.text,
+      session.charLog,
+      session.markers,
+      completedAt,
+    )
+    setMetrics(result)
+    setSaveFailed(false)
+    void saveSession({ session, completedAt, metricsSnapshot: result }).catch((err: unknown) => {
+      console.warn('[keebdrill] session not persisted:', err)
+      setSaveFailed(true)
+    })
+  }, [])
+
   const handleRestart = useCallback(() => {
     const current = loadRef.current
     if (!current) return
@@ -212,6 +231,7 @@ export function useTrainerSession(): TrainerSession {
     handleLoad,
     startScaffold,
     handleComplete,
+    handleCompleteRendered,
     handleRestart,
     dismissSaveFailed,
   }

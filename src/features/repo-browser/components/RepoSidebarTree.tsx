@@ -30,7 +30,7 @@ export function RepoSidebarTree() {
           nodes={nodes}
           selectedPath={selectedPath}
           onFileClick={(node) => {
-            navigate(ROUTES.trainer)
+            navigate(ROUTES.drill)
             void onFileClick(node)
           }}
         />
