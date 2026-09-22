@@ -210,7 +210,10 @@ export function CaptureSurface({
     const caretRect = caret.getBoundingClientRect()
     const box = scroller.getBoundingClientRect()
     const delta = caretRect.top + caretRect.height / 2 - (box.top + box.height / 2)
-    scroller.scrollTop += delta
+    scroller.scrollTo({
+      top: scroller.scrollTop + delta,
+      behavior: prefersReducedMotion() ? 'instant' : 'smooth',
+    })
   }, [plain, line, text, filePad])
 
   const caretMark = (key: string) => (

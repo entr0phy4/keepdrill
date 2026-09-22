@@ -171,13 +171,12 @@ export function FileScaffold({
   const canSelect = interactive && !complete && onSelectUnit !== undefined
 
   useLayoutEffect(() => {
-    if (plain) return
     currentCardRef.current?.scrollIntoView({
-      block: 'nearest',
+      block: 'center',
       inline: 'nearest',
       behavior: prefersReducedMotion() ? 'instant' : 'smooth',
     })
-  }, [unitIndex, plain])
+  }, [unitIndex])
 
   const landmark = (
     <div

@@ -261,7 +261,7 @@ describe('FileScaffold — scrollIntoView (D-13)', () => {
 
     expect(scrollIntoView).toHaveBeenCalled()
     expect(scrollIntoView).toHaveBeenCalledWith({
-      block: 'nearest',
+      block: 'center',
       inline: 'nearest',
       behavior: 'smooth',
     })
@@ -281,7 +281,7 @@ describe('FileScaffold — scrollIntoView (D-13)', () => {
 
     expect(scrollIntoView.mock.calls.length).toBeGreaterThan(afterMount)
     expect(scrollIntoView).toHaveBeenLastCalledWith({
-      block: 'nearest',
+      block: 'center',
       inline: 'nearest',
       behavior: 'smooth',
     })
@@ -302,9 +302,49 @@ describe('FileScaffold — scrollIntoView (D-13)', () => {
     })
 
     expect(scrollIntoView).toHaveBeenCalledWith({
-      block: 'nearest',
+      block: 'center',
       inline: 'nearest',
       behavior: 'instant',
+    })
+  })
+
+  it('smooth-scrolls the current unit into view in plain mode when unitIndex changes', () => {
+    act(() => {
+      root.render(
+        <FileScaffold
+          plain
+          text={TWO_UNIT_TEXT}
+          units={LEAVES_FIRST}
+          unitIndex={0}
+          loadToken={1}
+          complete={false}
+        />,
+      )
+    })
+    expect(scrollIntoView).toHaveBeenCalledWith({
+      block: 'center',
+      inline: 'nearest',
+      behavior: 'smooth',
+    })
+    const afterMount = scrollIntoView.mock.calls.length
+
+    act(() => {
+      root.render(
+        <FileScaffold
+          plain
+          text={TWO_UNIT_TEXT}
+          units={LEAVES_FIRST}
+          unitIndex={1}
+          loadToken={2}
+          complete={false}
+        />,
+      )
+    })
+    expect(scrollIntoView.mock.calls.length).toBeGreaterThan(afterMount)
+    expect(scrollIntoView).toHaveBeenLastCalledWith({
+      block: 'center',
+      inline: 'nearest',
+      behavior: 'smooth',
     })
   })
 })
@@ -335,7 +375,11 @@ describe('FileScaffold — plain file segments', () => {
     ).toContain('function b() {}')
     expect(container.querySelectorAll('#capture-surface')).toHaveLength(1)
     expect(container.querySelector('[data-current-line]')).not.toBeNull()
-    expect(scrollIntoView).not.toHaveBeenCalled()
+    expect(scrollIntoView).toHaveBeenCalledWith({
+      block: 'center',
+      inline: 'nearest',
+      behavior: 'smooth',
+    })
   })
 
   it('calls onSelectUnit when a non-current unit is clicked', () => {
