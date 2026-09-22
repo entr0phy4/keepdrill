@@ -318,6 +318,24 @@ describe('capture — committed-character stream (CAPT-04, Pitfall 9)', () => {
     expect(chars).toHaveLength(1)
     expect(chars[0]).toMatchObject({ inputType: 'deleteContentBackward', data: null })
   })
+
+  it('a backspace beforeinput plus input with a different timeStamp records one deletion', () => {
+    attachCapture(target)
+    const textarea = target as HTMLTextAreaElement
+    textarea.value = 'ab'
+    inputEvt(target)
+
+    textarea.value = 'a'
+    const before = trustedInputEvent('beforeinput', { inputType: 'deleteContentBackward' })
+    Object.defineProperty(before, 'timeStamp', { value: 10, configurable: true })
+    target.dispatchEvent(before)
+    const input = trustedInputEvent('input', { inputType: 'deleteContentBackward' })
+    Object.defineProperty(input, 'timeStamp', { value: 10.4, configurable: true })
+    target.dispatchEvent(input)
+
+    const deletes = getCharLog().filter((entry) => entry.inputType.startsWith('delete'))
+    expect(deletes).toHaveLength(1)
+  })
 })
 
 describe('capture — paste/drop blocked in the capture surface (CAPT-04, T-01-08, D-04)', () => {

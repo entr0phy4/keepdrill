@@ -129,7 +129,19 @@ export function CaptureSurface({
   // "select" events fired by ArrowLeft/Right/Home/End/click, which don't
   // change `cursor` and so schedule no re-render on their own — this is
   // the actual fix for 02-VERIFICATION.md gap #1 / 02-REVIEW.md WR-1).
+  // Set for the turn that owns a beforeinput. selectionchange fires in that
+  // same turn, while `cursor` is still the pre-edit value. Snapping the
+  // textarea selection back then makes Chrome delete a second character.
+  const suppressResyncRef = useRef(false)
+  const noteEdit = () => {
+    suppressResyncRef.current = true
+    queueMicrotask(() => {
+      suppressResyncRef.current = false
+    })
+  }
+
   const resyncCaret = useCallback(() => {
+    if (suppressResyncRef.current) return
     const el = ref.current
     if (!el) return
     if (el.selectionStart !== cursor || el.selectionEnd !== cursor) {
@@ -192,6 +204,7 @@ export function CaptureSurface({
         aria-label={plain ? 'Type the file' : undefined}
         aria-describedby={plain ? undefined : 'capture-count capture-paste-blocked'}
         onKeyDown={handleKeyDown}
+        onBeforeInput={noteEdit}
         onSelect={resyncCaret}
         onFocus={() => setIsActive(true)}
         onBlur={() => setIsActive(false)}

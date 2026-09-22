@@ -18,6 +18,11 @@ let composing = false
 // beforeinput was skipped for that change.
 let lastValue = ''
 
+// beforeinput and input for one key often carry different timeStamps. Pair
+// them with a flag instead, or Backspace is recorded twice and the cursor
+// steps back two characters.
+let editFromBeforeInput = false
+
 // Timer-resolution measurement tap (A10): fed from real (non-repeat) keydowns
 // via a microtask so the hot-path push above stays a single synchronous op —
 // the delta math never runs inline in the handler.
@@ -88,9 +93,18 @@ function charRecordFor(e: InputEvent): { inputType: string; data: string | null 
   return { inputType, data: e.data }
 }
 
+function markBeforeInput(): void {
+  editFromBeforeInput = true
+  queueMicrotask(() => {
+    editFromBeforeInput = false
+  })
+}
+
 function onBeforeInput(e: Event): void {
   if (!(e instanceof InputEvent)) return
   if (!e.isTrusted) return // T-01-04
+
+  markBeforeInput()
 
   if (e.inputType === 'insertFromPaste' || e.inputType === 'insertFromDrop') {
     e.preventDefault() // safe on beforeinput, unlike keydown (D-04)
@@ -112,10 +126,10 @@ function onInput(e: Event): void {
 
   const el = e.target as HTMLTextAreaElement
   const value = el.value
+  const alreadyRecorded = editFromBeforeInput
+  editFromBeforeInput = false
 
-  const last = charLog[charLog.length - 1]
-  const capturedThisTick = last !== undefined && last.tMs === e.timeStamp
-  if (!capturedThisTick && value.length < lastValue.length) {
+  if (!alreadyRecorded && value.length < lastValue.length) {
     // beforeinput was skipped for this deletion — value diff is ground truth.
     charLog.push(
       Object.freeze({
@@ -244,6 +258,7 @@ export function resetCapture(): void {
   downCodes.clear()
   composing = false
   lastValue = ''
+  editFromBeforeInput = false
   lastRealKeydownTMs = null
   seq = 0
 }
