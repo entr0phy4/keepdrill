@@ -365,6 +365,13 @@ textarea {
   overflow: hidden;
 }
 
+/* Overlay stack already shows the caret; the green :focus-visible ring
+   reads as vertical borders around the active unit. */
+.trainer-textarea:focus,
+.trainer-textarea:focus-visible {
+  outline: none;
+}
+
 /* Per-status rendering rule (02-UI-SPEC.md, precise for executor parity). */
 .trainer-rendered-layer [data-status='pending'] {
   color: var(--color-pending);
@@ -465,6 +472,8 @@ textarea {
 }
 
 .file-source-flow {
+  display: grid;
+  gap: calc(var(--text-body-size) * var(--text-body-line));
   padding-top: var(--file-pad, 0px);
   padding-bottom: var(--file-pad, 0px);
 }
@@ -556,10 +565,48 @@ textarea {
 
 .file-source [data-scaffold-role='future'] {
   opacity: 0.38;
+  filter: blur(1.5px);
+}
+
+.file-source [data-scaffold-role='done'] {
+  filter: blur(1.5px);
 }
 
 .file-source [data-scaffold-role='gap'] {
   opacity: 0.5;
+  filter: blur(1.5px);
+}
+
+.file-source [data-scaffold-current] {
+  opacity: 1;
+  filter: none;
+  transform: none;
+}
+
+/* Role handoff: blur/dim ↔ clear as the active unit advances. */
+.file-source-flow > .file-unit,
+.file-source-flow > [data-scaffold-role='gap'] {
+  transition:
+    filter 220ms ease,
+    opacity 220ms ease,
+    transform 220ms ease;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .file-source [data-scaffold-current] {
+    @starting-style {
+      opacity: 0.45;
+      filter: blur(1.5px);
+      transform: translateY(6px);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .file-source-flow > .file-unit,
+  .file-source-flow > [data-scaffold-role='gap'] {
+    transition: none;
+  }
 }
 
 .file-source .trainer-caret {

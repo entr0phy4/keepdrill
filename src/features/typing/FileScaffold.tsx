@@ -200,7 +200,7 @@ export function FileScaffold({
           <div
             key={seg.unit.id}
             data-scaffold-role={role}
-            className="file-static"
+            className="file-unit file-static"
           >
             {renderPlainChars(chars, kinds, seg.unit.start, seg.unit.end)}
           </div>
@@ -210,7 +210,7 @@ export function FileScaffold({
         <pre
           key={seg.unit.id}
           data-scaffold-role={role}
-          className={role === 'future' ? 'text-muted' : undefined}
+          className={role === 'future' ? 'file-unit text-muted' : 'file-unit'}
           style={{
             ...staticPreStyle,
             color: role === 'future' ? undefined : 'var(--color-text)',
@@ -222,7 +222,12 @@ export function FileScaffold({
     }
     if (plain) {
       return (
-        <div key={seg.unit.id} ref={currentCardRef} data-scaffold-current="" className="file-unit-current">
+        <div
+          key={seg.unit.id}
+          ref={currentCardRef}
+          data-scaffold-current=""
+          className="file-unit file-unit-current"
+        >
           <CaptureSurface
             key={loadToken}
             plain
@@ -239,7 +244,7 @@ export function FileScaffold({
         key={seg.unit.id}
         ref={currentCardRef}
         data-scaffold-current=""
-        className="border border-border bg-card p-4"
+        className="file-unit border border-border bg-card p-4"
       >
         <CaptureSurface
           key={loadToken}
@@ -270,7 +275,12 @@ export function FileScaffold({
       {landmark}
       <div
         aria-label="File"
-        style={{ maxHeight: '70vh', overflow: 'auto', display: 'grid', gap: 0 }}
+        style={{
+          maxHeight: '70vh',
+          overflow: 'auto',
+          display: 'grid',
+          gap: 'calc(var(--text-body-size) * var(--text-body-line))',
+        }}
       >
         {regionNodes}
       </div>
