@@ -25,7 +25,8 @@ Cada feature exporta un `index.ts`. Los contenedores (smart) viven en la raíz d
 
 | Superficie | Primitivo @fluid | Notas |
 | --- | --- | --- |
-| Nav Trainer / History / Analytics | `Sidebar` inset + `SidebarMenuButton` + `NavLink` | rutas `/`, `/history`, `/analytics`; peek hover; `aria-current="page"` |
+| Nav Trainer / History / Analytics | `Sidebar` inset + `SidebarMenuButton` + `NavLink` | rutas `/`, `/history`, `/analytics`; peek desactivado; `aria-current="page"` |
+| Panel de contenido | `ScrollArea` Base UI + `scroll-fade` | Motion (`spring`), Sizes (`SizeProvider`) y Surfaces (`SurfaceProvider` / `Elevated`) instalados |
 | Tabs Paste \| GitHub | `Button` role=tab | Ver pendientes: TabsSubtle |
 | Load / Import / Restart | `Button` primary | `loading` mientras busy |
 | Dismiss save-failed | `Button` ghost icon | clase `.save-failed-dismiss` para tests |
@@ -59,7 +60,7 @@ Cada feature exporta un `index.ts`. Los contenedores (smart) viven en la raíz d
 ## Checklist de verificación
 
 - [x] `pnpm typecheck` — sin errores
-- [x] `pnpm test` — 389 tests
+- [x] `pnpm test` — 395 tests
 - [x] `pnpm build` — OK; code-split de history/insights
 - [x] IDs de tests conservados (`#corpus-paste`, `#capture-surface`, `#github-url`, tabs)
 - [x] Hide-not-unmount del trainer (`style.display`)

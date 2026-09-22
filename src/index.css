@@ -999,14 +999,4 @@ nav button:not([aria-current='page']) {
 }
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
-}
-  @property --sf-start {
-    syntax: "<number>";
-    inherits: false;
-    initial-value: 1;
-}
-  @property --sf-end {
-    syntax: "<number>";
-    inherits: false;
-    initial-value: 1;
-}
+  }

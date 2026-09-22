@@ -13,7 +13,8 @@ export {
   CardTitle,
 } from './card'
 export { InputField, InputGroup } from './input-group'
-export { ScrollArea } from './scroll-area'
+export { ScrollArea, ScrollBar } from './scroll-area'
+export type { ScrollAreaProps } from './scroll-area'
 export { Select, SelectContent, SelectItem, SelectTrigger } from './select'
 export { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './table'
 export { TabsSubtle, TabsSubtleItem, TabsSubtlePanel } from './tabs-subtle'
