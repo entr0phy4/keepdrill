@@ -14,6 +14,20 @@ export function isLoadablePath(path: string): boolean {
   return LOADABLE.has(base.slice(dot).toLowerCase())
 }
 
+/** Keep loadable blobs and folders that still have children after pruning. */
+export function filterLoadableTree(nodes: readonly TreeNode[]): TreeNode[] {
+  const out: TreeNode[] = []
+  for (const node of nodes) {
+    if (node.kind === 'file') {
+      if (isLoadablePath(node.path)) out.push(node)
+      continue
+    }
+    const children = filterLoadableTree(node.children)
+    if (children.length > 0) out.push({ ...node, children })
+  }
+  return out
+}
+
 export function foldTree(entries: readonly GitTreeEntry[]): TreeNode[] {
   const roots: TreeNode[] = []
   const dirs = new Map<string, DirNode>()

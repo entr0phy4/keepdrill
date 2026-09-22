@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react'
 import { File } from 'lucide-react'
 import type { DirNode, FileNode, TreeNode } from '@/github/types'
-import { isLoadablePath } from '@/github/tree'
+import { filterLoadableTree, isLoadablePath } from '@/github/tree'
 import { useIcon } from '@/lib/icon-context'
 import { SizeProvider, useSize } from '@/lib/size-context'
 import { cn } from '@/lib/utils'
@@ -10,6 +10,8 @@ export interface RepoTreeProps {
   nodes: TreeNode[]
   onFileClick: (node: FileNode) => void
   selectedPath?: string | null
+  /** When true, show only .ts/.tsx/.js/.jsx files (and non-empty parent dirs). */
+  exercisesOnly?: boolean
 }
 
 function treeIndexStyle(index: number): CSSProperties {
@@ -105,32 +107,45 @@ function Dir({
 }
 
 /** Native disclosure tree — @fluid/accordion cannot preserve details/summary tests. */
-export function RepoTree({ nodes, onFileClick, selectedPath }: RepoTreeProps) {
+export function RepoTree({
+  nodes,
+  onFileClick,
+  selectedPath,
+  exercisesOnly = false,
+}: RepoTreeProps) {
+  const visible = exercisesOnly ? filterLoadableTree(nodes) : nodes
+
   return (
     <SizeProvider size="compact">
       <div className="repo-tree" aria-label="Repository files">
-        <ul>
-          {nodes.map((node, index) =>
-            node.kind === 'dir' ? (
-              <Dir
-                key={node.path}
-                node={node}
-                depth={0}
-                selectedPath={selectedPath}
-                index={index}
-                onFileClick={onFileClick}
-              />
-            ) : (
-              <FileLi
-                key={node.path}
-                node={node}
-                selected={selectedPath === node.path}
-                index={index}
-                onFileClick={onFileClick}
-              />
-            ),
-          )}
-        </ul>
+        {visible.length === 0 ? (
+          <p className="repo-tree-empty text-muted text-label">
+            No TypeScript or JavaScript files
+          </p>
+        ) : (
+          <ul>
+            {visible.map((node, index) =>
+              node.kind === 'dir' ? (
+                <Dir
+                  key={node.path}
+                  node={node}
+                  depth={0}
+                  selectedPath={selectedPath}
+                  index={index}
+                  onFileClick={onFileClick}
+                />
+              ) : (
+                <FileLi
+                  key={node.path}
+                  node={node}
+                  selected={selectedPath === node.path}
+                  index={index}
+                  onFileClick={onFileClick}
+                />
+              ),
+            )}
+          </ul>
+        )}
       </div>
     </SizeProvider>
   )

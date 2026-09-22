@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { foldTree, isLoadablePath } from './tree'
+import { filterLoadableTree, foldTree, isLoadablePath } from './tree'
 import type { GitTreeEntry, TreeNode } from './types'
 
 interface Case {
@@ -191,5 +191,38 @@ describe('isLoadablePath — D-05 allowlist', () => {
     ['.mjs', false],
   ] as const)('%s -> %s', (path, expected) => {
     expect(isLoadablePath(path)).toBe(expected)
+  })
+})
+
+describe('filterLoadableTree', () => {
+  it('keeps loadable files and prunes empty directories', () => {
+    expect(filterLoadableTree(foldTree(nestedFixture))).toEqual([
+      {
+        kind: 'dir',
+        name: 'src',
+        path: 'src',
+        children: [
+          {
+            kind: 'file',
+            name: 'App.tsx',
+            path: 'src/App.tsx',
+            sha: 'def',
+            entryType: 'blob',
+            size: 120,
+          },
+        ],
+      },
+    ])
+  })
+
+  it('returns [] when nothing is loadable', () => {
+    expect(
+      filterLoadableTree(
+        foldTree([
+          { path: 'docs', type: 'tree', sha: 'd' },
+          { path: 'docs/README.md', type: 'blob', sha: 'r', size: 10 },
+        ]),
+      ),
+    ).toEqual([])
   })
 })

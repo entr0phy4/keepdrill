@@ -2,6 +2,7 @@ import type { FormEvent } from 'react'
 import type { FilePlan } from '@/parse/types'
 import { Button } from '@/components/ui/button'
 import { RepoTreePanel } from './components/RepoSidebarTree'
+import { RepoTreeFilterToggle } from './components/RepoTreeFilterToggle'
 import {
   RepoBrowserProvider,
   useOptionalRepoBrowserContext,
@@ -9,9 +10,20 @@ import {
 } from './RepoBrowserContext'
 import { REPO_COPY } from './hooks/use-repo-browser'
 
-function RepoBrowserForm() {
-  const { url, setUrl, busy, status, caption, onImport } = useRepoBrowserContext()
+function RepoBrowserForm({ showTreeFilter = false }: { showTreeFilter?: boolean }) {
+  const {
+    url,
+    setUrl,
+    busy,
+    status,
+    caption,
+    nodes,
+    exercisesOnly,
+    setExercisesOnly,
+    onImport,
+  } = useRepoBrowserContext()
   const isError = status?.kind === 'alert'
+  const showFilter = showTreeFilter && nodes !== null && nodes.length > 0
 
   return (
     <section className="grid gap-4">
@@ -44,7 +56,15 @@ function RepoBrowserForm() {
         </div>
       </form>
 
-      <p className="repo-caption text-muted text-label">{caption}</p>
+      <div className="repo-caption-row">
+        <p className="repo-caption text-muted text-label">{caption}</p>
+        {showFilter ? (
+          <RepoTreeFilterToggle
+            exercisesOnly={exercisesOnly}
+            onExercisesOnlyChange={setExercisesOnly}
+          />
+        ) : null}
+      </div>
 
       <p
         className={isError ? 'repo-status' : 'repo-status text-muted'}
@@ -65,7 +85,7 @@ export function RepoBrowser({ onPlanned }: { onPlanned?: (plan: FilePlan) => voi
   if (!ctx) {
     return (
       <RepoBrowserProvider onPlanned={onPlanned}>
-        <RepoBrowserForm />
+        <RepoBrowserForm showTreeFilter />
         <RepoTreePanel />
       </RepoBrowserProvider>
     )

@@ -67,6 +67,8 @@ export interface UseRepoBrowserResult {
   caption: string
   nodes: TreeNode[] | null
   selectedPath: string | null
+  exercisesOnly: boolean
+  setExercisesOnly: (value: boolean) => void
   onFileClick: (node: FileNode) => Promise<void>
   onImport: () => Promise<void>
 }
@@ -78,6 +80,7 @@ export function useRepoBrowser(onPlanned?: (plan: FilePlan) => void): UseRepoBro
   const [caption, setCaption] = useState('')
   const [nodes, setNodes] = useState<TreeNode[] | null>(null)
   const [selectedPath, setSelectedPath] = useState<string | null>(null)
+  const [exercisesOnly, setExercisesOnly] = useState(false)
   const [importedRef, setImportedRef] = useState<RepoRef | null>(null)
   const clickGenRef = useRef(0)
   const importGenRef = useRef(0)
@@ -208,5 +211,17 @@ export function useRepoBrowser(onPlanned?: (plan: FilePlan) => void): UseRepoBro
     }
   }
 
-  return { url, setUrl, busy, status, caption, nodes, selectedPath, onFileClick, onImport }
+  return {
+    url,
+    setUrl,
+    busy,
+    status,
+    caption,
+    nodes,
+    selectedPath,
+    exercisesOnly,
+    setExercisesOnly,
+    onFileClick,
+    onImport,
+  }
 }

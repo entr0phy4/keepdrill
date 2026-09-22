@@ -797,6 +797,19 @@ nav button:not([aria-current='page']) {
   color: var(--color-text-muted);
 }
 
+.repo-caption-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.repo-caption-row .repo-caption {
+  flex: 1;
+  min-width: 0;
+}
+
 .repo-caption {
   min-height: 1.4em;
   margin: 0;
@@ -809,6 +822,11 @@ nav button:not([aria-current='page']) {
   overflow-wrap: anywhere;
 }
 
+.repo-tree-empty {
+  margin: 0;
+  padding: var(--space-xs) var(--space-sm);
+}
+
 .repo-tree {
   max-height: 40vh;
   overflow: auto;
@@ -817,6 +835,12 @@ nav button:not([aria-current='page']) {
 [data-sidebar] .repo-tree {
   max-height: none;
   overflow: visible;
+}
+
+/* Trailing filter beside owner/repo@branch in the sidebar group label */
+[data-sidebar='group-label'] > button {
+  margin-inline-start: auto;
+  flex-shrink: 0;
 }
 
 .repo-tree ul {

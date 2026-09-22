@@ -222,6 +222,40 @@ describe('RepoBrowser — import form and locked copy', () => {
     expect(app.classList.contains('text-muted')).toBe(false)
   })
 
+  it('places the exercises filter beside the caption and filters the tree', async () => {
+    fetchRepoTree.mockResolvedValue(treeResult())
+    renderBrowser()
+    await importValue('o/r')
+
+    const toggle = container.querySelector(
+      '.repo-caption-row button[aria-pressed]',
+    ) as HTMLButtonElement
+    expect(toggle).toBeTruthy()
+    expect(toggle.textContent).toBe('All files')
+    expect(
+      Array.from(container.querySelectorAll('.repo-tree button')).some(
+        (b) => b.textContent === 'README.md',
+      ),
+    ).toBe(true)
+
+    act(() => {
+      toggle.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(toggle.getAttribute('aria-pressed')).toBe('true')
+    expect(toggle.textContent).toBe('Exercises')
+    expect(
+      Array.from(container.querySelectorAll('.repo-tree button')).some(
+        (b) => b.textContent === 'README.md',
+      ),
+    ).toBe(false)
+    expect(
+      Array.from(container.querySelectorAll('.repo-tree button')).some(
+        (b) => b.textContent === 'App.tsx',
+      ),
+    ).toBe(true)
+  })
+
   it('shows blocked copy on README.md click and does not fetch the blob', async () => {
     fetchRepoTree.mockResolvedValue(treeResult())
     renderBrowser()

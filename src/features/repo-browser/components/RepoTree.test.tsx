@@ -90,4 +90,16 @@ describe('RepoTree', () => {
     expect(items[0]?.style.getPropertyValue('--tree-i')).toBe('0')
     expect(items[1]?.style.getPropertyValue('--tree-i')).toBe('1')
   })
+
+  it('hides non-exercise files when exercisesOnly is set', () => {
+    act(() => {
+      root.render(
+        <RepoTree nodes={foldTree(ENTRIES)} exercisesOnly onFileClick={() => undefined} />,
+      )
+    })
+
+    expect(fileButton(container, 'README.md')).toBeUndefined()
+    expect(fileButton(container, 'App.tsx')).toBeTruthy()
+    expect(fileButton(container, 'util.ts')).toBeTruthy()
+  })
 })
