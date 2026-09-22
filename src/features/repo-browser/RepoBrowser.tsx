@@ -5,7 +5,7 @@ import { RepoTree } from './components/RepoTree'
 import { REPO_COPY, useRepoBrowser } from './hooks/use-repo-browser'
 
 export function RepoBrowser({ onPlanned }: { onPlanned?: (plan: FilePlan) => void } = {}) {
-  const { url, setUrl, busy, status, caption, nodes, onFileClick, onImport } =
+  const { url, setUrl, busy, status, caption, nodes, selectedPath, onFileClick, onImport } =
     useRepoBrowser(onPlanned)
   const showTree = nodes !== null && nodes.length > 0
   const isError = status?.kind === 'alert'
@@ -44,7 +44,11 @@ export function RepoBrowser({ onPlanned }: { onPlanned?: (plan: FilePlan) => voi
       <p className="repo-caption text-muted text-label">{caption}</p>
 
       {showTree && nodes !== null && (
-        <RepoTree nodes={nodes} onFileClick={(node) => void onFileClick(node)} />
+        <RepoTree
+          nodes={nodes}
+          selectedPath={selectedPath}
+          onFileClick={(node) => void onFileClick(node)}
+        />
       )}
 
       <p

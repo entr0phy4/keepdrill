@@ -66,6 +66,7 @@ export interface UseRepoBrowserResult {
   status: StatusState | null
   caption: string
   nodes: TreeNode[] | null
+  selectedPath: string | null
   onFileClick: (node: FileNode) => Promise<void>
   onImport: () => Promise<void>
 }
@@ -76,12 +77,14 @@ export function useRepoBrowser(onPlanned?: (plan: FilePlan) => void): UseRepoBro
   const [status, setStatus] = useState<StatusState | null>(null)
   const [caption, setCaption] = useState('')
   const [nodes, setNodes] = useState<TreeNode[] | null>(null)
+  const [selectedPath, setSelectedPath] = useState<string | null>(null)
   const [importedRef, setImportedRef] = useState<RepoRef | null>(null)
   const clickGenRef = useRef(0)
   const importGenRef = useRef(0)
 
   const onFileClick = async (node: FileNode) => {
     const token = ++clickGenRef.current
+    setSelectedPath(node.path)
     if (node.entryType === 'commit' || !isLoadablePath(node.path)) {
       setStatus({ kind: 'status', text: REPO_COPY.blocked })
       return
@@ -172,6 +175,7 @@ export function useRepoBrowser(onPlanned?: (plan: FilePlan) => void): UseRepoBro
       if (importGenRef.current !== importToken) return
 
       setImportedRef({ owner: result.owner, repo: result.repo })
+      setSelectedPath(null)
       setCaption(formatCaption(result.owner, result.repo, result.defaultBranch))
       if (result.entries.length === 0) {
         setNodes([])
@@ -185,6 +189,7 @@ export function useRepoBrowser(onPlanned?: (plan: FilePlan) => void): UseRepoBro
 
       if (err instanceof EmptyRepoError) {
         setCaption(formatCaption(err.owner, err.repo, err.defaultBranch))
+        setSelectedPath(null)
         setNodes([])
         setStatus({ kind: 'status', text: REPO_COPY.emptyRepo })
       } else if (err instanceof RepoNotFoundError) {
@@ -203,5 +208,5 @@ export function useRepoBrowser(onPlanned?: (plan: FilePlan) => void): UseRepoBro
     }
   }
 
-  return { url, setUrl, busy, status, caption, nodes, onFileClick, onImport }
+  return { url, setUrl, busy, status, caption, nodes, selectedPath, onFileClick, onImport }
 }

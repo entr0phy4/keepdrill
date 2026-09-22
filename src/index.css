@@ -659,6 +659,8 @@ nav button:not([aria-current='page']) {
 /* Exempt from the 44px control floor — same exception class as .save-failed-dismiss */
 .repo-tree button,
 .repo-tree summary {
+  display: flex;
+  align-items: center;
   min-height: 32px;
   min-width: 0;
   padding: var(--space-xs) var(--space-sm);
@@ -668,6 +670,15 @@ nav button:not([aria-current='page']) {
   text-align: left;
   width: 100%;
   overflow-wrap: anywhere;
+}
+
+.repo-tree button:hover,
+.repo-tree summary:hover {
+  background: var(--color-surface);
+}
+
+.repo-tree button[aria-current='true'] {
+  background: var(--color-surface);
 }
 
 @theme inline {

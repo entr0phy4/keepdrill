@@ -39,7 +39,7 @@ Cada feature exporta un `index.ts`. Los contenedores (smart) viven en la raíz d
 | --- | --- |
 | `CaptureSurface` / `.trainer-stack` | Overlay transparente + caret in-flow; métricas de fuente deben coincidir |
 | `KeyboardHeatmap` | Diagrama US-ANSI con `--kb-fill`; no hay teclado en el registry |
-| `FileScaffold` + `RepoTree` | Árbol nativo `<details>` y regiones `data-scaffold-*`; Accordion cambiaría los tests y el markup |
+| `FileScaffold` + `RepoTree` | Árbol nativo `<details>` (iconos Lucide, fila compacta, `aria-current`); Accordion cambiaría los tests y el markup |
 | `TextareaField` | `@fluid/input-message` es un composer de chat, no un paste de corpus |
 | `NativeSelect` | `@fluid/select` es un combobox popup; D-14 exige `<select>` nativo siempre habilitado |
 | `Banners` / `SaveFailedNotice` | No hay Alert; se reutilizan `.banner` / `.banner--warning` |
@@ -60,7 +60,7 @@ Cada feature exporta un `index.ts`. Los contenedores (smart) viven en la raíz d
 ## Checklist de verificación
 
 - [x] `pnpm typecheck` — sin errores
-- [x] `pnpm test` — 395 tests
+- [x] `pnpm test` — 397 tests
 - [x] `pnpm build` — OK; code-split de history/insights
 - [x] IDs de tests conservados (`#corpus-paste`, `#capture-surface`, `#github-url`, tabs)
 - [x] Hide-not-unmount del trainer (`style.display`)
