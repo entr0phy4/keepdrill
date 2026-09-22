@@ -681,21 +681,60 @@ nav button:not([aria-current='page']) {
   background: var(--color-surface);
 }
 
-@keyframes repo-tree-item-in {
-  from {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+/* Stay in the box while closing: UA hides disclosure content with display:none
+   / content-visibility, which would snap the exit. The fold is a 0fr→1fr grid
+   so height can ease; items fade and stagger in both directions. */
+.repo-tree details::details-content {
+  display: block;
+  content-visibility: visible;
+}
+
+.repo-tree details > .repo-tree-fold {
+  display: grid;
+  grid-template-rows: 0fr;
+  pointer-events: none;
+}
+
+.repo-tree details[open] > .repo-tree-fold {
+  grid-template-rows: 1fr;
+  pointer-events: auto;
+}
+
+.repo-tree details > .repo-tree-fold > ul {
+  min-height: 0;
+  overflow: hidden;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .repo-tree details[open] > ul > li {
-    animation: repo-tree-item-in 160ms ease-out both;
-    animation-delay: min(calc(var(--tree-i, 0) * 20ms), 160ms);
+  .repo-tree details > .repo-tree-fold {
+    transition: grid-template-rows 160ms ease-out;
+  }
+
+  .repo-tree details:not([open]) > .repo-tree-fold {
+    transition-duration: 120ms;
+  }
+
+  .repo-tree details > .repo-tree-fold > ul > li {
+    opacity: 0;
+    transform: translateY(-6px);
+    transition:
+      opacity 120ms ease-out,
+      transform 120ms ease-out;
+    transition-delay: min(calc((8 - var(--tree-i, 0)) * 12ms), 80ms);
+  }
+
+  .repo-tree details[open] > .repo-tree-fold > ul > li {
+    opacity: 1;
+    transform: none;
+    transition-duration: 160ms;
+    transition-delay: min(calc(var(--tree-i, 0) * 20ms), 160ms);
+  }
+
+  @starting-style {
+    .repo-tree details[open] > .repo-tree-fold > ul > li {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
   }
 }
 

@@ -75,28 +75,30 @@ function Dir({
           <Folder size={icon} strokeWidth={2} className="shrink-0 opacity-70" aria-hidden />
           {node.name}
         </summary>
-        <ul>
-          {node.children.map((child, childIndex) =>
-            child.kind === 'dir' ? (
-              <Dir
-                key={child.path}
-                node={child}
-                depth={depth + 1}
-                selectedPath={selectedPath}
-                index={childIndex}
-                onFileClick={onFileClick}
-              />
-            ) : (
-              <FileLi
-                key={child.path}
-                node={child}
-                selected={selectedPath === child.path}
-                index={childIndex}
-                onFileClick={onFileClick}
-              />
-            ),
-          )}
-        </ul>
+        <div className="repo-tree-fold">
+          <ul>
+            {node.children.map((child, childIndex) =>
+              child.kind === 'dir' ? (
+                <Dir
+                  key={child.path}
+                  node={child}
+                  depth={depth + 1}
+                  selectedPath={selectedPath}
+                  index={childIndex}
+                  onFileClick={onFileClick}
+                />
+              ) : (
+                <FileLi
+                  key={child.path}
+                  node={child}
+                  selected={selectedPath === child.path}
+                  index={childIndex}
+                  onFileClick={onFileClick}
+                />
+              ),
+            )}
+          </ul>
+        </div>
       </details>
     </li>
   )

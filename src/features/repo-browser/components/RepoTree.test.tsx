@@ -86,7 +86,7 @@ describe('RepoTree', () => {
     const src = Array.from(container.querySelectorAll('details')).find(
       (el) => el.querySelector('summary')?.textContent === 'src',
     )!
-    const items = Array.from(src.querySelector(':scope > ul')!.children) as HTMLElement[]
+    const items = Array.from(src.querySelector('ul')!.children) as HTMLElement[]
     expect(items[0]?.style.getPropertyValue('--tree-i')).toBe('0')
     expect(items[1]?.style.getPropertyValue('--tree-i')).toBe('1')
   })
