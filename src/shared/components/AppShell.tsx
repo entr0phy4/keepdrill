@@ -41,7 +41,7 @@ export function AppShell({ banners, children }: AppShellProps) {
           <SidebarTrigger />
         </header>
         <ScrollArea className="min-h-0 flex-1" viewportClassName="scroll-fade">
-          <div className="mx-auto grid w-full max-w-[var(--column-max)] content-start gap-6 px-6 pb-8 font-mono">
+          <div className="grid w-full content-start gap-6 px-6 pb-8 font-mono">
             {banners}
             {children}
           </div>
