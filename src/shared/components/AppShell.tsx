@@ -42,7 +42,7 @@ export function AppShell({ banners, children, afterNav }: AppShellProps) {
         <header className="flex h-12 shrink-0 items-center gap-2 px-3">
           <SidebarTrigger />
         </header>
-        <ScrollArea className="min-h-0 flex-1" viewportClassName="scroll-fade">
+        <ScrollArea className="min-h-0 flex-1">
           <div className="grid w-full content-start gap-6 px-6 pb-8 font-mono">
             {banners}
             {children}

@@ -54,12 +54,7 @@ export function App() {
   return (
     <RepoBrowserProvider onPlanned={startScaffold}>
       <AppShell
-        banners={
-          <Banners
-            crossOriginIsolated={session.crossOriginIsolated}
-            timingResolutionUs={session.timingResolutionUs}
-          />
-        }
+        banners={<Banners crossOriginIsolated={session.crossOriginIsolated} />}
         afterNav={<RepoSidebarTree />}
       >
         {/* D-08: corpus + drill stay mounted across routes; hide with display, never unmount. */}

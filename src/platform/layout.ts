@@ -1,8 +1,7 @@
 // Best-effort keyboard-layout notice (D-17). Chromium-only API; Firefox and
 // Safari refuse navigator.keyboard for fingerprinting reasons. This NEVER throws,
 // NEVER blocks first paint, and NEVER gates the UI — it only console.warns once
-// on a clearly non-ANSI layout. The static "US ANSI layout only" banner renders
-// regardless.
+// on a clearly non-ANSI layout. There is no on-page ANSI banner.
 
 let warned = false
 
