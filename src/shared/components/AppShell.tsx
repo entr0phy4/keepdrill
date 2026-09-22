@@ -16,9 +16,10 @@ import { ViewNav } from './ViewNav'
 export interface AppShellProps {
   banners: ReactNode
   children: ReactNode
+  afterNav?: ReactNode
 }
 
-export function AppShell({ banners, children }: AppShellProps) {
+export function AppShell({ banners, children, afterNav }: AppShellProps) {
   return (
     <SidebarProvider peek="none" className="font-sans">
       <Sidebar variant="inset" collapsible="offcanvas">
@@ -34,6 +35,7 @@ export function AppShell({ banners, children }: AppShellProps) {
               <ViewNav />
             </SidebarGroupContent>
           </SidebarGroup>
+          {afterNav}
         </SidebarContent>
       </Sidebar>
       <SidebarInset className="peer-data-[variant=inset]:bg-[var(--color-bg)]">

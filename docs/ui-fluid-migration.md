@@ -26,6 +26,7 @@ Cada feature exporta un `index.ts`. Los contenedores (smart) viven en la raíz d
 | Superficie | Primitivo @fluid | Notas |
 | --- | --- | --- |
 | Nav Trainer / History / Analytics | `Sidebar` inset + `SidebarMenuButton` + `NavLink` | rutas `/`, `/history`, `/analytics`; peek desactivado; `aria-current="page"` |
+| Árbol del repo importado | `RepoTree` en el sidebar, bajo Practice | el formulario GitHub se queda en el panel; el árbol comparte el `RepoBrowserProvider` |
 | Panel de contenido | `ScrollArea` Base UI + `scroll-fade` | Motion (`spring`), Sizes (`SizeProvider`) y Surfaces (`SurfaceProvider` / `Elevated`) instalados |
 | Tabs Paste \| GitHub | `Button` role=tab | Ver pendientes: TabsSubtle |
 | Load / Import / Restart | `Button` primary | `loading` mientras busy |

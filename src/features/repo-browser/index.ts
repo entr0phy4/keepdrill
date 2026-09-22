@@ -1,3 +1,5 @@
 export { RepoBrowser } from './RepoBrowser'
+export { RepoBrowserProvider } from './RepoBrowserContext'
+export { RepoSidebarTree, RepoTreePanel } from './components/RepoSidebarTree'
 export { RepoTree } from './components/RepoTree'
 export type { RepoTreeProps } from './components/RepoTree'

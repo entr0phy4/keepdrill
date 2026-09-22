@@ -1,4 +1,4 @@
-import { act } from 'react'
+import { act, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, afterEach, describe, it, expect, vi } from 'vitest'
@@ -13,11 +13,11 @@ let capturedOnPlanned: ((plan: FilePlan) => void) | undefined
 
 vi.mock('@/features/repo-browser', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/features/repo-browser')>()
-  function WrappedRepoBrowser(props: { onPlanned?: (plan: FilePlan) => void }) {
+  function WrappedProvider(props: { onPlanned?: (plan: FilePlan) => void; children: ReactNode }) {
     capturedOnPlanned = props.onPlanned
-    return actual.RepoBrowser(props)
+    return actual.RepoBrowserProvider(props)
   }
-  return { RepoBrowser: WrappedRepoBrowser }
+  return { ...actual, RepoBrowserProvider: WrappedProvider }
 })
 
 // React-DOM + happy-dom end-to-end render test, mirroring

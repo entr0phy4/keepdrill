@@ -644,6 +644,11 @@ nav button:not([aria-current='page']) {
   overflow: auto;
 }
 
+[data-sidebar] .repo-tree {
+  max-height: none;
+  overflow: visible;
+}
+
 .repo-tree ul {
   list-style: none;
   margin: 0;
