@@ -1,8 +1,14 @@
-# Single-package repo. This file pins pnpm's build-script allowlist so installs
-# are deterministic and non-interactive (pnpm >= 10 blocks postinstall scripts by
-# default).
+# Single-package repo. Pins which dependency lifecycle scripts may run so
+# installs are deterministic and non-interactive.
+#
+# pnpm 11 uses allowBuilds (replaces onlyBuiltDependencies). Unreviewed
+# packages with install scripts fail under strictDepBuilds with
+# ERR_PNPM_IGNORED_BUILDS — list every such package as true or false.
 packages: []
 minimumReleaseAgeExclude:
   - happy-dom@20.14.0
-onlyBuiltDependencies:
-  - esbuild
+allowBuilds:
+  esbuild: true
+  # Native node-gyp bindings are unused; grammar wasm is committed under public/wasm/.
+  tree-sitter-javascript: false
+  tree-sitter-typescript: false
