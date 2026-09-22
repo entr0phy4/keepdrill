@@ -774,7 +774,7 @@ describe('App — scaffolded file typing', () => {
     act(() => {
       capturedOnPlanned!(twoUnitGithubPlan())
     })
-    expect(container.textContent).toContain('Restart unit')
+    expect(container.textContent).not.toContain('Restart unit')
 
     await typeSlice(container.querySelector<HTMLTextAreaElement>('#capture-surface')!, 'function', 0)
 
@@ -814,26 +814,25 @@ describe('App — scaffolded file typing', () => {
     expect(await listNewestFirst()).toHaveLength(0)
   })
 
-  it('Restart unit remounts the current slice and does not persist', async () => {
+  it('does not show Restart unit; clicking another unit switches without persisting', async () => {
     act(() => {
       root.render(appTree())
     })
     act(() => {
       capturedOnPlanned!(twoUnitGithubPlan())
     })
+    expect(container.textContent).not.toContain('Restart unit')
     await typeSlice(container.querySelector<HTMLTextAreaElement>('#capture-surface')!, 'function', 0)
 
-    const restart = Array.from(container.querySelectorAll('button')).find(
-      (b) => b.textContent === 'Restart unit',
-    )!
+    const future = container.querySelector('[data-scaffold-role="future"]') as HTMLElement
     act(() => {
-      restart.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      future.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
     await act(async () => {
       await nextFrame()
     })
 
-    expect(container.textContent).toContain('1 / 2')
+    expect(container.textContent).toContain('2 / 2')
     const statuses = container.querySelectorAll('.file-source [data-status]')
     expect(statuses[0]?.getAttribute('data-status')).toBe('pending')
     expect(await listNewestFirst()).toHaveLength(0)

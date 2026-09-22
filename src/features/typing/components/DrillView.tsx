@@ -9,7 +9,6 @@ import { TrainerEmptyState } from './TrainerEmptyState'
 
 const COPY = {
   restartExercise: 'Restart exercise',
-  restartUnit: 'Restart unit',
 } as const
 
 function fileLabel(sourceRef: string | undefined): string | null {
@@ -77,6 +76,7 @@ export function DrillView({ session, visible }: { session: TrainerSession; visib
           complete={session.scaffoldComplete}
           onRestartRequested={session.handleRestart}
           onComplete={session.handleComplete}
+          onSelectUnit={session.selectUnit}
         />
       ) : (
         <FileSourceView
@@ -92,9 +92,9 @@ export function DrillView({ session, visible }: { session: TrainerSession; visib
       {session.metrics !== null && session.saveFailed && (
         <SaveFailedNotice onDismiss={session.dismissSaveFailed} />
       )}
-      {!session.scaffoldComplete && (
+      {!session.scaffoldComplete && session.curriculum === null && (
         <Button type="button" variant="primary" onClick={session.handleRestart}>
-          {session.curriculum !== null ? COPY.restartUnit : COPY.restartExercise}
+          {COPY.restartExercise}
         </Button>
       )}
     </div>

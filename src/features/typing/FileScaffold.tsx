@@ -1,4 +1,11 @@
-import { useLayoutEffect, useMemo, useRef, type CSSProperties, type ReactNode } from 'react'
+import {
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  type CSSProperties,
+  type KeyboardEvent,
+  type ReactNode,
+} from 'react'
 import type { PlanUnit } from '@/parse/types'
 import { coverFile } from '@/scaffold/cover'
 import { sliceUnit } from '@/scaffold/slice'
@@ -99,6 +106,27 @@ const staticPreStyle: CSSProperties = {
   color: 'var(--color-text)',
 }
 
+function selectableUnitProps(
+  index: number,
+  enabled: boolean,
+  onSelectUnit?: (index: number) => void,
+) {
+  if (!enabled || !onSelectUnit) return {}
+  const select = () => onSelectUnit(index)
+  return {
+    role: 'button' as const,
+    tabIndex: 0,
+    'data-unit-selectable': '',
+    onClick: select,
+    onKeyDown: (e: KeyboardEvent<HTMLElement>) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        select()
+      }
+    },
+  }
+}
+
 export function FileScaffold({
   text,
   units,
@@ -111,6 +139,7 @@ export function FileScaffold({
   pathLabel,
   onRestartRequested,
   onComplete,
+  onSelectUnit,
 }: {
   text: string
   units: readonly PlanUnit[]
@@ -123,6 +152,7 @@ export function FileScaffold({
   pathLabel?: string
   onRestartRequested?: () => void
   onComplete?: (completedAt: number) => void
+  onSelectUnit?: (index: number) => void
 }) {
   const currentCardRef = useRef<HTMLDivElement | null>(null)
   const coverIndex = complete ? units.length : unitIndex
@@ -138,6 +168,7 @@ export function FileScaffold({
     () => (plain ? tokenKinds(text, language) : []),
     [plain, text, language],
   )
+  const canSelect = interactive && !complete && onSelectUnit !== undefined
 
   useLayoutEffect(() => {
     if (plain) return
@@ -193,7 +224,16 @@ export function FileScaffold({
         </pre>
       )
     }
-    if (complete || seg.role !== 'current' || !interactive) {
+
+    const curriculumIndex = units.findIndex((u) => u.id === seg.unit.id)
+    const isCurrent = !complete && interactive && seg.role === 'current'
+    const selectProps = selectableUnitProps(
+      curriculumIndex,
+      canSelect && curriculumIndex !== unitIndex && curriculumIndex >= 0,
+      onSelectUnit,
+    )
+
+    if (!isCurrent) {
       const role = complete ? 'done' : seg.role
       if (plain) {
         return (
@@ -201,6 +241,7 @@ export function FileScaffold({
             key={seg.unit.id}
             data-scaffold-role={role}
             className="file-unit file-static"
+            {...selectProps}
           >
             {renderPlainChars(chars, kinds, seg.unit.start, seg.unit.end)}
           </div>
@@ -215,6 +256,7 @@ export function FileScaffold({
             ...staticPreStyle,
             color: role === 'future' ? undefined : 'var(--color-text)',
           }}
+          {...selectProps}
         >
           {renderGlyphs(sliceUnit(text, seg.unit.start, seg.unit.end))}
         </pre>

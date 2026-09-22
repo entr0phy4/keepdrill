@@ -18,6 +18,10 @@ declare global {
 
 const SESSION_REFRESH_MS = 250
 
+function emptySnapshot(): UnitSnapshot {
+  return { events: [], charLog: [], markers: [] }
+}
+
 export interface TrainerSession {
   exercise: Exercise | null
   filePlan: FilePlan | null
@@ -33,6 +37,7 @@ export interface TrainerSession {
   startScaffold: (plan: FilePlan) => void
   handleComplete: (completedAt: number) => void
   handleRestart: () => void
+  selectUnit: (index: number) => void
   dismissSaveFailed: () => void
 }
 
@@ -179,6 +184,27 @@ export function useTrainerSession(): TrainerSession {
     }
   }, [])
 
+  const selectUnit = useCallback((index: number) => {
+    const units = curriculumRef.current
+    if (units === null || scaffoldCompleteRef.current) return
+    if (!Number.isInteger(index) || index < 0 || index >= units.length) return
+    if (index === unitIndexRef.current) return
+
+    const snaps = snapshotsRef.current
+    if (snaps.length > index) {
+      snapshotsRef.current = snaps.slice(0, index)
+    } else {
+      while (snapshotsRef.current.length < index) {
+        snapshotsRef.current.push(emptySnapshot())
+      }
+    }
+
+    resetCapture()
+    setUnitIndex(index)
+    setLoadToken((token) => token + 1)
+    setSaveFailed(false)
+  }, [])
+
   const dismissSaveFailed = useCallback(() => {
     setSaveFailed(false)
   }, [])
@@ -213,6 +239,7 @@ export function useTrainerSession(): TrainerSession {
     startScaffold,
     handleComplete,
     handleRestart,
+    selectUnit,
     dismissSaveFailed,
   }
 }

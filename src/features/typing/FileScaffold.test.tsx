@@ -337,4 +337,55 @@ describe('FileScaffold — plain file segments', () => {
     expect(container.querySelector('[data-current-line]')).not.toBeNull()
     expect(scrollIntoView).not.toHaveBeenCalled()
   })
+
+  it('calls onSelectUnit when a non-current unit is clicked', () => {
+    const onSelectUnit = vi.fn<(index: number) => void>()
+    act(() => {
+      root.render(
+        <FileScaffold
+          plain
+          language="typescript"
+          text={TWO_UNIT_TEXT}
+          units={LEAVES_FIRST}
+          unitIndex={0}
+          loadToken={1}
+          complete={false}
+          onSelectUnit={onSelectUnit}
+        />,
+      )
+    })
+
+    // LEAVES_FIRST = [B, A]; unitIndex 0 → B is current, A is future in source order.
+    const future = container.querySelector('[data-scaffold-role="future"]') as HTMLElement
+    expect(future.getAttribute('data-unit-selectable')).toBe('')
+    act(() => {
+      future.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(onSelectUnit).toHaveBeenCalledTimes(1)
+    expect(onSelectUnit).toHaveBeenCalledWith(1)
+  })
+
+  it('does not select units when the scaffold is complete', () => {
+    const onSelectUnit = vi.fn<(index: number) => void>()
+    act(() => {
+      root.render(
+        <FileScaffold
+          plain
+          text={TWO_UNIT_TEXT}
+          units={LEAVES_FIRST}
+          unitIndex={1}
+          loadToken={1}
+          complete
+          onSelectUnit={onSelectUnit}
+        />,
+      )
+    })
+
+    const done = container.querySelector('[data-scaffold-role="done"]') as HTMLElement
+    expect(done.hasAttribute('data-unit-selectable')).toBe(false)
+    act(() => {
+      done.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(onSelectUnit).not.toHaveBeenCalled()
+  })
 })

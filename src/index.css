@@ -583,6 +583,23 @@ textarea {
   transform: none;
 }
 
+.file-source-flow > .file-unit[data-unit-selectable] {
+  cursor: pointer;
+}
+
+/* Hover preview: focus the hovered unit and blur everything else. */
+.file-source-flow:has(.file-unit:hover) > .file-unit:not(:hover),
+.file-source-flow:has(.file-unit:hover) > [data-scaffold-role='gap'] {
+  opacity: 0.38;
+  filter: blur(1.5px);
+}
+
+.file-source-flow:has(.file-unit:hover) > .file-unit:hover {
+  opacity: 1;
+  filter: none;
+  transform: none;
+}
+
 /* Role handoff: blur/dim ↔ clear as the active unit advances. */
 .file-source-flow > .file-unit,
 .file-source-flow > [data-scaffold-role='gap'] {
