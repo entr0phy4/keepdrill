@@ -422,11 +422,6 @@ textarea {
   opacity: 0.55;
 }
 
-/* Full-file drill surface. The scaffold/capture tree stays mounted underneath. */
-.drill-suspended {
-  display: none;
-}
-
 .file-source {
   display: grid;
   gap: var(--space-sm);
@@ -438,6 +433,30 @@ textarea {
   overflow-wrap: anywhere;
 }
 
+.file-scaffold {
+  display: grid;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.file-scaffold-landmark {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.file-scaffold-landmark .text-label,
+.file-scaffold-landmark .text-muted {
+  margin: 0;
+}
+
+.file-scaffold-landmark .text-label {
+  min-height: 1.4em;
+}
+
+.file-scaffold-landmark .text-muted {
+  overflow-wrap: anywhere;
+}
+
 .file-source-body {
   margin: 0;
   height: calc(100dvh - 9rem);
@@ -445,40 +464,102 @@ textarea {
   overflow: auto;
 }
 
-.file-source .trainer-stack > * {
-  white-space: pre;
-  overflow-wrap: normal;
-  word-break: normal;
+.file-source-flow {
   padding-top: var(--file-pad, 0px);
   padding-bottom: var(--file-pad, 0px);
 }
 
-.file-source .trainer-rendered-layer [data-token='keyword'] {
+.file-source .trainer-stack > * {
+  white-space: pre;
+  overflow-wrap: normal;
+  word-break: normal;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.file-source .trainer-textarea {
+  height: 100%;
+  min-height: 0;
+}
+
+.file-source .file-static {
+  margin: 0;
+  padding: 0 var(--space-md);
+  white-space: pre;
+  overflow-wrap: normal;
+  word-break: normal;
+  tab-size: 4;
+  font-family: var(--font-mono);
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line);
+  letter-spacing: normal;
+  user-select: text;
+}
+
+.file-source .file-line {
+  display: block;
+  min-height: var(--text-body-line);
+}
+
+.file-source .file-line[data-current-line] {
+  background: color-mix(in srgb, var(--color-text) 5%, transparent);
+  margin-inline: calc(-1 * var(--space-md));
+  padding-inline: var(--space-md);
+  border-radius: 2px;
+}
+
+.file-source [data-nl] {
+  display: block;
+  overflow: hidden;
+  width: 0;
+  height: 0;
+  font-size: 0;
+  line-height: 0;
+}
+
+.file-source [data-token='keyword'] {
   color: var(--syn-keyword);
 }
 
-.file-source .trainer-rendered-layer [data-token='string'] {
+.file-source [data-token='string'] {
   color: var(--syn-string);
 }
 
-.file-source .trainer-rendered-layer [data-token='comment'] {
+.file-source [data-token='comment'] {
   color: var(--syn-comment);
 }
 
-.file-source .trainer-rendered-layer [data-token='number'] {
+.file-source [data-token='number'] {
   color: var(--syn-number);
 }
 
-.file-source .trainer-rendered-layer [data-token='function'] {
+.file-source [data-token='function'] {
   color: var(--syn-function);
 }
 
-.file-source .trainer-rendered-layer [data-token='punct'] {
+.file-source [data-token='punct'] {
   color: var(--syn-punct);
+}
+
+.file-source .trainer-rendered-layer [data-status='pending'] {
+  opacity: 0.42;
+}
+
+.file-source .trainer-rendered-layer [data-status='correct'] {
+  opacity: 1;
 }
 
 .file-source .trainer-rendered-layer [data-status='incorrect'] {
   color: var(--color-incorrect);
+  opacity: 1;
+}
+
+.file-source [data-scaffold-role='future'] {
+  opacity: 0.38;
+}
+
+.file-source [data-scaffold-role='gap'] {
+  opacity: 0.5;
 }
 
 .file-source .trainer-caret {

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, type CSSProperties, type ReactNode } from 'react'
+import { useLayoutEffect, useMemo, useRef, type CSSProperties, type ReactNode } from 'react'
 import type { PlanUnit } from '@/parse/types'
 import { coverFile } from '@/scaffold/cover'
 import { sliceUnit } from '@/scaffold/slice'
@@ -6,6 +6,7 @@ import { glyphFor } from '@/trainer/state'
 import { prefersReducedMotion } from '@/shared/hooks'
 import { Card } from '@/components/ui/card'
 import { CaptureSurface } from './CaptureSurface'
+import { tokenKinds, type TokenKind } from './highlight'
 
 export const COPY = {
   landmark: '{n} / {m}',
@@ -49,6 +50,42 @@ function renderGlyphs(slice: string): ReactNode[] {
   return nodes
 }
 
+function renderPlainChars(
+  chars: readonly string[],
+  kinds: readonly TokenKind[],
+  start: number,
+  end: number,
+): ReactNode[] {
+  const lines: ReactNode[] = []
+  let buf: ReactNode[] = []
+  let lineStart = start
+  const flush = (at: number) => {
+    lines.push(
+      <span key={`line-${lineStart}-${at}`} className="file-line">
+        {buf}
+      </span>,
+    )
+    buf = []
+    lineStart = at
+  }
+  for (let i = start; i < end; i++) {
+    const ch = chars[i] ?? ''
+    const token = kinds[i]
+    buf.push(
+      <span
+        key={i}
+        data-token={token && token !== 'plain' ? token : undefined}
+        data-nl={ch === '\n' ? '' : undefined}
+      >
+        {ch}
+      </span>,
+    )
+    if (ch === '\n') flush(i + 1)
+  }
+  if (buf.length > 0) flush(end)
+  return lines
+}
+
 const staticPreStyle: CSSProperties = {
   margin: 0,
   padding: 'var(--space-md)',
@@ -69,6 +106,9 @@ export function FileScaffold({
   loadToken,
   complete,
   interactive = true,
+  plain = false,
+  language = 'plaintext',
+  pathLabel,
   onRestartRequested,
   onComplete,
 }: {
@@ -78,6 +118,9 @@ export function FileScaffold({
   loadToken: number
   complete: boolean
   interactive?: boolean
+  plain?: boolean
+  language?: string
+  pathLabel?: string
   onRestartRequested?: () => void
   onComplete?: (completedAt: number) => void
 }) {
@@ -90,81 +133,146 @@ export function FileScaffold({
   const progress = COPY.landmark.replace('{n}', String(n)).replace('{m}', String(m))
   const subtitle = subtitleFor(landmarkUnit)
   const landmarkAria = subtitle ? `${progress}, ${subtitle}` : progress
+  const chars = useMemo(() => Array.from(text), [text])
+  const kinds = useMemo(
+    () => (plain ? tokenKinds(text, language) : []),
+    [plain, text, language],
+  )
 
   useLayoutEffect(() => {
+    if (plain) return
     currentCardRef.current?.scrollIntoView({
       block: 'nearest',
       inline: 'nearest',
       behavior: prefersReducedMotion() ? 'instant' : 'smooth',
     })
-  }, [unitIndex])
+  }, [unitIndex, plain])
+
+  const landmark = (
+    <div
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      aria-label={landmarkAria}
+      className={plain ? 'file-scaffold-landmark' : undefined}
+      style={plain ? undefined : { display: 'grid', gap: 'var(--space-xs)', margin: 0 }}
+    >
+      <p
+        className="text-label"
+        style={plain ? undefined : { margin: 0, minHeight: '1.4em' }}
+      >
+        {progress}
+      </p>
+      {subtitle ? (
+        <p
+          className="text-muted"
+          style={plain ? undefined : { margin: 0, overflowWrap: 'anywhere' }}
+        >
+          {subtitle}
+        </p>
+      ) : null}
+    </div>
+  )
+
+  const regionNodes = segments.map((seg) => {
+    if (seg.kind === 'gap') {
+      if (plain) {
+        return (
+          <div
+            key={`gap-${seg.start}-${seg.end}`}
+            data-scaffold-role="gap"
+            className="file-static"
+          >
+            {renderPlainChars(chars, kinds, seg.start, seg.end)}
+          </div>
+        )
+      }
+      return (
+        <pre key={`gap-${seg.start}-${seg.end}`} data-scaffold-role="gap" style={staticPreStyle}>
+          {renderGlyphs(sliceUnit(text, seg.start, seg.end))}
+        </pre>
+      )
+    }
+    if (complete || seg.role !== 'current' || !interactive) {
+      const role = complete ? 'done' : seg.role
+      if (plain) {
+        return (
+          <div
+            key={seg.unit.id}
+            data-scaffold-role={role}
+            className="file-static"
+          >
+            {renderPlainChars(chars, kinds, seg.unit.start, seg.unit.end)}
+          </div>
+        )
+      }
+      return (
+        <pre
+          key={seg.unit.id}
+          data-scaffold-role={role}
+          className={role === 'future' ? 'text-muted' : undefined}
+          style={{
+            ...staticPreStyle,
+            color: role === 'future' ? undefined : 'var(--color-text)',
+          }}
+        >
+          {renderGlyphs(sliceUnit(text, seg.unit.start, seg.unit.end))}
+        </pre>
+      )
+    }
+    if (plain) {
+      return (
+        <div key={seg.unit.id} ref={currentCardRef} data-scaffold-current="" className="file-unit-current">
+          <CaptureSurface
+            key={loadToken}
+            plain
+            language={language}
+            text={sliceUnit(text, seg.unit.start, seg.unit.end)}
+            onRestartRequested={onRestartRequested}
+            onComplete={onComplete}
+          />
+        </div>
+      )
+    }
+    return (
+      <Card
+        key={seg.unit.id}
+        ref={currentCardRef}
+        data-scaffold-current=""
+        className="border border-border bg-card p-4"
+      >
+        <CaptureSurface
+          key={loadToken}
+          text={sliceUnit(text, seg.unit.start, seg.unit.end)}
+          onRestartRequested={onRestartRequested}
+          onComplete={onComplete}
+        />
+      </Card>
+    )
+  })
+
+  if (plain) {
+    return (
+      <section className="file-source" aria-label={pathLabel ?? 'File contents'}>
+        {pathLabel ? <p className="file-source-path text-label">{pathLabel}</p> : null}
+        <div className="file-scaffold">
+          {landmark}
+          <div className="file-source-body" aria-label="File">
+            <div className="file-source-flow">{regionNodes}</div>
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <div style={{ display: 'grid', gap: 'var(--space-xs)' }}>
-      <div
-        role="status"
-        aria-live="polite"
-        aria-atomic="true"
-        aria-label={landmarkAria}
-        style={{ display: 'grid', gap: 'var(--space-xs)', margin: 0 }}
-      >
-        <p className="text-label" style={{ margin: 0, minHeight: '1.4em' }}>
-          {progress}
-        </p>
-        {subtitle ? (
-          <p className="text-muted" style={{ margin: 0, overflowWrap: 'anywhere' }}>
-            {subtitle}
-          </p>
-        ) : null}
-      </div>
+      {landmark}
       <div
         aria-label="File"
         style={{ maxHeight: '70vh', overflow: 'auto', display: 'grid', gap: 0 }}
       >
-        {segments.map((seg) => {
-          if (seg.kind === 'gap') {
-            return (
-              <pre
-                key={`gap-${seg.start}-${seg.end}`}
-                data-scaffold-role="gap"
-                style={staticPreStyle}
-              >
-                {renderGlyphs(sliceUnit(text, seg.start, seg.end))}
-              </pre>
-            )
-          }
-          if (complete || seg.role !== 'current' || !interactive) {
-            const role = complete ? 'done' : seg.role
-            return (
-              <pre
-                key={seg.unit.id}
-                data-scaffold-role={role}
-                className={role === 'future' ? 'text-muted' : undefined}
-                style={{
-                  ...staticPreStyle,
-                  color: role === 'future' ? undefined : 'var(--color-text)',
-                }}
-              >
-                {renderGlyphs(sliceUnit(text, seg.unit.start, seg.unit.end))}
-              </pre>
-            )
-          }
-          return (
-            <Card
-              key={seg.unit.id}
-              ref={currentCardRef}
-              data-scaffold-current=""
-              className="border border-border bg-card p-4"
-            >
-              <CaptureSurface
-                key={loadToken}
-                text={sliceUnit(text, seg.unit.start, seg.unit.end)}
-                onRestartRequested={onRestartRequested}
-                onComplete={onComplete}
-              />
-            </Card>
-          )
-        })}
+        {regionNodes}
       </div>
     </div>
   )

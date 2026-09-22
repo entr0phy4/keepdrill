@@ -636,7 +636,7 @@ describe('App — startScaffold onPlanned (D-07, D-09, D-10, SCAF-01, SCAF-05)',
     )
   })
 
-  it('renders the full file in the drill surface and keeps the unit scaffold without a second capture', () => {
+  it('renders the full file in source order and types only the current unit', () => {
     act(() => {
       root.render(appTree())
     })
@@ -644,11 +644,14 @@ describe('App — startScaffold onPlanned (D-07, D-09, D-10, SCAF-01, SCAF-05)',
       capturedOnPlanned!(twoUnitGithubPlan())
     })
 
-    const overlay = container.querySelector('.file-source .trainer-rendered-layer')
-    expect(overlay?.textContent).toContain('function a() {}')
+    const file = container.querySelector('.file-source [aria-label="File"]')
+    expect(file?.textContent).toContain('function a() {}')
+    expect(file?.textContent).toContain('function b() {}')
+    const overlay = container.querySelector('[data-scaffold-current] .trainer-rendered-layer')
     expect(overlay?.textContent).toContain('function b() {}')
+    expect(overlay?.textContent).not.toContain('function a() {}')
     expect(container.querySelectorAll('#capture-surface')).toHaveLength(1)
-    expect(container.querySelector('[data-scaffold-current]')).toBeNull()
+    expect(container.querySelector('[data-scaffold-current]')).not.toBeNull()
     expect(container.textContent).toContain('1 / 2')
   })
 
@@ -659,7 +662,8 @@ describe('App — startScaffold onPlanned (D-07, D-09, D-10, SCAF-01, SCAF-05)',
     act(() => {
       capturedOnPlanned!(twoUnitGithubPlan())
     })
-    expect(container.querySelector('.file-source .trainer-rendered-layer')?.textContent).toContain(
+    expect(container.querySelector('[data-scaffold-current]')).not.toBeNull()
+    expect(container.querySelector('.file-source [aria-label="File"]')?.textContent).toContain(
       'function a() {}',
     )
 
@@ -762,8 +766,8 @@ const UNIT_B = 'function b() {}\n'
 const UNIT_A = 'function a() {}\n'
 const TWO_UNIT_FILE = 'function a() {}\nfunction b() {}\n'
 
-describe('App — rendered file typing (unit scaffold stays idle)', () => {
-  it('typing the start of the file does not persist or advance the hidden unit', async () => {
+describe('App — scaffolded file typing', () => {
+  it('typing the current unit does not persist or advance until that slice is complete', async () => {
     act(() => {
       root.render(appTree())
     })
@@ -780,12 +784,12 @@ describe('App — rendered file typing (unit scaffold stays idle)', () => {
     expect(container.textContent).not.toContain('2 / 2')
     const statuses = container.querySelectorAll('.file-source [data-status]')
     expect(statuses[0]?.getAttribute('data-status')).toBe('correct')
-    expect(container.querySelector('.file-source .trainer-rendered-layer')?.textContent).toContain(
+    expect(container.querySelector('[data-scaffold-current] .trainer-rendered-layer')?.textContent).toContain(
       'function b() {}',
     )
   })
 
-  it('Escape clears rendered-file progress and does not persist', async () => {
+  it('Escape clears current-unit progress and does not persist', async () => {
     act(() => {
       root.render(appTree())
     })
@@ -810,7 +814,7 @@ describe('App — rendered file typing (unit scaffold stays idle)', () => {
     expect(await listNewestFirst()).toHaveLength(0)
   })
 
-  it('Restart unit remounts the rendered file and does not persist', async () => {
+  it('Restart unit remounts the current slice and does not persist', async () => {
     act(() => {
       root.render(appTree())
     })
@@ -835,22 +839,19 @@ describe('App — rendered file typing (unit scaffold stays idle)', () => {
     expect(await listNewestFirst()).toHaveLength(0)
   })
 
-  it('finishing the rendered file writes one github History row and keeps the surface', async () => {
+  it('completing both units writes one github History row and unmounts capture', async () => {
     act(() => {
       root.render(appTree())
     })
     act(() => {
       capturedOnPlanned!(twoUnitGithubPlan('o/r:src/a.ts'))
     })
-    await typeSlice(
-      container.querySelector<HTMLTextAreaElement>('#capture-surface')!,
-      TWO_UNIT_FILE,
-      0,
-    )
+    await typeSlice(container.querySelector<HTMLTextAreaElement>('#capture-surface')!, UNIT_B, 0)
+    await typeSlice(container.querySelector<HTMLTextAreaElement>('#capture-surface')!, UNIT_A, 400)
 
     expect(container.querySelector('.results-panel')).not.toBeNull()
-    expect(container.querySelector('#capture-surface')).not.toBeNull()
-    expect(container.textContent).toContain('1 / 2')
+    expect(container.querySelector('#capture-surface')).toBeNull()
+    expect(container.textContent).toContain('2 / 2')
 
     const rows = await listNewestFirst()
     expect(rows).toHaveLength(1)

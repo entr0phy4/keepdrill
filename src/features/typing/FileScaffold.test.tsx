@@ -308,3 +308,33 @@ describe('FileScaffold — scrollIntoView (D-13)', () => {
     })
   })
 })
+
+describe('FileScaffold — plain file segments', () => {
+  it('paints real source text, syntax tokens, and a single current capture', () => {
+    act(() => {
+      root.render(
+        <FileScaffold
+          plain
+          language="typescript"
+          text={TWO_UNIT_TEXT}
+          units={LEAVES_FIRST}
+          unitIndex={0}
+          loadToken={1}
+          complete={false}
+        />,
+      )
+    })
+
+    const file = container.querySelector('[aria-label="File"]')
+    expect(file?.textContent).toContain('function a() {}')
+    expect(file?.textContent).toContain('function b() {}')
+    expect(file?.querySelector('.ws-glyph')).toBeNull()
+    expect(container.querySelector('[data-scaffold-role="future"] [data-token="keyword"]')).not.toBeNull()
+    expect(
+      container.querySelector('[data-scaffold-current] .trainer-rendered-layer')?.textContent,
+    ).toContain('function b() {}')
+    expect(container.querySelectorAll('#capture-surface')).toHaveLength(1)
+    expect(container.querySelector('[data-current-line]')).not.toBeNull()
+    expect(scrollIntoView).not.toHaveBeenCalled()
+  })
+})

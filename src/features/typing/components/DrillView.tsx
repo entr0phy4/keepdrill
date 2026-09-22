@@ -37,14 +37,18 @@ function FileSourceView({
   return (
     <section className="file-source" aria-label={label ?? 'File contents'}>
       {label ? <p className="file-source-path text-label">{label}</p> : null}
-      <CaptureSurface
-        key={loadToken}
-        plain
-        text={text}
-        language={language}
-        onRestartRequested={onRestartRequested}
-        onComplete={onComplete}
-      />
+      <div className="file-source-body">
+        <div className="file-source-flow">
+          <CaptureSurface
+            key={loadToken}
+            plain
+            text={text}
+            language={language}
+            onRestartRequested={onRestartRequested}
+            onComplete={onComplete}
+          />
+        </div>
+      </div>
     </section>
   )
 }
@@ -61,39 +65,38 @@ export function DrillView({ session, visible }: { session: TrainerSession; visib
 
   return (
     <div style={{ display: visible ? 'grid' : 'none' }} className="gap-4">
-      <FileSourceView
-        text={session.exercise.text}
-        sourceRef={session.exercise.sourceRef}
-        loadToken={session.loadToken}
-        language={session.exercise.language}
-        onRestartRequested={session.handleRestart}
-        onComplete={session.handleCompleteRendered}
-      />
-      {/* Unit scaffold stays mounted so the curriculum session remains.
-          Its capture is off: the full file above is the only typing surface. */}
-      <div className="drill-suspended">
-        {session.curriculum !== null ? (
-          <FileScaffold
-            text={session.exercise.text}
-            units={session.curriculum}
-            unitIndex={session.unitIndex}
-            loadToken={session.loadToken}
-            complete={session.scaffoldComplete}
-            interactive={false}
-            onRestartRequested={session.handleRestart}
-            onComplete={session.handleComplete}
-          />
-        ) : null}
-        {session.metrics !== null && <ResultsView metrics={session.metrics} />}
-        {session.metrics !== null && session.saveFailed && (
-          <SaveFailedNotice onDismiss={session.dismissSaveFailed} />
-        )}
-        {!session.scaffoldComplete && (
-          <Button type="button" variant="primary" onClick={session.handleRestart}>
-            {session.curriculum !== null ? COPY.restartUnit : COPY.restartExercise}
-          </Button>
-        )}
-      </div>
+      {session.curriculum !== null ? (
+        <FileScaffold
+          plain
+          pathLabel={fileLabel(session.exercise.sourceRef) ?? undefined}
+          language={session.exercise.language}
+          text={session.exercise.text}
+          units={session.curriculum}
+          unitIndex={session.unitIndex}
+          loadToken={session.loadToken}
+          complete={session.scaffoldComplete}
+          onRestartRequested={session.handleRestart}
+          onComplete={session.handleComplete}
+        />
+      ) : (
+        <FileSourceView
+          text={session.exercise.text}
+          sourceRef={session.exercise.sourceRef}
+          loadToken={session.loadToken}
+          language={session.exercise.language}
+          onRestartRequested={session.handleRestart}
+          onComplete={session.handleComplete}
+        />
+      )}
+      {session.metrics !== null && <ResultsView metrics={session.metrics} />}
+      {session.metrics !== null && session.saveFailed && (
+        <SaveFailedNotice onDismiss={session.dismissSaveFailed} />
+      )}
+      {!session.scaffoldComplete && (
+        <Button type="button" variant="primary" onClick={session.handleRestart}>
+          {session.curriculum !== null ? COPY.restartUnit : COPY.restartExercise}
+        </Button>
+      )}
     </div>
   )
 }
