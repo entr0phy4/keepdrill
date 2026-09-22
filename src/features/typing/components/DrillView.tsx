@@ -22,12 +22,14 @@ function FileSourceView({
   text,
   sourceRef,
   loadToken,
+  language,
   onRestartRequested,
   onComplete,
 }: {
   text: string
   sourceRef?: string
   loadToken: number
+  language: string
   onRestartRequested?: () => void
   onComplete?: (completedAt: number) => void
 }) {
@@ -39,6 +41,7 @@ function FileSourceView({
         key={loadToken}
         plain
         text={text}
+        language={language}
         onRestartRequested={onRestartRequested}
         onComplete={onComplete}
       />
@@ -62,6 +65,7 @@ export function DrillView({ session, visible }: { session: TrainerSession; visib
         text={session.exercise.text}
         sourceRef={session.exercise.sourceRef}
         loadToken={session.loadToken}
+        language={session.exercise.language}
         onRestartRequested={session.handleRestart}
         onComplete={session.handleCompleteRendered}
       />

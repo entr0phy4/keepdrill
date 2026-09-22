@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react'
 import { useCapture } from '@/capture/use-capture'
 import { getCharLog } from '@/capture/capture'
 import { computeTrainerState, glyphFor } from '@/trainer/state'
+import { lineIndexAt, tokenKinds } from './highlight'
 import { prefersReducedMotion } from '@/shared/hooks'
 import { useCharLogTick } from './hooks/use-char-log-tick'
 
@@ -20,16 +21,21 @@ const PASTE_BLOCKED_FADE_MS = 4000
 export function CaptureSurface({
   text,
   plain = false,
+  language = 'plaintext',
   onRestartRequested,
   onComplete,
 }: {
   text: string
   /** Full source, no trainer chrome. Whitespace stays as in the file. */
   plain?: boolean
+  language?: string
   onRestartRequested?: () => void
   onComplete?: (completedAt: number) => void
 }) {
   const ref = useRef<HTMLTextAreaElement | null>(null)
+  const scrollerRef = useRef<HTMLDivElement | null>(null)
+  const caretRef = useRef<HTMLSpanElement | null>(null)
+  const placedRef = useRef<string | null>(null)
   const [pasteBlocked, setPasteBlocked] = useState(false)
   const fadeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // D-07: guards onComplete so it fires at most once per distinct
@@ -162,12 +168,54 @@ export function CaptureSurface({
   // `text`, which would desync from `cursor`/`perCharStatus` for any
   // supplementary-plane character (surrogate pair) in the exercise.
   const textChars = Array.from(text)
+  const kinds = useMemo(
+    () => (plain ? tokenKinds(text, language) : []),
+    [plain, text, language],
+  )
+  const line = lineIndexAt(textChars, cursor)
+  const [filePad, setFilePad] = useState(0)
+
+  useLayoutEffect(() => {
+    placedRef.current = null
+  }, [text])
+
+  useLayoutEffect(() => {
+    if (!plain) return
+    const scroller = scrollerRef.current
+    if (!scroller) return
+    const apply = () => {
+      const next = Math.max(0, Math.round(scroller.clientHeight / 2))
+      const host = scroller.closest('.file-source')
+      if (host instanceof HTMLElement) host.style.setProperty('--file-pad', `${next}px`)
+      setFilePad((prev) => (prev === next ? prev : next))
+    }
+    apply()
+    const observer = new ResizeObserver(apply)
+    observer.observe(scroller)
+    return () => observer.disconnect()
+  }, [plain])
+
+  useLayoutEffect(() => {
+    if (!plain) return
+    const scroller = scrollerRef.current
+    const caret = caretRef.current
+    if (!scroller || !caret) return
+    const mark = `${line}:${filePad}`
+    if (placedRef.current === mark) return
+    placedRef.current = mark
+    const caretRect = caret.getBoundingClientRect()
+    const box = scroller.getBoundingClientRect()
+    const delta = caretRect.top + caretRect.height / 2 - (box.top + box.height / 2)
+    scroller.scrollTop += delta
+  }, [plain, line, text, filePad])
+
   const nodes: ReactNode[] = []
   for (let i = 0; i < textChars.length; i++) {
     if (i === cursor) {
       nodes.push(
         <span
           key={`caret-${i}`}
+          ref={caretRef}
           className="trainer-caret"
           data-active={isActive}
           aria-hidden="true"
@@ -176,10 +224,12 @@ export function CaptureSurface({
     }
     const targetChar = textChars[i] ?? ''
     const isWhitespaceGlyph = !plain && (targetChar === ' ' || targetChar === '\n')
+    const token = plain ? kinds[i] : undefined
     nodes.push(
       <span
         key={i}
         data-status={perCharStatus[i] ?? 'pending'}
+        data-token={token && token !== 'plain' ? token : undefined}
         data-caret-target={plain && i === cursor ? '' : undefined}
       >
         {isWhitespaceGlyph ? <span className="ws-glyph">{glyphFor(targetChar)}</span> : targetChar}
@@ -188,12 +238,22 @@ export function CaptureSurface({
   }
   if (cursor >= textChars.length) {
     nodes.push(
-      <span key="caret-end" className="trainer-caret" data-active={isActive} aria-hidden="true" />,
+      <span
+        key="caret-end"
+        ref={caretRef}
+        className="trainer-caret"
+        data-active={isActive}
+        aria-hidden="true"
+      />,
     )
   }
 
   const stack = (
-    <div className={plain ? 'trainer-stack file-source-body' : 'trainer-stack'} onClick={reclaimFocus}>
+    <div
+      ref={scrollerRef}
+      className={plain ? 'trainer-stack file-source-body' : 'trainer-stack'}
+      onClick={reclaimFocus}
+    >
       <textarea
         id="capture-surface"
         ref={ref}

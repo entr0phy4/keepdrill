@@ -66,6 +66,13 @@
   --color-incorrect: #c0362c;
   --color-incorrect-bg: rgba(192, 54, 44, 0.14);
 
+  --syn-keyword: #8250df;
+  --syn-string: #0a3069;
+  --syn-comment: #6e7781;
+  --syn-number: #0550ae;
+  --syn-function: #953800;
+  --syn-punct: #57606a;
+
   /* Heatmap sequential amber (06-UI-SPEC.md) — diagnostic intensity, not a score. */
   --heatmap-lo: #fef3c7;
   --heatmap-hi: #c97116;
@@ -144,6 +151,13 @@
     --color-pending: #8b949e;
     --color-incorrect: #f85149;
     --color-incorrect-bg: rgba(248, 81, 73, 0.18);
+
+    --syn-keyword: #ff7b72;
+    --syn-string: #a5d6ff;
+    --syn-comment: #8b949e;
+    --syn-number: #79c0ff;
+    --syn-function: #d2a8ff;
+    --syn-punct: #c9d1d9;
 
     --heatmap-lo: #2a1c08;
     --heatmap-hi: #9a5a14;
@@ -426,7 +440,8 @@ textarea {
 
 .file-source-body {
   margin: 0;
-  max-height: calc(100dvh - 8rem);
+  height: calc(100dvh - 9rem);
+  max-height: calc(100dvh - 9rem);
   overflow: auto;
 }
 
@@ -434,11 +449,36 @@ textarea {
   white-space: pre;
   overflow-wrap: normal;
   word-break: normal;
+  padding-top: var(--file-pad, 0px);
+  padding-bottom: var(--file-pad, 0px);
 }
 
-.file-source .trainer-rendered-layer [data-status='pending'],
-.file-source .trainer-rendered-layer [data-status='correct'] {
-  color: var(--color-text);
+.file-source .trainer-rendered-layer [data-token='keyword'] {
+  color: var(--syn-keyword);
+}
+
+.file-source .trainer-rendered-layer [data-token='string'] {
+  color: var(--syn-string);
+}
+
+.file-source .trainer-rendered-layer [data-token='comment'] {
+  color: var(--syn-comment);
+}
+
+.file-source .trainer-rendered-layer [data-token='number'] {
+  color: var(--syn-number);
+}
+
+.file-source .trainer-rendered-layer [data-token='function'] {
+  color: var(--syn-function);
+}
+
+.file-source .trainer-rendered-layer [data-token='punct'] {
+  color: var(--syn-punct);
+}
+
+.file-source .trainer-rendered-layer [data-status='incorrect'] {
+  color: var(--color-incorrect);
 }
 
 .file-source .trainer-caret {
