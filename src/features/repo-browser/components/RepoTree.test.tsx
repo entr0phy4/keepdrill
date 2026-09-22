@@ -77,4 +77,17 @@ describe('RepoTree', () => {
     expect(onFileClick).toHaveBeenCalledTimes(1)
     expect(onFileClick.mock.calls[0]![0].path).toBe('src/App.tsx')
   })
+
+  it('staggers folder children with --tree-i when the parent is open', () => {
+    act(() => {
+      root.render(<RepoTree nodes={foldTree(ENTRIES)} onFileClick={() => undefined} />)
+    })
+
+    const src = Array.from(container.querySelectorAll('details')).find(
+      (el) => el.querySelector('summary')?.textContent === 'src',
+    )!
+    const items = Array.from(src.querySelector(':scope > ul')!.children) as HTMLElement[]
+    expect(items[0]?.style.getPropertyValue('--tree-i')).toBe('0')
+    expect(items[1]?.style.getPropertyValue('--tree-i')).toBe('1')
+  })
 })

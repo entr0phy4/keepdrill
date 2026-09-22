@@ -681,6 +681,24 @@ nav button:not([aria-current='page']) {
   background: var(--color-surface);
 }
 
+@keyframes repo-tree-item-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .repo-tree details[open] > ul > li {
+    animation: repo-tree-item-in 160ms ease-out both;
+    animation-delay: min(calc(var(--tree-i, 0) * 20ms), 160ms);
+  }
+}
+
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans: 'Geist Variable', sans-serif;
